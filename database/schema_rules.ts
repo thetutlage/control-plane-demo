@@ -36,9 +36,6 @@ export default {
     actors: {
       columns: { type: valueColumn('ActorType', 'actor_type') },
     },
-    audit_events: {
-      columns: { actor_type: valueColumn('ActorType', 'actor_type') },
-    },
     permission_catalogs: {
       columns: {
         permissions: {

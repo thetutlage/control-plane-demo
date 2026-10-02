@@ -45,7 +45,6 @@ router
       .group(() => {
         router.get('members', [controllers.Members, 'index'])
         router.get('roles', [controllers.Roles, 'index'])
-        router.get('audit-log', [controllers.AuditEvents, 'index'])
       })
       .prefix('environments/:environment')
       .where('environment', router.matchers.slug())

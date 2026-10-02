@@ -5,7 +5,6 @@ import User from '#models/user'
 import Member from '#models/member'
 import Environment from '#models/environment'
 import App from '#models/app'
-import AdminAuditEvent from '#models/admin_audit_event'
 
 export default class Organization extends OrganizationSchema {
   @manyToMany(() => User, {
@@ -25,7 +24,4 @@ export default class Organization extends OrganizationSchema {
 
   @hasMany(() => App)
   declare apps: HasMany<typeof App>
-
-  @hasMany(() => AdminAuditEvent)
-  declare adminAuditEvents: HasMany<typeof AdminAuditEvent>
 }

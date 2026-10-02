@@ -72,12 +72,6 @@ const routes = {
     tokens: [{"old":"/w/:org/environments/:environment/roles","type":0,"val":"w","end":""},{"old":"/w/:org/environments/:environment/roles","type":1,"val":"org","end":""},{"old":"/w/:org/environments/:environment/roles","type":0,"val":"environments","end":""},{"old":"/w/:org/environments/:environment/roles","type":1,"val":"environment","end":""},{"old":"/w/:org/environments/:environment/roles","type":0,"val":"roles","end":""}],
     types: placeholder as Registry['roles.index']['types'],
   },
-  'audit_events.index': {
-    methods: ["GET","HEAD"],
-    pattern: '/w/:org/environments/:environment/audit-log',
-    tokens: [{"old":"/w/:org/environments/:environment/audit-log","type":0,"val":"w","end":""},{"old":"/w/:org/environments/:environment/audit-log","type":1,"val":"org","end":""},{"old":"/w/:org/environments/:environment/audit-log","type":0,"val":"environments","end":""},{"old":"/w/:org/environments/:environment/audit-log","type":1,"val":"environment","end":""},{"old":"/w/:org/environments/:environment/audit-log","type":0,"val":"audit-log","end":""}],
-    types: placeholder as Registry['audit_events.index']['types'],
-  },
 } as const satisfies Record<string, AdonisEndpoint>
 
 export { routes }

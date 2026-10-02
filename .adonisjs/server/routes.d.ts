@@ -15,7 +15,6 @@ export type ScannedRoutes = {
     'apps.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'members.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
     'roles.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
-    'audit_events.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
   }
   GET: {
     'home': { paramsTuple?: []; params?: {} }
@@ -26,7 +25,6 @@ export type ScannedRoutes = {
     'apps.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'members.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
     'roles.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
-    'audit_events.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
   }
   HEAD: {
     'home': { paramsTuple?: []; params?: {} }
@@ -37,7 +35,6 @@ export type ScannedRoutes = {
     'apps.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'members.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
     'roles.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
-    'audit_events.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
   }
   POST: {
     'new_account.store': { paramsTuple?: []; params?: {} }

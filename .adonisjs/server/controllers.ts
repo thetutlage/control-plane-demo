@@ -5,7 +5,6 @@
 
 export const controllers = {
   Apps: () => import('#controllers/apps_controller'),
-  AuditEvents: () => import('#controllers/audit_events_controller'),
   Members: () => import('#controllers/members_controller'),
   NewAccount: () => import('#controllers/new_account_controller'),
   Organizations: () => import('#controllers/organizations_controller'),

@@ -60,7 +60,7 @@ UserOrg ── user ↔ organization (many-to-many). Signup creates one
            organization; more can be created later, with a switcher
 Organization (tenant) ── name, slug (login subdomain)
 App ── an internal app, registered once per organization
-AdminAuditEvent ── console actions by users, tagged with the
+AdminAuditEvent ── (ClickHouse) console actions by users, tagged with the
                    environment when one applies
 
 ── Data plane (one hard boundary per environment) ──
@@ -77,8 +77,8 @@ Environment ── kind: development | staging | production
                        environment (JSONB), hash, git SHA, synced_at
   Role ── a named set of catalogue keys (JSONB), can span apps
   RoleAssignment ── actor × role, with optional expires_at
-  AuditEvent ── actor, action, target, app, ip, user_agent, metadata,
-                hash chain
+  AuditEvent ── (ClickHouse) actor, action, target, app, ip, user_agent,
+                metadata
 ```
 
 **Users and members are different people, or different roles of the same person.**
@@ -99,7 +99,7 @@ Environment ── kind: development | staging | production
 ### Multi-tenancy rules
 
 - **Isolation is enforced in one place.** Every environment table has `organization_id` and `environment_id`, so data can also be found across a whole organization. Console requests resolve the organization and environment once, and controllers only read through them. Composite foreign keys make links across environments impossible in the database itself. Tests try to read across tenants and across environments, and both attempts must fail.
-- **Each environment gets its own OIDC issuer**, for example `https://acme.<our-domain>` for prod and `https://acme--staging.<our-domain>` for staging. Each issuer has its own discovery document, JWKS, and signing keys. A token issued for one tenant or environment fails verification in any other because both `iss` and the key differ. The SDK checks `iss` and audience against the environment it is configured for. Custom domains (`login.acme.com`) come later and are production only.
+- **Each environment gets its own OIDC issuer**, for example `https://acme.<our-domain>` for prod and `https://acme--staging.<our-domain>` for staging. Each issuer has its own discovery document, JWKS, and signing keys. A token issued for one tenant or environment fails verification in any other because both `iss` and the key differ. The SDK checks `iss` and audience against the environment it is configured for. Issuers are subdomains of the console URL (`APP_URL`). Organization and environment slugs cannot be renamed, because they are part of every app's issuer URL. Custom domains (`login.acme.com`) come later and are production only.
 - **Each environment has its own credentials, and the key prefix shows which one:** `cp_test_…` for dev and staging, `cp_live_…` for prod. A staging CI key cannot write to production.
 - **Dev and staging are relaxed but clearly labelled.** They allow `http://localhost` redirects, keep keys viewable, show a console banner, and add a `[STAGING]` prefix to emails. Production requires https, shows secrets once, and applies production rate limits.
 - **No automatic copying between environments.** Members and role assignments are never mirrored from prod to staging, because that spreads real personal data into a weaker environment and creates surprise access. Later, an explicit and audited "import members from environment X" action could cover the need. A new environment can clone *settings* (branding, session lifetimes, MFA policy) from an existing one, but never secrets.
@@ -133,6 +133,13 @@ export default defineCatalog({
 
 **Why one master catalogue.** Roles modelled once for the whole company are common: Auth0 tenant roles, Keycloak composite roles, Entra access packages, AWS and GCP organization roles, and SailPoint business roles all work this way. Systems with one global catalogue (AWS, GCP, Backstage, Zanzibar) namespace their keys so that different areas never collide. Ownership of each area is usually handled by code review (for example, CODEOWNERS in the repo), which is the company's job rather than ours.
 
+### Audit events
+
+- **Storage:** two ClickHouse tables, `audit_events` (app activity, per environment) and `admin_audit_events` (console actions, per organization). Both are partitioned by month and sorted by tenant first, so every query reads one tenant's slice.
+- **Ingest:** apps and the SDK send events in batches to a dedicated ingest endpoint with a documented JSON contract. It writes straight to ClickHouse using async inserts, which batch on the server, so there is no queue in between. The endpoint can later move to a Go service without changing the contract.
+- **Reads:** the console reads through one module that always filters by organization and environment.
+- **Schema:** plain `.sql` migrations in `database/clickhouse/migrations/`, run by a small `ace` command. The AdonisJS app owns the schema; the ingest service only writes.
+
 ## 4. Agent identity: research notes
 
 Both candidate specs are **drafts**. Neither should shape the core schema beyond the principle that "an agent is an actor".
@@ -162,8 +169,8 @@ Both candidate specs are **drafts**. Neither should shape the core schema beyond
 | D3 | OAuth/OIDC engine | **Decided: `oidc-provider`, with a new instance per request.** See §8. |
 | D4 | Permission model | **Decided: one master catalogue of static permissions**, kept in one company repo and synced per environment. Roles span apps, and tokens carry all of the member's permissions. See §3. |
 | D5 | SDK shape | **Decided: one framework-agnostic TypeScript package, with no framework adapters.** Its functions take plain inputs (token string, callback URL, cookie values) and return plain results. The docs show a short wiring example for each popular framework. |
-| D6 | Production database | **Decided: PostgreSQL.** Audit events go in a monthly-partitioned table, with an analytics store such as ClickHouse as a later option. (SQLite was only the starter kit's default.) |
-| D7 | Audit tamper-evidence | **Decided: hash-chain the events (`prev_hash`)**, one chain per tenant and environment. |
+| D6 | Databases | **Decided: PostgreSQL for app data, self-hosted ClickHouse for audit events from day one.** See "Audit events" in §3. |
+| D7 | Audit tamper-evidence | **Decided: none in v1.** Events are append-only and only the ingest path writes them, which matches WorkOS, Okta, Auth0 and GitHub. Archiving, exports and integrity digests come later if customers ask. |
 | D8 | Environments | **Decided: full isolation.** Members, app clients, catalogues, roles, role assignments, keys, and runtime audit are all separate per environment. Only the management layer (organization, its users, billing, app registrations) is shared. Environments sit at the organization level. This matches WorkOS, Clerk, Auth0, Okta, Stytch, Descope, and Permit.io. Promoting roles between environments is manual for now (§3). |
 | D9 | Environment limits | **Decided:** dev, staging, and prod by default, with the number of environments set by plan. Billing counts active **prod** members only. Later: short-lived preview environments per pull request. |
 | D10 | Real staff in staging | **Decided: separate staging member records.** Every environment is set up the same way: sync the catalogue, define roles, add members, assign roles. |
@@ -206,7 +213,6 @@ Each milestone ends with something that can be demonstrated.
 - Explorer UI with filters for actor, app, action, target, and time.
 - Per-member timelines.
 - Retention policy and CSV/JSON export.
-- Verification of the hash chain.
 
 **M5: Hardening**
 - Rate limits on auth endpoints.
@@ -274,7 +280,7 @@ Why this approach:
 The costs that remain:
 1. The Koa bridge middleware, which needs integration tests.
 2. Exact version pins with a diff review on each upgrade, because the custom grants for agents use non-semver helpers.
-3. Client secrets encrypted at rest, with `private_key_jwt` offered for apps that can use it.
+3. Client secrets encrypted at rest (decided over hashing, so `oidc-provider` compares them unmodified), with `private_key_jwt` offered for apps that can use it.
 4. Overrides for first-party behaviour: no consent screen, and keeping `offline_access`.
 5. Subdomain issuers (`acme.<domain>`, `acme--staging.<domain>`), as already planned.
 

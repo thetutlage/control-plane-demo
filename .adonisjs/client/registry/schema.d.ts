@@ -139,16 +139,4 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['index']>>>
     }
   }
-  'audit_events.index': {
-    methods: ["GET","HEAD"]
-    pattern: '/w/:org/environments/:environment/audit-log'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue, ParamValue]
-      params: { org: ParamValue; environment: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/audit_events_controller').default['index']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/audit_events_controller').default['index']>>>
-    }
-  }
 }

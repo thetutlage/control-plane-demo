@@ -6,7 +6,7 @@ import { Form } from '@adonisjs/inertia/react'
 import FlashToasts from '~/components/flash_toasts'
 import ThemeToggle from '~/components/theme_toggle'
 import NavLink, { type NavItem } from '~/components/nav_link'
-import { AppWindow, House, KeyRound, LogOut, ScrollText, Users } from 'lucide-react'
+import { AppWindow, House, KeyRound, LogOut, Users } from 'lucide-react'
 
 /**
  * Organization pages are shared by every environment.
@@ -22,7 +22,6 @@ const organizationNav: NavItem[] = [
 const environmentNav: NavItem[] = [
   { label: 'Members', route: 'members.index', icon: Users },
   { label: 'Roles', route: 'roles.index', icon: KeyRound },
-  { label: 'Audit log', route: 'audit_events.index', icon: ScrollText },
 ]
 
 export default function ConsoleLayout({ children }: { children: ReactNode }) {

@@ -15,8 +15,8 @@ const DEFAULT_ENVIRONMENTS = [
 
 /**
  * Signs someone up for the control plane: creates their user account, their
- * first organization with its default environments, and links the two, all
- * or nothing.
+ * first organization with its default environments (each with a signing
+ * key), and links the two, all or nothing.
  */
 export default class OnboardingService {
   async onboard(signup: {
@@ -36,7 +36,12 @@ export default class OnboardingService {
         { client: trx }
       )
 
-      await organization.related('environments').createMany(DEFAULT_ENVIRONMENTS)
+      const environments = await organization
+        .related('environments')
+        .createMany(DEFAULT_ENVIRONMENTS)
+      for (const environment of environments) {
+        await environment.createSigningKey()
+      }
       await organization.related('users').attach([user.id])
 
       return { user, organization }

@@ -25,39 +25,6 @@ export class ActorSchema extends BaseModel {
   declare type: ActorType
 }
 
-export class AdminAuditEventSchema extends BaseModel {
-  static $columns = ['action', 'actorLabel', 'actorUserId', 'createdAt', 'environmentId', 'hash', 'id', 'ip', 'metadata', 'organizationId', 'prevHash', 'targetId', 'targetType', 'userAgent'] as const
-  $columns = AdminAuditEventSchema.$columns
-  @column()
-  declare action: string
-  @column()
-  declare actorLabel: string | null
-  @column()
-  declare actorUserId: number | null
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
-  @column()
-  declare environmentId: number | null
-  @column()
-  declare hash: string
-  @column()
-  declare id: string
-  @column()
-  declare ip: string | null
-  @column()
-  declare metadata: Record<string, unknown>
-  @column()
-  declare organizationId: number
-  @column()
-  declare prevHash: string | null
-  @column()
-  declare targetId: string | null
-  @column()
-  declare targetType: string | null
-  @column()
-  declare userAgent: string | null
-}
-
 export class AppClientSchema extends BaseModel {
   static $columns = ['appId', 'clientId', 'createdAt', 'environmentId', 'id', 'organizationId', 'redirectUris', 'updatedAt'] as const
   $columns = AppClientSchema.$columns
@@ -94,43 +61,6 @@ export class AppSchema extends BaseModel {
   declare slug: string
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
-}
-
-export class AuditEventSchema extends BaseModel {
-  static $columns = ['action', 'actorId', 'actorLabel', 'actorType', 'appClientId', 'createdAt', 'environmentId', 'hash', 'id', 'ip', 'metadata', 'organizationId', 'prevHash', 'targetId', 'targetType', 'userAgent'] as const
-  $columns = AuditEventSchema.$columns
-  @column()
-  declare action: string
-  @column()
-  declare actorId: number | null
-  @column()
-  declare actorLabel: string | null
-  @column()
-  declare actorType: ActorType | null
-  @column()
-  declare appClientId: number | null
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
-  @column()
-  declare environmentId: number
-  @column()
-  declare hash: string
-  @column()
-  declare id: string
-  @column()
-  declare ip: string | null
-  @column()
-  declare metadata: Record<string, unknown>
-  @column()
-  declare organizationId: number
-  @column()
-  declare prevHash: string | null
-  @column()
-  declare targetId: string | null
-  @column()
-  declare targetType: string | null
-  @column()
-  declare userAgent: string | null
 }
 
 export class EnvironmentSchema extends BaseModel {
@@ -253,6 +183,25 @@ export class RoleSchema extends BaseModel {
   declare permissions: string[]
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
+}
+
+export class SigningKeySchema extends BaseModel {
+  static $columns = ['alg', 'createdAt', 'environmentId', 'id', 'kid', 'organizationId', 'privateJwk'] as const
+  $columns = SigningKeySchema.$columns
+  @column()
+  declare alg: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare environmentId: number
+  @column()
+  declare id: number
+  @column()
+  declare kid: string
+  @column()
+  declare organizationId: number
+  @column()
+  declare privateJwk: string
 }
 
 export class UserOrgSchema extends BaseModel {

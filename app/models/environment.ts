@@ -1,8 +1,10 @@
 import db from '@adonisjs/lucid/services/db'
+import env from '#start/env'
 import { belongsTo, hasMany, hasOne } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany, HasOne } from '@adonisjs/lucid/types/relations'
 import { EnvironmentSchema } from '#database/schema'
 import { ActorType } from '#values/actor_type'
+import { EnvironmentKind } from '#values/environment_kind'
 import Organization from '#models/organization'
 import Actor from '#models/actor'
 import Member from '#models/member'
@@ -10,7 +12,9 @@ import AppClient from '#models/app_client'
 import PermissionCatalog from '#models/permission_catalog'
 import Role from '#models/role'
 import RoleAssignment from '#models/role_assignment'
-import AuditEvent from '#models/audit_event'
+import SigningKey from '#models/signing_key'
+
+const consoleUrl = new URL(env.get('APP_URL'))
 
 export default class Environment extends EnvironmentSchema {
   @belongsTo(() => Organization)
@@ -34,8 +38,42 @@ export default class Environment extends EnvironmentSchema {
   @hasMany(() => RoleAssignment)
   declare roleAssignments: HasMany<typeof RoleAssignment>
 
-  @hasMany(() => AuditEvent)
-  declare auditEvents: HasMany<typeof AuditEvent>
+  @hasMany(() => SigningKey)
+  declare signingKeys: HasMany<typeof SigningKey>
+
+  /**
+   * The subdomain of this environment's issuer: the organization slug for
+   * production, and `<org>--<environment>` for every other environment.
+   * Organization slugs cannot contain `--`, so the split is unambiguous.
+   */
+  issuerSubdomain(organizationSlug: string) {
+    return this.kind === EnvironmentKind.PRODUCTION
+      ? organizationSlug
+      : `${organizationSlug}--${this.slug}`
+  }
+
+  /**
+   * The URL of this environment's OpenID issuer, a subdomain of the
+   * console's own URL. Apps are configured with it, and it is the `iss` of
+   * every token the environment issues.
+   */
+  issuerUrl(organizationSlug: string) {
+    return `${consoleUrl.protocol}//${this.issuerSubdomain(organizationSlug)}.${consoleUrl.host}`
+  }
+
+  /**
+   * Adds a new key for this environment's issuer to sign tokens with.
+   */
+  async createSigningKey() {
+    return SigningKey.create(
+      {
+        organizationId: this.organizationId,
+        environmentId: this.id,
+        ...(await SigningKey.generateAttributes()),
+      },
+      { client: this.$trx }
+    )
+  }
 
   /**
    * Adds a member to this environment, together with the actor that

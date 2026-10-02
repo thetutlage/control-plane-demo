@@ -7,7 +7,6 @@
 import type { InferData, InferVariants } from '@adonisjs/core/types/transformers'
 import type { InferSharedProps, InferFlashData } from '@adonisjs/inertia/types'
 import type AppTransformer from '#transformers/app_transformer'
-import type AuditEventTransformer from '#transformers/audit_event_transformer'
 import type EnvironmentTransformer from '#transformers/environment_transformer'
 import type MemberTransformer from '#transformers/member_transformer'
 import type OrganizationTransformer from '#transformers/organization_transformer'
@@ -19,10 +18,6 @@ export namespace Data {
   export type App = InferData<AppTransformer>
   export namespace App {
     export type Variants = InferVariants<AppTransformer>
-  }
-  export type AuditEvent = InferData<AuditEventTransformer>
-  export namespace AuditEvent {
-    export type Variants = InferVariants<AuditEventTransformer>
   }
   export type Environment = InferData<EnvironmentTransformer>
   export namespace Environment {

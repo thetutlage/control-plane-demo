@@ -27,7 +27,4 @@ export interface ApiDefinition {
   roles: {
     index: typeof routes['roles.index']
   }
-  auditEvents: {
-    index: typeof routes['audit_events.index']
-  }
 }
