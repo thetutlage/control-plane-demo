@@ -297,3 +297,4 @@ These are defaults found in the source. Each one must be checked against best pr
 5. **Using a code or refresh token is check-then-mark, not atomic** (`lib/helpers/grant_source.js:23`). Our storage adapter makes marking atomic. Still open: whether the losing request of a race should also revoke the grant (RFC 6749 §4.1.2 says a reused code SHOULD revoke its tokens).
 6. **Features on by default:** PAR, DPoP, resource indicators, userinfo and RP-initiated logout. Access tokens are opaque and stored by default.
 7. **Unsafe fallbacks:** without `jwks`, a built-in development key is used. Without an adapter, an in-memory store shared by every instance is used.
+8. **Default lifetimes and error page.** `oidc-provider` warns that it uses its default TTL for interactions (and other records) and its default HTML error page. Lifetimes are set with token contents; the error page with the member login page.

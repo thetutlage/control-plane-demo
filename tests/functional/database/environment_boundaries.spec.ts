@@ -3,7 +3,6 @@ import testUtils from '@adonisjs/core/services/test_utils'
 import App from '#models/app'
 import Actor from '#models/actor'
 import Role from '#models/role'
-import AppClient from '#models/app_client'
 import RoleAssignment from '#models/role_assignment'
 import { ActorType } from '#values/actor_type'
 import { MemberStatus } from '#values/member_status'
@@ -57,11 +56,8 @@ test.group('Database environment boundaries', (group) => {
 
     await assert.rejects(
       () =>
-        AppClient.create({
-          organizationId: acme.organization.id,
-          environmentId: acme.production.id,
-          appId: globexApp.id,
-          clientId: 'cli_mixed',
+        acme.production.createAppClient(globexApp, {
+          appUrl: 'https://billing.globex.test',
           redirectUris: [],
         }),
       /app_clients_organization_id_app_id_foreign/

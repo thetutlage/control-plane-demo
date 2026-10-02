@@ -1,8 +1,13 @@
+import string from '@adonisjs/core/helpers/string'
 import { belongsTo, column } from '@adonisjs/lucid/orm'
+import encryption from '@adonisjs/core/services/encryption'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { AppClientSchema } from '#database/schema'
+import { EnvironmentKind } from '#values/environment_kind'
 import App from '#models/app'
 import Environment from '#models/environment'
+
+const SECRET_PURPOSE = 'app_clients.client_secret'
 
 export default class AppClient extends AppClientSchema {
   /**
@@ -16,4 +21,31 @@ export default class AppClient extends AppClientSchema {
 
   @belongsTo(() => Environment)
   declare environment: BelongsTo<typeof Environment>
+
+  /**
+   * A new client ID and secret. The secret's prefix shows which kind of
+   * environment it belongs to: `cp_live_` for production, `cp_test_` for
+   * every other environment.
+   */
+  static generateCredentials(kind: EnvironmentKind) {
+    const prefix = kind === EnvironmentKind.PRODUCTION ? 'cp_live_' : 'cp_test_'
+    const secret = `${prefix}${string.random(40)}`
+
+    return {
+      clientId: `app_${string.random(24)}`,
+      clientSecret: encryption.encrypt(secret, { purpose: SECRET_PURPOSE }),
+      clientSecretHint: secret.slice(-4),
+    }
+  }
+
+  /**
+   * The client secret, decrypted
+   */
+  get secret() {
+    const secret = encryption.decrypt<string>(this.clientSecret, SECRET_PURPOSE)
+    if (!secret) {
+      throw new Error(`Cannot decrypt the secret of client "${this.clientId}"`)
+    }
+    return secret
+  }
 }

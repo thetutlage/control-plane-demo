@@ -52,9 +52,9 @@ Issuer requests never pass through the console's body parser, session, CSRF or a
 
 ## Not built yet
 
-- Clients from `app_clients`, the member login page, token contents, logout and key rotation.
+- The member login page, token contents, logout and key rotation.
 
-What `oidc-provider` stores is covered in [Sign-in records](sign-in-records.md).
+Which apps can sign in is covered in [Apps and clients](apps-and-clients.md). What `oidc-provider` stores is covered in [Sign-in records](sign-in-records.md).
 
 ## Tests
 

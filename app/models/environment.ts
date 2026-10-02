@@ -9,6 +9,7 @@ import Organization from '#models/organization'
 import Actor from '#models/actor'
 import Member from '#models/member'
 import AppClient from '#models/app_client'
+import type App from '#models/app'
 import PermissionCatalog from '#models/permission_catalog'
 import Role from '#models/role'
 import RoleAssignment from '#models/role_assignment'
@@ -70,6 +71,23 @@ export default class Environment extends EnvironmentSchema {
         organizationId: this.organizationId,
         environmentId: this.id,
         ...(await SigningKey.generateAttributes()),
+      },
+      { client: this.$trx }
+    )
+  }
+
+  /**
+   * Configures an app in this environment: creates its client, with a new
+   * client ID and secret.
+   */
+  async createAppClient(app: App, values: Pick<AppClient, 'appUrl' | 'redirectUris'>) {
+    return AppClient.create(
+      {
+        ...values,
+        organizationId: this.organizationId,
+        environmentId: this.id,
+        appId: app.id,
+        ...AppClient.generateCredentials(this.kind),
       },
       { client: this.$trx }
     )

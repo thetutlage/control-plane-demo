@@ -26,12 +26,18 @@ export class ActorSchema extends BaseModel {
 }
 
 export class AppClientSchema extends BaseModel {
-  static $columns = ['appId', 'clientId', 'createdAt', 'environmentId', 'id', 'organizationId', 'redirectUris', 'updatedAt'] as const
+  static $columns = ['appId', 'appUrl', 'clientId', 'clientSecret', 'clientSecretHint', 'createdAt', 'environmentId', 'id', 'organizationId', 'redirectUris', 'updatedAt'] as const
   $columns = AppClientSchema.$columns
   @column()
   declare appId: number
   @column()
+  declare appUrl: string
+  @column()
   declare clientId: string
+  @column()
+  declare clientSecret: string
+  @column()
+  declare clientSecretHint: string
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column()

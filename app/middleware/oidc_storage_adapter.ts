@@ -1,12 +1,14 @@
 import db from '@adonisjs/lucid/services/db'
 import { errors } from 'oidc-provider'
 import type { Adapter, AdapterPayload } from 'oidc-provider'
+import AppClient from '#models/app_client'
 import type Environment from '#models/environment'
 
 /**
  * Where each oidc-provider record type is stored, and which payload fields
  * are copied into their own columns. Record types without a table are not
- * stored: reads find nothing and saving fails loudly.
+ * stored: reads find nothing and saving fails loudly. Clients are the one
+ * exception, read from `app_clients`.
  */
 const TABLES: Record<
   string,
@@ -90,7 +92,7 @@ export default class OidcStorageAdapter implements Adapter {
   }
 
   async find(id: string) {
-    return this.#findBy('id', id)
+    return this.#model === 'Client' ? this.#findClient(id) : this.#findBy('id', id)
   }
 
   async findByUid(uid: string) {
@@ -139,6 +141,31 @@ export default class OidcStorageAdapter implements Adapter {
   async revokeByGrantId(grantId: string) {
     if (this.#table?.consumable) {
       await this.#query(this.#table.name).where('grant_id', grantId).delete()
+    }
+  }
+
+  /**
+   * Clients are not stored by oidc-provider: they are the environment's
+   * app clients, and every client gets the same settings.
+   */
+  async #findClient(clientId: string): Promise<AdapterPayload | undefined> {
+    const client = await AppClient.query()
+      .where('environment_id', this.#environment.id)
+      .where('client_id', clientId)
+      .first()
+
+    if (!client) {
+      return undefined
+    }
+
+    return {
+      client_id: client.clientId,
+      client_secret: client.secret,
+      redirect_uris: client.redirectUris,
+      grant_types: ['authorization_code', 'refresh_token'],
+      response_types: ['code'],
+      token_endpoint_auth_method: 'client_secret_basic',
+      id_token_signed_response_alg: 'ES256',
     }
   }
 

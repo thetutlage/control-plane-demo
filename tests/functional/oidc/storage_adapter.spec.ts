@@ -3,7 +3,6 @@ import { errors } from 'oidc-provider'
 import db from '@adonisjs/lucid/services/db'
 import testUtils from '@adonisjs/core/services/test_utils'
 import App from '#models/app'
-import AppClient from '#models/app_client'
 import type Environment from '#models/environment'
 import { MemberStatus } from '#values/member_status'
 import OidcStorageAdapter from '#middleware/oidc_storage_adapter'
@@ -16,7 +15,7 @@ const HOUR = 3600
  * refresh token records oidc-provider would create, saved through the
  * adapter.
  */
-async function setupSignIn(environment: Environment, ids: { grant: string; clientId: string }) {
+async function setupSignIn(environment: Environment) {
   const member = await environment.createMember({
     email: 'sara@acme.test',
     fullName: 'Sara',
@@ -26,21 +25,19 @@ async function setupSignIn(environment: Environment, ids: { grant: string; clien
     { organizationId: environment.organizationId, slug: 'invoices' },
     { name: 'Invoices' }
   )
-  await AppClient.create({
-    organizationId: environment.organizationId,
-    environmentId: environment.id,
-    appId: app.id,
-    clientId: ids.clientId,
-    redirectUris: [],
+  const client = await environment.createAppClient(app, {
+    appUrl: 'https://invoices.acme.test',
+    redirectUris: ['https://invoices.acme.test/callback'],
   })
 
   const adapter = (model: string) => new OidcStorageAdapter(model, environment)
   const accountId = String(member.actorId)
-  await adapter('Grant').upsert(ids.grant, { accountId, clientId: ids.clientId }, HOUR)
-  await adapter('AuthorizationCode').upsert(`${ids.grant}-code`, { grantId: ids.grant }, 60)
-  await adapter('RefreshToken').upsert(`${ids.grant}-refresh`, { grantId: ids.grant }, HOUR)
+  const clientId = client.clientId
+  await adapter('Grant').upsert('g1', { accountId, clientId }, HOUR)
+  await adapter('AuthorizationCode').upsert('g1-code', { grantId: 'g1' }, 60)
+  await adapter('RefreshToken').upsert('g1-refresh', { grantId: 'g1' }, HOUR)
 
-  return { adapter, accountId }
+  return { adapter, accountId, clientId }
 }
 
 test.group('OIDC storage adapter', (group) => {
@@ -48,14 +45,14 @@ test.group('OIDC storage adapter', (group) => {
 
   test('saves records to their own table and reads them back', async ({ assert }) => {
     const { production } = await setupOnboardedOrganization()
-    const { adapter, accountId } = await setupSignIn(production, { grant: 'g1', clientId: 'c1' })
+    const { adapter, accountId, clientId } = await setupSignIn(production)
 
-    assert.deepEqual(await adapter('Grant').find('g1'), { accountId, clientId: 'c1' })
+    assert.deepEqual(await adapter('Grant').find('g1'), { accountId, clientId })
     assert.deepEqual(await adapter('RefreshToken').find('g1-refresh'), { grantId: 'g1' })
 
     const grant = await db.from('oidc_grants').where('id', 'g1').firstOrFail()
     assert.equal(grant.actor_id, Number(accountId))
-    assert.equal(grant.client_id, 'c1')
+    assert.equal(grant.client_id, clientId)
   })
 
   test('saving an existing record replaces it', async ({ assert }) => {
@@ -83,7 +80,7 @@ test.group('OIDC storage adapter', (group) => {
 
   test('a code can be used only once', async ({ assert }) => {
     const { production } = await setupOnboardedOrganization()
-    const { adapter } = await setupSignIn(production, { grant: 'g1', clientId: 'c1' })
+    const { adapter } = await setupSignIn(production)
     const codes = adapter('AuthorizationCode')
 
     await codes.consume('g1-code')
@@ -95,7 +92,7 @@ test.group('OIDC storage adapter', (group) => {
 
   test('two requests racing to use one refresh token: only one succeeds', async ({ assert }) => {
     const { production } = await setupOnboardedOrganization()
-    const { adapter } = await setupSignIn(production, { grant: 'g1', clientId: 'c1' })
+    const { adapter } = await setupSignIn(production)
 
     const results = await Promise.allSettled([
       adapter('RefreshToken').consume('g1-refresh'),
@@ -109,7 +106,7 @@ test.group('OIDC storage adapter', (group) => {
     assert,
   }) => {
     const { production } = await setupOnboardedOrganization()
-    const { adapter } = await setupSignIn(production, { grant: 'g1', clientId: 'c1' })
+    const { adapter } = await setupSignIn(production)
     await adapter('Grant').upsert('g2', (await adapter('Grant').find('g1'))!, HOUR)
     await adapter('RefreshToken').upsert('g2-refresh', { grantId: 'g2' }, HOUR)
 
@@ -122,7 +119,7 @@ test.group('OIDC storage adapter', (group) => {
 
   test('revoking by grant deletes only that grant’s tokens', async ({ assert }) => {
     const { production } = await setupOnboardedOrganization()
-    const { adapter } = await setupSignIn(production, { grant: 'g1', clientId: 'c1' })
+    const { adapter } = await setupSignIn(production)
     await adapter('Grant').upsert('g2', (await adapter('Grant').find('g1'))!, HOUR)
     await adapter('RefreshToken').upsert('g2-refresh', { grantId: 'g2' }, HOUR)
 
@@ -137,7 +134,7 @@ test.group('OIDC storage adapter', (group) => {
     assert,
   }) => {
     const { production, staging } = await setupOnboardedOrganization()
-    const { adapter } = await setupSignIn(production, { grant: 'g1', clientId: 'c1' })
+    const { adapter } = await setupSignIn(production)
     const stagingAdapter = (model: string) => new OidcStorageAdapter(model, staging)
 
     assert.isUndefined(await stagingAdapter('Grant').find('g1'))
@@ -155,11 +152,11 @@ test.group('OIDC storage adapter', (group) => {
     assert,
   }) => {
     const { production, staging } = await setupOnboardedOrganization()
-    const { accountId } = await setupSignIn(production, { grant: 'g1', clientId: 'c1' })
+    const { accountId, clientId } = await setupSignIn(production)
     const stagingGrants = new OidcStorageAdapter('Grant', staging)
 
     await assert.rejects(
-      () => stagingGrants.upsert('g2', { accountId, clientId: 'c1' }, HOUR),
+      () => stagingGrants.upsert('g2', { accountId, clientId }, HOUR),
       /oidc_grants_environment_id_actor_id_foreign/
     )
   })

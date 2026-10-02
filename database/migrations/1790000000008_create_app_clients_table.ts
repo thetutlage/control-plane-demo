@@ -1,9 +1,11 @@
 import { BaseSchema } from '@adonisjs/lucid/schema'
 
 /**
- * An app as registered in one environment: its OAuth client identity and
- * redirect URIs. The composite foreign keys guarantee the app and the
- * environment belong to the same organization.
+ * An app as configured in one environment: its OAuth client credentials,
+ * where it runs and its redirect URIs. The client secret is encrypted with
+ * the app key; the hint is its last four characters, for display. The
+ * composite foreign keys guarantee the app and the environment belong to the
+ * same organization.
  */
 export default class extends BaseSchema {
   protected tableName = 'app_clients'
@@ -15,6 +17,9 @@ export default class extends BaseSchema {
       table.integer('environment_id').unsigned().notNullable()
       table.integer('app_id').unsigned().notNullable()
       table.string('client_id', 64).notNullable().unique()
+      table.text('client_secret').notNullable()
+      table.string('client_secret_hint', 4).notNullable()
+      table.string('app_url', 2048).notNullable()
       table.jsonb('redirect_uris').notNullable().defaultTo('[]')
 
       table.timestamp('created_at', { useTz: true }).notNullable()

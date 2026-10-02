@@ -67,6 +67,12 @@ export default class OidcIssuerMiddleware {
       adapter: (model) => new OidcStorageAdapter(model, environment),
       jwks: { keys: environment.signingKeys.map((key) => key.toJwk()) },
       cookies: { keys: [env.get('APP_KEY').release()] },
+
+      /**
+       * oidc-provider only requires PKCE from clients without a secret.
+       * Current guidance (RFC 9700, OAuth 2.1) requires it from every client.
+       */
+      pkce: { required: () => true },
       features: {
         devInteractions: { enabled: false },
 
