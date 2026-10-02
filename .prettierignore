@@ -1,0 +1,6 @@
+.adonisjs
+node_modules
+build
+.flow/docs/
+.claude/skills/flow-*
+database/schema.ts
