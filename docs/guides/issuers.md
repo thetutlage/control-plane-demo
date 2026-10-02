@@ -52,8 +52,9 @@ Issuer requests never pass through the console's body parser, session, CSRF or a
 
 ## Not built yet
 
-- **Storage** for login sessions, codes, grants and refresh tokens. Until then, any endpoint that needs to store something fails with an error.
 - Clients from `app_clients`, the member login page, token contents, logout and key rotation.
+
+What `oidc-provider` stores is covered in [Sign-in records](sign-in-records.md).
 
 ## Tests
 

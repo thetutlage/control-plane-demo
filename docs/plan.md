@@ -285,3 +285,15 @@ The costs that remain:
 5. Subdomain issuers (`acme.<domain>`, `acme--staging.<domain>`), as already planned.
 
 Spike code: `scratchpad/spike-oidc-provider`, `scratchpad/spike-ts-oauth2-server`, and `scratchpad/single-instance`.
+
+### `oidc-provider` behaviours to verify
+
+These are defaults found in the source. Each one must be checked against best practice, decided, and documented in the guides when the step that touches it is built.
+
+1. **Refresh tokens outlive the SSO session.** With `offline_access`, refresh tokens are not bound to the session (`expiresWithSession`, `lib/helpers/defaults.js:301`). Deleting a member's session does not sign them out of apps; their grants must be deleted too.
+2. **Logout keeps `offline_access` grants.** The end-session endpoint revokes a grant only if it is not marked `persistsLogout`, which `offline_access` sets (`lib/actions/end_session.js:162`). After logout and a new sign-in, the old grant and its refresh token still work.
+3. **No refresh tokens without `offline_access`** (`issueRefreshToken`, `lib/helpers/defaults.js:305`). Apps then renew only by sending the browser back to `/authorize`, which doesn't work for background calls, CLIs or agents.
+4. **Grants are reused per session and app** (`loadExistingGrant`, `lib/helpers/defaults.js:544`). If an app logs out only locally, the refresh token it discarded stays valid until it expires.
+5. **Using a code or refresh token is check-then-mark, not atomic** (`lib/helpers/grant_source.js:23`). Our storage adapter makes marking atomic. Still open: whether the losing request of a race should also revoke the grant (RFC 6749 §4.1.2 says a reused code SHOULD revoke its tokens).
+6. **Features on by default:** PAR, DPoP, resource indicators, userinfo and RP-initiated logout. Access tokens are opaque and stored by default.
+7. **Unsafe fallbacks:** without `jwks`, a built-in development key is used. Without an adapter, an in-memory store shared by every instance is used.

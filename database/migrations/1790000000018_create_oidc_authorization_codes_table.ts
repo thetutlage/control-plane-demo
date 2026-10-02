@@ -1,0 +1,41 @@
+import { BaseSchema } from '@adonisjs/lucid/schema'
+
+/**
+ * One-time codes an app exchanges for tokens after a member signs in. They
+ * live for about a minute and can be used once. `payload` is the record as
+ * oidc-provider stores it; `grant_id` is copied out of it, and `consumed_at`
+ * is set when the code is used.
+ */
+export default class extends BaseSchema {
+  protected tableName = 'oidc_authorization_codes'
+
+  async up() {
+    this.schema.createTable(this.tableName, (table) => {
+      table.string('id', 128).primary()
+      table.integer('organization_id').unsigned().notNullable()
+      table.integer('environment_id').unsigned().notNullable()
+      table.string('grant_id', 128).notNullable()
+      table.jsonb('payload').notNullable()
+      table.timestamp('expires_at', { useTz: true }).notNullable()
+      table.timestamp('consumed_at', { useTz: true }).nullable()
+      table.timestamp('created_at', { useTz: true }).notNullable()
+
+      table.index(['environment_id', 'grant_id'])
+      table.index(['organization_id', 'environment_id'])
+      table
+        .foreign(['organization_id', 'environment_id'])
+        .references(['organization_id', 'id'])
+        .inTable('environments')
+        .onDelete('CASCADE')
+      table
+        .foreign(['environment_id', 'grant_id'])
+        .references(['environment_id', 'id'])
+        .inTable('oidc_grants')
+        .onDelete('CASCADE')
+    })
+  }
+
+  async down() {
+    this.schema.dropTable(this.tableName)
+  }
+}

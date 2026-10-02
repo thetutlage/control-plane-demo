@@ -23,9 +23,10 @@ export default class extends BaseSchema {
       table.unique(['environment_id', 'app_id'])
 
       /**
-       * Target of composite foreign keys that pin a row to one environment
+       * Targets of composite foreign keys that pin a row to one environment
        */
       table.unique(['environment_id', 'id'])
+      table.unique(['environment_id', 'client_id'])
 
       table.index(['organization_id', 'environment_id'])
       table

@@ -1,37 +1,12 @@
 import Provider from 'oidc-provider'
-import type { Adapter } from 'oidc-provider'
 import env from '#start/env'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 import Environment from '#models/environment'
+import OidcStorageAdapter from '#middleware/oidc_storage_adapter'
 import { EnvironmentKind } from '#values/environment_kind'
 
 const consoleHost = new URL(env.get('APP_URL')).host
-
-/**
- * Storage for codes, sessions, grants and refresh tokens is not wired up
- * yet. Reads find nothing and writes fail loudly, instead of falling back to
- * oidc-provider's in-memory store, which is shared by every instance.
- */
-class NoStorageAdapter implements Adapter {
-  constructor(private name: string) {}
-
-  async upsert(): Promise<never> {
-    throw new Error(`oidc-provider storage is not configured (tried to save a ${this.name})`)
-  }
-  async find() {
-    return undefined
-  }
-  async findByUid() {
-    return undefined
-  }
-  async findByUserCode() {
-    return undefined
-  }
-  async consume() {}
-  async destroy() {}
-  async revokeByGrantId() {}
-}
 
 /**
  * Hands requests for an issuer subdomain to that environment's
@@ -89,11 +64,18 @@ export default class OidcIssuerMiddleware {
    */
   #buildProvider(environment: Environment) {
     return new Provider(environment.issuerUrl(environment.organization.slug), {
-      adapter: NoStorageAdapter,
+      adapter: (model) => new OidcStorageAdapter(model, environment),
       jwks: { keys: environment.signingKeys.map((key) => key.toJwk()) },
       cookies: { keys: [env.get('APP_KEY').release()] },
       features: {
         devInteractions: { enabled: false },
+
+        /**
+         * On by default and unused for now. Both store record types that
+         * have no table.
+         */
+        pushedAuthorizationRequests: { enabled: false },
+        dPoP: { enabled: false },
       },
     })
   }

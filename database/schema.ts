@@ -107,6 +107,107 @@ export class MemberSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class OidcAuthorizationCodeSchema extends BaseModel {
+  static $columns = ['consumedAt', 'createdAt', 'environmentId', 'expiresAt', 'grantId', 'id', 'organizationId', 'payload'] as const
+  $columns = OidcAuthorizationCodeSchema.$columns
+  @column.dateTime()
+  declare consumedAt: DateTime | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare environmentId: number
+  @column.dateTime()
+  declare expiresAt: DateTime
+  @column()
+  declare grantId: string
+  @column()
+  declare id: string
+  @column()
+  declare organizationId: number
+  @column()
+  declare payload: any
+}
+
+export class OidcGrantSchema extends BaseModel {
+  static $columns = ['actorId', 'clientId', 'createdAt', 'environmentId', 'expiresAt', 'id', 'organizationId', 'payload'] as const
+  $columns = OidcGrantSchema.$columns
+  @column()
+  declare actorId: number
+  @column()
+  declare clientId: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare environmentId: number
+  @column.dateTime()
+  declare expiresAt: DateTime
+  @column()
+  declare id: string
+  @column()
+  declare organizationId: number
+  @column()
+  declare payload: any
+}
+
+export class OidcInteractionSchema extends BaseModel {
+  static $columns = ['createdAt', 'environmentId', 'expiresAt', 'id', 'organizationId', 'payload'] as const
+  $columns = OidcInteractionSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare environmentId: number
+  @column.dateTime()
+  declare expiresAt: DateTime
+  @column()
+  declare id: string
+  @column()
+  declare organizationId: number
+  @column()
+  declare payload: any
+}
+
+export class OidcRefreshTokenSchema extends BaseModel {
+  static $columns = ['consumedAt', 'createdAt', 'environmentId', 'expiresAt', 'grantId', 'id', 'organizationId', 'payload'] as const
+  $columns = OidcRefreshTokenSchema.$columns
+  @column.dateTime()
+  declare consumedAt: DateTime | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare environmentId: number
+  @column.dateTime()
+  declare expiresAt: DateTime
+  @column()
+  declare grantId: string
+  @column()
+  declare id: string
+  @column()
+  declare organizationId: number
+  @column()
+  declare payload: any
+}
+
+export class OidcSessionSchema extends BaseModel {
+  static $columns = ['actorId', 'createdAt', 'environmentId', 'expiresAt', 'id', 'organizationId', 'payload', 'uid'] as const
+  $columns = OidcSessionSchema.$columns
+  @column()
+  declare actorId: number | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare environmentId: number
+  @column.dateTime()
+  declare expiresAt: DateTime
+  @column()
+  declare id: string
+  @column()
+  declare organizationId: number
+  @column()
+  declare payload: any
+  @column()
+  declare uid: string
+}
+
 export class OrganizationSchema extends BaseModel {
   static $columns = ['createdAt', 'id', 'name', 'slug', 'updatedAt'] as const
   $columns = OrganizationSchema.$columns
