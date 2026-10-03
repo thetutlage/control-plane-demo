@@ -4,6 +4,7 @@
  */
 
 export const controllers = {
+  AppClients: () => import('#controllers/app_clients_controller'),
   Apps: () => import('#controllers/apps_controller'),
   Members: () => import('#controllers/members_controller'),
   NewAccount: () => import('#controllers/new_account_controller'),

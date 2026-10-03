@@ -21,7 +21,28 @@ App "Invoices"                      apps
 
 Secrets start with `cp_live_` in production and `cp_test_` in every other environment, followed by 40 random characters.
 
-## Creating a client
+## In the console
+
+| URL                                | Page                                                    |
+| ---------------------------------- | ------------------------------------------------------- |
+| `/w/:org/apps`                     | Apps list, with **Register app**                        |
+| `/w/:org/apps/create`              | Register an app: name and slug                          |
+| `/w/:org/apps/:app`                | The app, with one panel per environment                 |
+| `/w/:org/apps/:app/clients/create` | Configure a client: environment, app URL, redirect URIs |
+
+- **App page.** Each environment's panel either says "No client yet" with a **Configure** button, or shows the issuer URL, client ID, secret, app URL and redirect URIs.
+- **Configure client.**
+  - The environment dropdown lists only environments the app has no client in yet. **Configure** on a panel preselects that environment.
+  - Redirect URIs are entered one per line, between 1 and 10.
+  - Production accepts only `https`. Other environments also accept `http` on `localhost`, `127.0.0.1` and `[::1]`.
+  - URLs can't contain wildcards or `#fragments`. These rules are in `app/validators/rules/client_url.ts` and `redirect_uri_list.ts`.
+- **Secrets.**
+  - In development and staging, the secret is masked with a **Show** button.
+  - In production, the full secret is shown once, on the app page right after the client is created; after that, only the last four characters. It's passed to that one page view as the `clientSecret` flash message, and `AppClientTransformer` never sends a production secret.
+
+Editing and removing clients are not built yet.
+
+## Creating a client in code
 
 ```ts
 const client = await environment.createAppClient(app, {
@@ -54,6 +75,14 @@ When an app starts a sign-in or calls `/token`, `oidc-provider` asks the storage
 Every client must use **PKCE** (`pkce.required` in the issuer middleware), including clients with a secret.
 
 ## Tests
+
+`tests/browser/console/apps.spec.ts` covers:
+
+- registering an app;
+- configuring a development client and revealing its secret;
+- the production secret being shown only once;
+- `https` being required in production;
+- other organizations' apps returning 404.
 
 `tests/functional/oidc/clients.spec.ts` covers:
 

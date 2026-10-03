@@ -115,6 +115,66 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/apps_controller').default['index']>>>
     }
   }
+  'apps.create': {
+    methods: ["GET","HEAD"]
+    pattern: '/w/:org/apps/create'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { org: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/apps_controller').default['create']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/apps_controller').default['create']>>>
+    }
+  }
+  'apps.store': {
+    methods: ["POST"]
+    pattern: '/w/:org/apps'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/app').createAppValidator)>>
+      paramsTuple: [ParamValue]
+      params: { org: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/app').createAppValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/apps_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/apps_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'apps.show': {
+    methods: ["GET","HEAD"]
+    pattern: '/w/:org/apps/:app'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue]
+      params: { org: ParamValue; app: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/apps_controller').default['show']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/apps_controller').default['show']>>>
+    }
+  }
+  'apps.clients.create': {
+    methods: ["GET","HEAD"]
+    pattern: '/w/:org/apps/:app/clients/create'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue]
+      params: { org: ParamValue; app: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_clients_controller').default['create']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_clients_controller').default['create']>>>
+    }
+  }
+  'apps.clients.store': {
+    methods: ["POST"]
+    pattern: '/w/:org/apps/:app/clients'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/app_client').createAppClientValidator)>>
+      paramsTuple: [ParamValue, ParamValue]
+      params: { org: ParamValue; app: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/app_client').createAppClientValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_clients_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_clients_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
   'members.index': {
     methods: ["GET","HEAD"]
     pattern: '/w/:org/environments/:environment/members'

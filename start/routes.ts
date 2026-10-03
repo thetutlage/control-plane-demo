@@ -39,7 +39,16 @@ router
 router
   .group(() => {
     router.get('overview', [controllers.Overview, 'show'])
-    router.get('apps', [controllers.Apps, 'index'])
+    router
+      .resource('apps', controllers.Apps)
+      .only(['index', 'create', 'store', 'show'])
+      .params({ apps: 'app' })
+      .where('app', router.matchers.slug())
+    router
+      .resource('apps.clients', controllers.AppClients)
+      .only(['create', 'store'])
+      .params({ apps: 'app' })
+      .where('app', router.matchers.slug())
 
     router
       .group(() => {

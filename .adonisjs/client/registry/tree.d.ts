@@ -20,6 +20,13 @@ export interface ApiDefinition {
   }
   apps: {
     index: typeof routes['apps.index']
+    create: typeof routes['apps.create']
+    store: typeof routes['apps.store']
+    show: typeof routes['apps.show']
+    clients: {
+      create: typeof routes['apps.clients.create']
+      store: typeof routes['apps.clients.store']
+    }
   }
   members: {
     index: typeof routes['members.index']

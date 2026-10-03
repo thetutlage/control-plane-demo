@@ -57,7 +57,14 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
     const success: string | undefined = session?.flashMessages.get('success')
     const error: string | undefined = session?.flashMessages.get('error')
 
-    return { success, error }
+    /**
+     * A production client secret, shown once right after the client is
+     * created
+     */
+    const clientSecret: { clientId: string; secret: string } | undefined =
+      session?.flashMessages.get('clientSecret')
+
+    return { success, error, clientSecret }
   }
 
   async handle(ctx: HttpContext, next: NextFn) {

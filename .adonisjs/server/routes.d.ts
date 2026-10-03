@@ -13,6 +13,11 @@ export type ScannedRoutes = {
     'organizations.index': { paramsTuple?: []; params?: {} }
     'overview.show': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'apps.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'apps.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'apps.store': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'apps.show': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue} }
+    'apps.clients.create': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue} }
+    'apps.clients.store': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue} }
     'members.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
     'roles.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
   }
@@ -23,6 +28,9 @@ export type ScannedRoutes = {
     'organizations.index': { paramsTuple?: []; params?: {} }
     'overview.show': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'apps.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'apps.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'apps.show': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue} }
+    'apps.clients.create': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue} }
     'members.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
     'roles.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
   }
@@ -33,6 +41,9 @@ export type ScannedRoutes = {
     'organizations.index': { paramsTuple?: []; params?: {} }
     'overview.show': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'apps.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'apps.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'apps.show': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue} }
+    'apps.clients.create': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue} }
     'members.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
     'roles.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
   }
@@ -40,6 +51,8 @@ export type ScannedRoutes = {
     'new_account.store': { paramsTuple?: []; params?: {} }
     'session.store': { paramsTuple?: []; params?: {} }
     'session.destroy': { paramsTuple?: []; params?: {} }
+    'apps.store': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'apps.clients.store': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue} }
   }
 }
 declare module '@adonisjs/core/types/http' {

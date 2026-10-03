@@ -1072,3 +1072,105 @@ input {
     padding: 20px;
   }
 }
+
+/* --- forms in console pages --- */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 560px;
+}
+.form__actions {
+  display: flex;
+  gap: 8px;
+}
+.field__input--textarea {
+  height: auto;
+  padding: 10px 12px;
+  font-size: 13px;
+  resize: vertical;
+}
+
+/* --- app clients, one panel per environment --- */
+.clients {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.client {
+  padding: 22px 24px;
+}
+.client__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.client__empty {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.notice--secret {
+  margin: 14px 0 0;
+  border-color: color-mix(in oklab, #d97706 45%, var(--line-2));
+  color: var(--ink-2);
+}
+.kv {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 10px 16px;
+  margin-top: 16px;
+  font-size: 13.5px;
+}
+.kv dt {
+  padding: 7px 0;
+  line-height: 20px;
+  color: var(--muted);
+}
+.kv dd {
+  min-width: 0;
+  padding: 7px 0;
+  line-height: 20px;
+}
+/* rows with buttons are as tall as the buttons, and centred on them */
+.kv dd:has(> .kv__value),
+.kv dd.kv__value {
+  display: flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0;
+}
+.kv__value {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.kv__value code,
+.kv dd > code {
+  overflow-wrap: anywhere;
+}
+.kv__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  list-style: none;
+}
+.table a {
+  font-weight: 500;
+  text-underline-offset: 3px;
+}
+.table a:hover {
+  text-decoration: underline;
+}
+@media (max-width: 640px) {
+  .kv {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .kv dd + dt {
+    margin-top: 10px;
+  }
+}

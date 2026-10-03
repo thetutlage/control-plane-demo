@@ -190,7 +190,7 @@ Each milestone ends with something that can be demonstrated.
 
 **M1: Directory**
 - Invite, activate, and suspend staff.
-- Register apps: client credentials, redirect URIs, secret rotation.
+- Register apps: client credentials, redirect URIs, secret rotation. **v1 has one secret per client**, so rotating replaces it immediately and the old secret stops working. Several secrets at once, like WorkOS's create-then-delete rotation with `last_used_at`, can come later; it needs an override of `oidc-provider`'s single-secret check.
 - Catalog sync API and the console views of app permissions, roles, role assignments, and groups.
 
 **M2: Identity provider**
