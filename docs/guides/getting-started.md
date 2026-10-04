@@ -33,6 +33,8 @@ APP_URL=https://controlplane.localhost:1355 npx portless controlplane npm run de
 
 `APP_URL` must match the address you open, because issuer URLs are built from it. `portless` ends TLS and forwards `X-Forwarded-*` headers from loopback, which AdonisJS trusts by default.
 
+To try signing in from a real app, run the sample in `../control-plane-samples/invoices` (its README has the steps).
+
 ## Tests
 
 ```sh
