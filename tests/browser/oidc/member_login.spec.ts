@@ -1,29 +1,12 @@
 import { test } from '@japa/runner'
-import type { Page } from 'playwright'
 import env from '#start/env'
 import db from '@adonisjs/lucid/services/db'
 import testUtils from '@adonisjs/core/services/test_utils'
 import { MemberStatus } from '#values/member_status'
-import { authorizeUrl, setupAppClient } from '#tests/helpers/oidc'
+import { appCallback, authorizeUrl, setupAppClient, signIn } from '#tests/helpers/oidc'
 import { setupOnboardedOrganization } from '#tests/helpers/organizations'
 
 const PASSWORD = 'correct-horse'
-
-/**
- * Apps live on hosts that do not exist, so the browser's visit to an app's
- * callback fails. The request it starts is enough: it carries the code.
- */
-function appCallback(page: Page, url: string) {
-  return page
-    .waitForRequest((request) => request.url().startsWith(url))
-    .then((request) => new URL(request.url()))
-}
-
-async function signIn(page: Page, email: string, password: string) {
-  await page.getByLabel('Email', { exact: true }).fill(email)
-  await page.getByLabel('Password', { exact: true }).fill(password)
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-}
 
 test.group('Member login', (group) => {
   group.each.setup(() => testUtils.db().truncate())

@@ -37,7 +37,18 @@ export default class IssuerMiddleware {
       adapter: (model) => new OidcStorageAdapter(model, environment),
       findAccount: async (_ctx, accountId) => {
         const member = await Member.findActive(environment, accountId)
-        return member ? { accountId, claims: () => ({ sub: accountId }) } : undefined
+        if (!member) {
+          return undefined
+        }
+
+        return {
+          accountId,
+          claims: () => ({
+            sub: accountId,
+            name: member.fullName ?? undefined,
+            email: member.email,
+          }),
+        }
       },
     })
 

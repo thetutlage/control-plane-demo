@@ -5,10 +5,10 @@ While members sign in to apps, `oidc-provider` saves a few kinds of records. Eac
 | Table                      | Record                                                                                         | Lives for                              |
 | -------------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------- |
 | `oidc_interactions`        | A sign-in in progress: which app sent the member, and where to send them back                  | Minutes                                |
-| `oidc_sessions`            | The member's sign-in to the environment's sign-in page. This is what makes single sign-on work | Days, or until logout                  |
-| `oidc_grants`              | One sign-in of a member to one app ("Sara → Invoices"), with what it allows                    | As long as its refresh tokens are used |
+| `oidc_sessions`            | The member's sign-in to the environment's sign-in page. This is what makes single sign-on work | 30 days, renewed on every visit        |
+| `oidc_grants`              | One sign-in of a member to one app ("Sara → Invoices"), with what it allows                    | 14 days                                |
 | `oidc_authorization_codes` | The one-time `code` an app exchanges for tokens                                                | About a minute, usable once            |
-| `oidc_refresh_tokens`      | Tokens an app uses to get new access tokens                                                    | Days                                   |
+| `oidc_refresh_tokens`      | Tokens an app uses to get new access tokens                                                    | 14 days, never longer than their grant |
 
 ID tokens and access tokens are signed JWTs, so they're never stored. Apps verify them with the issuer's public key.
 
@@ -51,7 +51,7 @@ adapter: (model) => new OidcStorageAdapter(model, environment)
 - **Limited to one environment.** Every query includes that environment's ID, so one environment can never see another's records, even with the same ID.
 - **Unknown record types aren't stored.** Saving one fails with an error naming it; reading one finds nothing.
 - **Codes and refresh tokens are marked used atomically:** `UPDATE … SET consumed_at = now() WHERE consumed_at IS NULL`. If two requests race with the same token, only one succeeds and the other gets `invalid_grant`.
-- **Reuse is caught.** A used refresh token stays in the table until it expires. If it shows up again, `oidc-provider` sees it was used and revokes the whole grant.
+- **Reuse is caught.** A refresh token is replaced once it's 70% through its life. The used one stays in the table until it expires; if it shows up again, `oidc-provider` sees it was used and revokes the whole grant.
 
 ## Features turned off
 
@@ -59,8 +59,6 @@ These are on by default in `oidc-provider`, but would store record types we have
 
 - pushed authorization requests (PAR);
 - DPoP.
-
-Access tokens are not configured yet. They will be signed JWTs, which are never stored.
 
 ## Not built yet
 

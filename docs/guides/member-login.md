@@ -41,10 +41,7 @@ The page uses `inertia/layouts/sign_in.tsx`, which has no console navigation. No
 
 ## No consent screen
 
-Every app is first-party. Our `loadExistingGrant` hook gives a signed-in member whatever the app asks for:
-
-- it reuses the session's grant for that app when there is one (one grant per session and app);
-- otherwise it creates one.
+Every app is first-party. Our `loadExistingGrant` hook gives a signed-in member whatever the app asks for, in a new grant on every visit to the issuer ([Tokens](tokens.md#lifetimes)).
 
 So when a signed-in member opens a second app, there's no sign-in page at all: `oidc-provider` redirects straight back with a code.
 
@@ -62,13 +59,12 @@ Members see one of two error pages, which look the same and share their wording 
 | `/sign-in/*`                             | Any other `oidc-provider` error                                                       | "We couldn't sign you in"                                                                                          | same                                                              |
 | Anywhere else on an issuer host          | Not found / our own crash                                                             | "This sign-in link isn't valid" / "Something went wrong on our side". While debugging, crashes keep the debug page | same                                                              |
 | `/sign-in/*`                             | Invalid form input or wrong credentials                                               | Field errors, or the toast "Email or password is incorrect"                                                        | the sign-in page                                                  |
-| `/oauth/token`, `/oauth/me`              | Anything (these are called by apps' servers)                                          | Nothing: the app gets JSON                                                                                         | `oidc-provider`                                                   |
+| `/oauth/token`, `/oauth/jwks`            | Anything (these are called by apps' servers)                                          | Nothing: the app gets JSON                                                                                         | `oidc-provider`                                                   |
 
 Errors are **rendered in the response to the failing request**, with its real status, never redirected to a separate error page. That keeps the status honest and needs no state across a redirect. Only form validation and wrong credentials redirect back to the form. `oidc-provider` errors below 500 are expected, and aren't reported as errors.
 
 ## Not built yet
 
-- Exchanging the code for tokens, and what goes inside tokens.
 - Logout.
 - Inviting members to choose their own password.
 

@@ -1,8 +1,24 @@
 import edge from 'edge.js'
 import logger from '@adonisjs/core/services/logger'
 import { errorPage } from '#oidc/error_pages'
-import Provider from 'oidc-provider'
+import Provider, { errors } from 'oidc-provider'
 import type { AdapterFactory, FindAccount, JWK, KoaContextWithOIDC } from 'oidc-provider'
+
+const MINUTE = 60
+const DAY = 24 * 60 * MINUTE
+
+/**
+ * Access tokens are signed JWTs that apps check on their own, so they
+ * cannot be revoked before they expire. They are kept short.
+ */
+const ACCESS_TOKEN_TTL = 5 * MINUTE
+
+/**
+ * oidc-provider issues JWT access tokens only for a "resource", the API
+ * that accepts them. An app's access tokens are for the app itself, so
+ * every client has one resource of its own, and apps never send it.
+ */
+const resourceFor = (clientId: string) => `urn:client:${clientId}`
 
 export type CreateProviderInput = {
   /**
@@ -59,6 +75,46 @@ export function createProvider(input: CreateProviderInput) {
      */
     pkce: { required: () => true },
 
+    /**
+     * How long each record lasts, in seconds. Refresh tokens stop working
+     * when their grant expires, so an app sends the member back to the
+     * issuer every 14 days, however often it refreshes. The session is
+     * extended to 30 days on every visit to the issuer, so the member
+     * enters their password again only after 30 days without one.
+     */
+    ttl: {
+      AccessToken: ACCESS_TOKEN_TTL,
+      AuthorizationCode: 1 * MINUTE,
+      IdToken: 60 * MINUTE,
+      Interaction: 10 * MINUTE,
+      RefreshToken: 14 * DAY,
+      Grant: 14 * DAY,
+      Session: 30 * DAY,
+    },
+
+    /**
+     * Every app gets a refresh token, and it keeps working when the
+     * member's session ends. oidc-provider's defaults reserve both for the
+     * `offline_access` scope, which it only accepts with `prompt=consent`,
+     * a consent step our first-party apps don't have.
+     */
+    issueRefreshToken: async (_ctx, client) => client.grantTypeAllowed('refresh_token'),
+    expiresWithSession: async () => false,
+
+    /**
+     * The ID token carries the member's details for the scopes the app
+     * asks for. The first four are oidc-provider's defaults.
+     */
+    claims: {
+      acr: null,
+      auth_time: null,
+      iss: null,
+      sid: null,
+      openid: ['sub'],
+      profile: ['name'],
+      email: ['email'],
+    },
+
     features: {
       devInteractions: { enabled: false },
 
@@ -68,20 +124,45 @@ export function createProvider(input: CreateProviderInput) {
        */
       pushedAuthorizationRequests: { enabled: false },
       dPoP: { enabled: false },
+
+      /**
+       * The userinfo endpoint only accepts stored access tokens without an
+       * audience. Ours are JWTs for the app, and the ID token already
+       * carries the member's details.
+       */
+      userinfo: { enabled: false },
+
+      resourceIndicators: {
+        enabled: true,
+        defaultResource: (_ctx, client) => resourceFor(client.clientId),
+        async getResourceServerInfo(_ctx, resource, client) {
+          if (resource !== resourceFor(client.clientId)) {
+            throw new errors.InvalidTarget()
+          }
+
+          return {
+            scope: '',
+            audience: client.clientId,
+            accessTokenFormat: 'jwt',
+            accessTokenTTL: ACCESS_TOKEN_TTL,
+            jwt: { sign: { alg: 'ES256' } },
+          }
+        },
+      },
     },
 
     /**
      * Every app is first-party, so there is no consent screen: a signed-in
-     * member is granted whatever the app asks for. The session's grant for
-     * the app is reused when it exists (one grant per session and app), and
-     * a new one is created otherwise.
+     * member is granted whatever the app asks for. Every visit to the
+     * issuer creates a new grant, so the tokens from it get their full
+     * lifetime, even when the app sends the member back early.
      */
     async loadExistingGrant(ctx: KoaContextWithOIDC) {
       const { session, client, params } = ctx.oidc
-      const grantId = session!.grantIdFor(client!.clientId)
-      const grant =
-        (grantId && (await ctx.oidc.provider.Grant.find(grantId))) ||
-        new ctx.oidc.provider.Grant({ clientId: client!.clientId, accountId: session!.accountId })
+      const grant = new ctx.oidc.provider.Grant({
+        clientId: client!.clientId,
+        accountId: session!.accountId,
+      })
 
       grant.addOIDCScope(String(params!.scope))
       await grant.save()
