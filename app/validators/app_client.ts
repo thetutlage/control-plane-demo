@@ -13,4 +13,10 @@ export const createAppClientValidator = vine.withMetaData<ClientUrlMetaData>().c
   ),
   appUrl: vine.string().trim().maxLength(2048).use(clientUrl()),
   redirectUris: vine.string().maxLength(20_000).use(redirectUriList()).transform(redirectUriLines),
+  postLogoutRedirectUris: vine
+    .string()
+    .maxLength(20_000)
+    .use(redirectUriList({ optional: true }))
+    .transform(redirectUriLines)
+    .optional(),
 })

@@ -119,7 +119,11 @@ export default class Environment extends EnvironmentSchema {
    * Configures an app in this environment: creates its client, with a new
    * client ID and secret.
    */
-  async createAppClient(app: App, values: Pick<AppClient, 'appUrl' | 'redirectUris'>) {
+  async createAppClient(
+    app: App,
+    values: Pick<AppClient, 'appUrl' | 'redirectUris'> &
+      Partial<Pick<AppClient, 'postLogoutRedirectUris'>>
+  ) {
     return AppClient.create(
       {
         ...values,

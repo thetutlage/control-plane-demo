@@ -1,5 +1,5 @@
 /**
- * What a member reads when a sign-in cannot continue, on either error page
+ * What a member reads when a sign-in or sign-out cannot continue, on either error page
  * of an issuer host: `errors/oidc` (Inertia, for everything outside `/oauth`) and
  * `errors/oidc.edge` (Edge, for oidc-provider's own endpoints). `code` is the
  * OAuth error code, shown small for whoever helps them; oidc-provider's
@@ -19,6 +19,11 @@ const PAGES = {
     title: "We couldn't sign you in",
     message:
       "The app sent a sign-in request this page can't accept. Go back to the app and try again, or contact its owner if this keeps happening.",
+  },
+  sign_out_rejected: {
+    title: "We couldn't sign you out",
+    message:
+      "The app sent a sign-out request this page can't accept, so you may still be signed in. Go back to the app and try again, or contact its owner if this keeps happening.",
   },
   server_error: {
     title: 'Something went wrong on our side',

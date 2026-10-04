@@ -2,7 +2,8 @@ import { BaseSchema } from '@adonisjs/lucid/schema'
 
 /**
  * An app as configured in one environment: its OAuth client credentials,
- * where it runs and its redirect URIs. The client secret is encrypted with
+ * where it runs, its redirect URIs, and where members may be sent after
+ * signing out. The client secret is encrypted with
  * the app key; the hint is its last four characters, for display. The
  * composite foreign keys guarantee the app and the environment belong to the
  * same organization.
@@ -21,6 +22,7 @@ export default class extends BaseSchema {
       table.string('client_secret_hint', 4).notNullable()
       table.string('app_url', 2048).notNullable()
       table.jsonb('redirect_uris').notNullable().defaultTo('[]')
+      table.jsonb('post_logout_redirect_uris').notNullable().defaultTo('[]')
 
       table.timestamp('created_at', { useTz: true }).notNullable()
       table.timestamp('updated_at', { useTz: true }).nullable()

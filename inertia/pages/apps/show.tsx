@@ -99,6 +99,21 @@ export default function AppsShow({ app, clients, organization, environments }: P
                         ))}
                       </ul>
                     </dd>
+
+                    <dt>Sign-out redirect URIs</dt>
+                    <dd>
+                      {client.postLogoutRedirectUris.length ? (
+                        <ul className="kv__list">
+                          {client.postLogoutRedirectUris.map((uri) => (
+                            <li key={uri}>
+                              <code className="mono">{uri}</code>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        'None'
+                      )}
+                    </dd>
                   </dl>
                 </>
               )}

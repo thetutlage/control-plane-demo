@@ -93,6 +93,30 @@ export default function AppClientsCreate({
               {errors.redirectUris && <span className="field__error">{errors.redirectUris}</span>}
             </div>
 
+            <div className="field">
+              <label className="field__label" htmlFor="postLogoutRedirectUris">
+                Sign-out redirect URIs
+              </label>
+              <textarea
+                id="postLogoutRedirectUris"
+                name="postLogoutRedirectUris"
+                rows={2}
+                className="field__input field__input--textarea mono"
+                spellCheck={false}
+                placeholder="https://invoices.acme.com"
+                aria-describedby="postLogoutRedirectUrisHint"
+                aria-invalid={errors.postLogoutRedirectUris ? 'true' : 'false'}
+              />
+              <span id="postLogoutRedirectUrisHint" className="field__hint">
+                {
+                  'Optional, one per line. Where the app may send members after signing them out. Without one, members see a "You\'re signed out" page.'
+                }
+              </span>
+              {errors.postLogoutRedirectUris && (
+                <span className="field__error">{errors.postLogoutRedirectUris}</span>
+              )}
+            </div>
+
             <div className="form__actions">
               <button type="submit" className="btn btn--primary" disabled={processing}>
                 Create client

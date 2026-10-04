@@ -1,0 +1,22 @@
+{{--
+  The frame of the pages oidc-provider renders on an issuer host, outside
+  Inertia: the error page and the two sign-out pages. Same stylesheet and
+  markup as inertia/layouts/sign_in.tsx.
+--}}
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ theme }}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title }}</title>
+    @vite(['inertia/css/app.css'])
+  </head>
+  <body>
+    <div class="signin">
+      <div class="auth__form-wrap">
+        <h1 class="auth__title">{{ title }}</h1>
+        {{{ await $slots.main() }}}
+      </div>
+    </div>
+  </body>
+</html>

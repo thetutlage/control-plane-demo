@@ -42,11 +42,17 @@ test.group('Console apps', (group) => {
     await page.assertInputValue(form.getByLabel('Environment', { exact: true }), 'development')
     await form.getByLabel('App URL', { exact: true }).fill('http://localhost:3000')
     await form.getByLabel('Redirect URIs', { exact: true }).fill('http://localhost:3000/callback')
+    await form
+      .getByLabel('Sign-out redirect URIs', { exact: true })
+      .fill('http://localhost:3000/signed-out')
     await form.getByRole('button', { name: 'Create client', exact: true }).click()
 
     await page.assertPath(route('apps.show', { org: 'acme', app: 'invoices' }))
     const [client] = await acme.development.related('appClients').query()
     await page.assertVisible(development.getByText(client.clientId, { exact: true }))
+    await page.assertVisible(
+      development.getByText('http://localhost:3000/signed-out', { exact: true })
+    )
     await page.assertVisible(
       development.getByText(acme.development.issuerUrl('acme'), { exact: true })
     )
@@ -93,7 +99,7 @@ test.group('Console apps', (group) => {
     await page.assertVisible(production.getByText(`••••••••${client.clientSecretHint}`))
   })
 
-  test('production rejects redirect URIs without https', async ({
+  test('production rejects redirect and sign-out URIs without https', async ({
     visit,
     route,
     browserContext,
@@ -114,9 +120,11 @@ test.group('Console apps', (group) => {
     await form
       .getByLabel('Redirect URIs', { exact: true })
       .fill('https://invoices.acme.test/callback\nhttp://localhost:3000/callback')
+    await form.getByLabel('Sign-out redirect URIs', { exact: true }).fill('http://localhost:3000')
     await form.getByRole('button', { name: 'Create client', exact: true }).click()
 
     await page.assertVisible(page.getByText('Line 2 must use https in production', { exact: true }))
+    await page.assertVisible(page.getByText('Line 1 must use https in production', { exact: true }))
     await page.assertPath(route('apps.clients.create', { org: 'acme', app: 'invoices' }))
   })
 

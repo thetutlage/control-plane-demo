@@ -63,6 +63,7 @@ export default class AppClientsController {
     const client = await environment.createAppClient(app, {
       appUrl: payload.appUrl,
       redirectUris: payload.redirectUris,
+      postLogoutRedirectUris: payload.postLogoutRedirectUris ?? [],
     })
 
     if (environment.kind === EnvironmentKind.PRODUCTION) {

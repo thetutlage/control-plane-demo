@@ -20,6 +20,13 @@ const ACCESS_TOKEN_TTL = 5 * MINUTE
  */
 const resourceFor = (clientId: string) => `urn:client:${clientId}`
 
+/**
+ * The theme the member picked on the sign-in page, for the pages
+ * oidc-provider renders
+ */
+const themeOf = (ctx: KoaContextWithOIDC) =>
+  ctx.cookies.get('app_theme') === 'dark' ? 'dark' : 'light'
+
 export type CreateProviderInput = {
   /**
    * The environment's issuer URL, such as `https://acme--staging.<domain>`
@@ -93,13 +100,21 @@ export function createProvider(input: CreateProviderInput) {
     },
 
     /**
-     * Every app gets a refresh token, and it keeps working when the
-     * member's session ends. oidc-provider's defaults reserve both for the
-     * `offline_access` scope, which it only accepts with `prompt=consent`,
-     * a consent step our first-party apps don't have.
+     * Every app gets a refresh token. oidc-provider's default reserves them
+     * for the `offline_access` scope, which it only accepts with
+     * `prompt=consent`, a consent step our first-party apps don't have.
      */
     issueRefreshToken: async (_ctx, client) => client.grantTypeAllowed('refresh_token'),
-    expiresWithSession: async () => false,
+
+    /**
+     * Everything issued belongs to the browser's session: when it ends,
+     * nothing issued in it works for any app. This also lets sign-out
+     * revoke the session's grants, which oidc-provider skips for grants
+     * whose tokens outlive the session. Grants last 14 days and every
+     * visit renews the 30-day session, so in practice only sign-out ends
+     * a session before its grants.
+     */
+    expiresWithSession: async () => true,
 
     /**
      * The ID token carries the member's details for the scopes the app
@@ -132,6 +147,25 @@ export function createProvider(input: CreateProviderInput) {
        */
       userinfo: { enabled: false },
 
+      /**
+       * Signing out of any app signs the member out of every app in this
+       * browser: the session ends and its grants are revoked. Our pages
+       * replace oidc-provider's, and always sign out of every app.
+       */
+      rpInitiatedLogout: {
+        enabled: true,
+        async logoutSource(ctx, form) {
+          ctx.body = await edge.render('oidc/sign_out', {
+            form,
+            confirm: !ctx.oidc.entities.IdTokenHint,
+            theme: themeOf(ctx),
+          })
+        },
+        async postLogoutSuccessSource(ctx) {
+          ctx.body = await edge.render('oidc/signed_out', { theme: themeOf(ctx) })
+        },
+      },
+
       resourceIndicators: {
         enabled: true,
         defaultResource: (_ctx, client) => resourceFor(client.clientId),
@@ -156,9 +190,19 @@ export function createProvider(input: CreateProviderInput) {
      * member is granted whatever the app asks for. Every visit to the
      * issuer creates a new grant, so the tokens from it get their full
      * lifetime, even when the app sends the member back early.
+     *
+     * The previous grant of this browser's session for the app is revoked
+     * first. A session remembers one grant per app, the one sign-out
+     * revokes, so it must be the only one alive.
      */
     async loadExistingGrant(ctx: KoaContextWithOIDC) {
       const { session, client, params } = ctx.oidc
+      const previousId = session!.grantIdFor(client!.clientId)
+      if (previousId) {
+        const previous = await ctx.oidc.provider.Grant.find(previousId)
+        await previous?.destroy()
+      }
+
       const grant = new ctx.oidc.provider.Grant({
         clientId: client!.clientId,
         accountId: session!.accountId,
@@ -177,11 +221,17 @@ export function createProvider(input: CreateProviderInput) {
     async renderError(ctx, out) {
       logger.info({ issuer: input.issuer, path: ctx.path, ...out }, 'oidc-provider error page')
 
-      const page = errorPage(out.error === 'server_error' ? 'server_error' : 'rejected', out.error)
+      const kind =
+        out.error === 'server_error'
+          ? 'server_error'
+          : ctx.path.startsWith('/session/end')
+            ? 'sign_out_rejected'
+            : 'rejected'
+
       ctx.type = 'html'
       ctx.body = await edge.render('errors/oidc', {
-        ...page,
-        theme: ctx.cookies.get('app_theme') === 'dark' ? 'dark' : 'light',
+        ...errorPage(kind, out.error),
+        theme: themeOf(ctx),
       })
     },
   })

@@ -23,17 +23,18 @@ Secrets start with `cp_live_` in production and `cp_test_` in every other enviro
 
 ## In the console
 
-| URL                                | Page                                                    |
-| ---------------------------------- | ------------------------------------------------------- |
-| `/w/:org/apps`                     | Apps list, with **Register app**                        |
-| `/w/:org/apps/create`              | Register an app: name and slug                          |
-| `/w/:org/apps/:app`                | The app, with one panel per environment                 |
-| `/w/:org/apps/:app/clients/create` | Configure a client: environment, app URL, redirect URIs |
+| URL                                | Page                                                                            |
+| ---------------------------------- | ------------------------------------------------------------------------------- |
+| `/w/:org/apps`                     | Apps list, with **Register app**                                                |
+| `/w/:org/apps/create`              | Register an app: name and slug                                                  |
+| `/w/:org/apps/:app`                | The app, with one panel per environment                                         |
+| `/w/:org/apps/:app/clients/create` | Configure a client: environment, app URL, redirect URIs, sign-out redirect URIs |
 
-- **App page.** Each environment's panel either says "No client yet" with a **Configure** button, or shows the issuer URL, client ID, secret, app URL and redirect URIs.
+- **App page.** Each environment's panel either says "No client yet" with a **Configure** button, or shows the issuer URL, client ID, secret, app URL, redirect URIs and sign-out redirect URIs.
 - **Configure client.**
   - The environment dropdown lists only environments the app has no client in yet. **Configure** on a panel preselects that environment.
   - Redirect URIs are entered one per line, between 1 and 10.
+  - Sign-out redirect URIs are where the app may send members after [logout](logout.md): optional, one per line, up to 10, with the same rules.
   - Production accepts only `https`. Other environments also accept `http` on `localhost`, `127.0.0.1` and `[::1]`.
   - URLs can't contain wildcards or `#fragments`. These rules are in `app/validators/rules/client_url.ts` and `redirect_uri_list.ts`.
 - **Secrets.**
@@ -71,6 +72,7 @@ When an app starts a sign-in or calls `/oauth/token`, `oidc-provider` asks the s
 | `token_endpoint_auth_method`   | `client_secret_basic`: the app sends `client_id:secret` in an HTTP Basic `Authorization` header to `/oauth/token` |
 | `id_token_signed_response_alg` | `ES256`                                                                                                           |
 | `redirect_uris`                | from the row                                                                                                      |
+| `post_logout_redirect_uris`    | from the row                                                                                                      |
 
 Every client must use **PKCE** (`pkce.required` in the issuer middleware), including clients with a secret.
 

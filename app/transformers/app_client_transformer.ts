@@ -25,7 +25,14 @@ export default class AppClientTransformer extends BaseTransformer<AppClient> {
     const isProduction = environment.kind === EnvironmentKind.PRODUCTION
 
     return {
-      ...this.pick(this.resource, ['id', 'environmentId', 'clientId', 'appUrl', 'redirectUris']),
+      ...this.pick(this.resource, [
+        'id',
+        'environmentId',
+        'clientId',
+        'appUrl',
+        'redirectUris',
+        'postLogoutRedirectUris',
+      ]),
       issuerUrl: environment.issuerUrl(this.#organization.slug),
       secretHint: this.resource.clientSecretHint,
       secret: isProduction ? null : this.resource.secret,

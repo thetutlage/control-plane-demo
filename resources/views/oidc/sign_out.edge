@@ -1,0 +1,23 @@
+{{--
+  oidc-provider's sign-out step. `form` is its form, with the token that
+  proves the request came from this page. The button signs out of every
+  app in this browser. When the app proved the request is its own (a valid
+  id_token_hint), the page presses the button itself.
+--}}
+@component('components/oidc_page', { title: confirm ? 'Sign out?' : 'Signing you out…', theme })
+  <p class="auth__sub">You'll be signed out of every app in this browser.</p>
+  {{{ form }}}
+  <button
+    type="submit"
+    form="op.logoutForm"
+    name="logout"
+    value="yes"
+    class="btn btn--primary btn--block"
+    style="margin-top: 16px"
+  >
+    Sign out
+  </button>
+  @if(!confirm)
+    <script>document.querySelector('button[name=logout]').click()</script>
+  @end
+@end

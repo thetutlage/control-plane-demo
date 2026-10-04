@@ -16,6 +16,12 @@ export default class AppClient extends AppClientSchema {
   @column({ prepare: (value: string[]) => JSON.stringify(value) })
   declare redirectUris: string[]
 
+  /**
+   * Where the app may send members after signing them out
+   */
+  @column({ prepare: (value: string[]) => JSON.stringify(value) })
+  declare postLogoutRedirectUris: string[]
+
   @belongsTo(() => App)
   declare app: BelongsTo<typeof App>
 

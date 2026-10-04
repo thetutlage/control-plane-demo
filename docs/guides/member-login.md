@@ -41,7 +41,7 @@ The page uses `inertia/layouts/sign_in.tsx`, which has no console navigation. No
 
 ## No consent screen
 
-Every app is first-party. Our `loadExistingGrant` hook gives a signed-in member whatever the app asks for, in a new grant on every visit to the issuer ([Tokens](tokens.md#lifetimes)).
+Every app is first-party. Our `loadExistingGrant` hook gives a signed-in member whatever the app asks for, in a new grant on every visit to the issuer, replacing the app's previous one in that browser ([Tokens](tokens.md#lifetimes)).
 
 So when a signed-in member opens a second app, there's no sign-in page at all: `oidc-provider` redirects straight back with a code.
 
@@ -53,6 +53,7 @@ Members see one of two error pages, which look the same and share their wording 
 | ---------------------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
 | `/oauth/*`                               | A broken request the spec lets us send back (missing PKCE, bad scope, …)              | Nothing from us: they're redirected to the app with `?error=…&state=…`, and the app shows it                       | `oidc-provider`                                                   |
 | `/oauth/*`                               | Unknown client or unregistered redirect URI (never redirected, per RFC 6749 §4.1.2.1) | "We couldn't sign you in"                                                                                          | `resources/views/errors/oidc.edge`, from the `renderError` hook   |
+| `/oauth/session/end`                     | A broken sign-out request: bad `id_token_hint`, unregistered sign-out redirect URI    | "We couldn't sign you out"                                                                                         | same                                                              |
 | `/oauth/*`                               | Anything unexpected                                                                   | "Something went wrong on our side" (`server_error`), and the error is logged                                       | same                                                              |
 | `/oauth/*` on a host with no environment | A mistyped or stale link                                                              | "This sign-in link isn't valid". Apps' servers get `404 {"error":"unknown_issuer"}`                                | `oidc_issuer_middleware.ts`                                       |
 | `/sign-in/*`                             | Missing, expired, other browser, or not the sign-in in the URL (`SessionNotFound`)    | "This sign-in has expired"                                                                                         | `inertia/pages/errors/oidc.tsx`, from `app/exceptions/handler.ts` |
@@ -65,7 +66,6 @@ Errors are **rendered in the response to the failing request**, with its real st
 
 ## Not built yet
 
-- Logout.
 - Inviting members to choose their own password.
 
 ## Tests

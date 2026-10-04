@@ -162,6 +162,7 @@ export default class OidcStorageAdapter implements Adapter {
       client_id: client.clientId,
       client_secret: client.secret,
       redirect_uris: client.redirectUris,
+      post_logout_redirect_uris: client.postLogoutRedirectUris,
       grant_types: ['authorization_code', 'refresh_token'],
       response_types: ['code'],
       token_endpoint_auth_method: 'client_secret_basic',

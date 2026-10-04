@@ -1,87 +1,19 @@
 import { test } from '@japa/runner'
-import type { BrowserContext } from 'playwright'
 import db from '@adonisjs/lucid/services/db'
 import testUtils from '@adonisjs/core/services/test_utils'
-import type AppClient from '#models/app_client'
-import type Environment from '#models/environment'
-import type Organization from '#models/organization'
 import { MemberStatus } from '#values/member_status'
 import {
-  appCallback,
-  authorizeUrl,
   CODE_VERIFIER,
+  exchangeCode,
+  refresh,
   setupAppClient,
-  signIn,
-  tokenRequest,
+  setupMember,
   verifyJwt,
+  visitIssuer,
 } from '#tests/helpers/oidc'
 import { setupOnboardedOrganization } from '#tests/helpers/organizations'
 
-const PASSWORD = 'correct-horse'
 const DAY = 24 * 60 * 60 * 1000
-
-async function setupMember(environment: Environment) {
-  return environment.createMember({
-    email: 'sara@acme.test',
-    fullName: 'Sara',
-    status: MemberStatus.ACTIVE,
-    password: PASSWORD,
-  })
-}
-
-/**
- * Sends a browser through the issuer, the way the app does, and returns
- * the code the app receives. The member signs in when the browser has no
- * session yet.
- */
-async function visitIssuer(
-  browserContext: BrowserContext,
-  organization: Organization,
-  environment: Environment,
-  client: AppClient,
-  scope = 'openid profile email'
-) {
-  const page = browserContext.pages()[0] ?? (await browserContext.newPage())
-  const callback = appCallback(page, client.redirectUris[0])
-  await page.goto(authorizeUrl(organization, environment, client, scope)).catch(() => {})
-  if (page.url().includes('/sign-in/')) {
-    await signIn(page, 'sara@acme.test', PASSWORD)
-  }
-  const { searchParams } = await callback
-  return searchParams.get('code')!
-}
-
-function exchangeCode(
-  organization: Organization,
-  environment: Environment,
-  client: AppClient,
-  code: string,
-  overrides: { secret?: string; codeVerifier?: string } = {}
-) {
-  return tokenRequest(
-    organization,
-    environment,
-    { clientId: client.clientId, secret: overrides.secret ?? client.secret },
-    {
-      grant_type: 'authorization_code',
-      code,
-      redirect_uri: client.redirectUris[0],
-      code_verifier: overrides.codeVerifier ?? CODE_VERIFIER,
-    }
-  )
-}
-
-function refresh(
-  organization: Organization,
-  environment: Environment,
-  client: AppClient,
-  refreshToken: string
-) {
-  return tokenRequest(organization, environment, client, {
-    grant_type: 'refresh_token',
-    refresh_token: refreshToken,
-  })
-}
 
 test.group('Tokens', (group) => {
   group.each.setup(() => testUtils.db().truncate())
@@ -172,10 +104,7 @@ test.group('Tokens', (group) => {
     assert.equal(afterReuse.body.error, 'invalid_grant', 'a reused code revokes its tokens')
   })
 
-  test('refresh tokens work without the session, until the grant expires', async ({
-    browserContext,
-    assert,
-  }) => {
+  test('refresh tokens work until the grant expires', async ({ browserContext, assert }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
     const client = await setupAppClient(organization, production)
     await setupMember(production)
@@ -183,7 +112,6 @@ test.group('Tokens', (group) => {
     const code = await visitIssuer(browserContext, organization, production, client)
     const { body } = await exchangeCode(organization, production, client, code)
 
-    await db.from('oidc_sessions').delete()
     const refreshed = await refresh(organization, production, client, body.refresh_token)
     assert.equal(refreshed.status, 200)
     assert.isNotNull(
@@ -194,6 +122,20 @@ test.group('Tokens', (group) => {
     const expired = await refresh(organization, production, client, body.refresh_token)
     assert.equal(expired.status, 400)
     assert.equal(expired.body.error, 'invalid_grant')
+  })
+
+  test('refresh tokens stop working when the session ends', async ({ browserContext, assert }) => {
+    const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
+    const client = await setupAppClient(organization, production)
+    await setupMember(production)
+
+    const code = await visitIssuer(browserContext, organization, production, client)
+    const { body } = await exchangeCode(organization, production, client, code)
+
+    await db.from('oidc_sessions').delete()
+    const refreshed = await refresh(organization, production, client, body.refresh_token)
+    assert.equal(refreshed.status, 400)
+    assert.equal(refreshed.body.error, 'invalid_grant')
   })
 
   test('grants and refresh tokens last 14 days, sessions 30', async ({
@@ -216,19 +158,47 @@ test.group('Tokens', (group) => {
     assert.closeTo(await expiresIn('oidc_sessions'), 30, 0.01)
   })
 
-  test('every visit to the issuer creates a new grant', async ({ browserContext, assert }) => {
+  test("a new visit replaces the app's grant in that browser only", async ({
+    browserContext,
+    assert,
+  }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
     const client = await setupAppClient(organization, production)
     await setupMember(production)
 
-    const first = await visitIssuer(browserContext, organization, production, client)
-    await exchangeCode(organization, production, client, first)
-    const second = await visitIssuer(browserContext, organization, production, client)
-    const exchanged = await exchangeCode(organization, production, client, second)
+    const otherBrowser = await browserContext.browser()!.newContext()
+    const elsewhere = await visitIssuer(otherBrowser, organization, production, client)
+    const otherTokens = await exchangeCode(organization, production, client, elsewhere)
+    await otherBrowser.close()
 
-    assert.equal(exchanged.status, 200)
-    const grants = await db.from('oidc_grants').where('client_id', client.clientId)
-    assert.lengthOf(grants, 2)
+    const first = await visitIssuer(browserContext, organization, production, client)
+    const firstTokens = await exchangeCode(organization, production, client, first)
+    const second = await visitIssuer(browserContext, organization, production, client)
+    const secondTokens = await exchangeCode(organization, production, client, second)
+
+    const refreshFirst = await refresh(
+      organization,
+      production,
+      client,
+      firstTokens.body.refresh_token
+    )
+    const refreshSecond = await refresh(
+      organization,
+      production,
+      client,
+      secondTokens.body.refresh_token
+    )
+    const refreshOther = await refresh(
+      organization,
+      production,
+      client,
+      otherTokens.body.refresh_token
+    )
+
+    assert.equal(refreshFirst.body.error, 'invalid_grant', 'the replaced grant is revoked')
+    assert.equal(refreshSecond.status, 200)
+    assert.equal(refreshOther.status, 200, 'another browser keeps its grant')
+    assert.lengthOf(await db.from('oidc_grants').where('client_id', client.clientId), 2)
   })
 
   test('a suspended member cannot refresh', async ({ browserContext, assert }) => {

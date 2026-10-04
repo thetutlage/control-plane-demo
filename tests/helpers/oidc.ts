@@ -1,14 +1,31 @@
 import { createHash, createPublicKey, verify } from 'node:crypto'
-import type { Page } from 'playwright'
+import type { BrowserContext, Page } from 'playwright'
 import App from '#models/app'
+import type AppClient from '#models/app_client'
 import type Environment from '#models/environment'
 import type Organization from '#models/organization'
+import { MemberStatus } from '#values/member_status'
 
 export const CODE_VERIFIER = 'a-code-verifier-that-is-at-least-forty-three-characters-long'
 
 /**
+ * The member `setupMember` creates, and `visitIssuer` signs in as
+ */
+export const MEMBER = { email: 'sara@acme.test', password: 'correct-horse' }
+
+export function setupMember(environment: Environment) {
+  return environment.createMember({
+    email: MEMBER.email,
+    fullName: 'Sara',
+    status: MemberStatus.ACTIVE,
+    password: MEMBER.password,
+  })
+}
+
+/**
  * Registers an app and configures its client in one environment, with a
- * single redirect URI on the app's own (fake) host
+ * single redirect URI and a single sign-out redirect URI on the app's own
+ * (fake) host
  */
 export async function setupAppClient(
   organization: Organization,
@@ -24,6 +41,7 @@ export async function setupAppClient(
   return environment.createAppClient(app, {
     appUrl,
     redirectUris: [`${appUrl}/callback`],
+    postLogoutRedirectUris: [`${appUrl}/signed-out`],
   })
 }
 
@@ -63,6 +81,70 @@ export async function signIn(page: Page, email: string, password: string) {
   await page.getByLabel('Email', { exact: true }).fill(email)
   await page.getByLabel('Password', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+}
+
+/**
+ * Sends a browser through the issuer, the way the app does, and returns
+ * the code the app receives. The member signs in when the browser has no
+ * session yet.
+ */
+export async function visitIssuer(
+  browserContext: BrowserContext,
+  organization: Organization,
+  environment: Environment,
+  client: AppClient,
+  scope = 'openid profile email'
+) {
+  const page = await browserContext.newPage()
+  const callback = appCallback(page, client.redirectUris[0])
+  page.goto(authorizeUrl(organization, environment, client, scope)).catch(() => {})
+
+  const signInShown = await Promise.race([
+    callback.then(() => false),
+    page.waitForURL(/\/sign-in\//).then(
+      () => true,
+      () => false
+    ),
+  ])
+  if (signInShown) {
+    await signIn(page, MEMBER.email, MEMBER.password)
+  }
+
+  const { searchParams } = await callback
+  await page.close()
+  return searchParams.get('code')!
+}
+
+export function exchangeCode(
+  organization: Organization,
+  environment: Environment,
+  client: AppClient,
+  code: string,
+  overrides: { secret?: string; codeVerifier?: string } = {}
+) {
+  return tokenRequest(
+    organization,
+    environment,
+    { clientId: client.clientId, secret: overrides.secret ?? client.secret },
+    {
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: client.redirectUris[0],
+      code_verifier: overrides.codeVerifier ?? CODE_VERIFIER,
+    }
+  )
+}
+
+export function refresh(
+  organization: Organization,
+  environment: Environment,
+  client: AppClient,
+  refreshToken: string
+) {
+  return tokenRequest(organization, environment, client, {
+    grant_type: 'refresh_token',
+    refresh_token: refreshToken,
+  })
 }
 
 /**

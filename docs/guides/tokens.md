@@ -90,12 +90,12 @@ A refresh fails with `invalid_grant` when the grant has expired, or the member i
 | Refresh token | 14 days, but never longer than its grant      |
 | SSO session   | 30 days, renewed on every visit to the issuer |
 
-Every visit to the issuer creates a new **grant** (Sara → Invoices), and the refresh tokens from that visit work until it expires, however often the app refreshes. In practice:
+Every visit to the issuer creates a new **grant** (Sara → Invoices), replacing the app's previous grant in that browser. The refresh tokens from that visit work until the grant expires, however often the app refreshes. In practice:
 
 - **Day 14:** refreshing fails, so the app sends the member to the issuer again. Their session is alive, so they come straight back with new tokens and never see the sign-in page.
 - **30 days without visiting the issuer:** the session has ended, so the member signs in with their password.
 
-Refresh tokens don't depend on the session: an app keeps refreshing after the member's session ends, until the grant expires.
+Refresh tokens belong to the session: when it ends, by [logout](logout.md) or expiry, they stop working. Grants are shorter than the session and every visit renews it, so in practice only logout ends a session before its grants.
 
 ## No userinfo endpoint
 
@@ -113,7 +113,6 @@ Userinfo is turned off. The ID token already carries the member's details, and `
 ## Not built yet
 
 - Permissions in the access token.
-- Logout, and revoking a member's grants.
 - Key rotation.
 
 ## Tests
@@ -123,8 +122,8 @@ Userinfo is turned off. The ID token already carries the member's details, and `
 - swapping a code for tokens, and checking their signatures and claims against the JWKS;
 - the ID token carrying only what the scopes ask for, and a refresh token without `offline_access`;
 - a wrong secret, a wrong verifier, and a reused code;
-- refreshing after the session is gone, and failing once the grant expires;
+- refreshing until the grant expires, and failing once the session ends;
 - the grant, refresh token and session lifetimes;
-- a new grant on every visit;
+- a new visit replacing the app's grant in that browser, and not in others;
 - a suspended member not being able to refresh;
 - staging tokens failing against production's keys.

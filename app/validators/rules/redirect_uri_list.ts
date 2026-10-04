@@ -12,23 +12,26 @@ export function redirectUriLines(value: string) {
 }
 
 /**
- * Between 1 and 10 redirect URIs, one per line, each checked against the
- * chosen environment like the app URL
+ * Up to 10 redirect URIs, one per line, each checked against the chosen
+ * environment like the app URL. At least one is needed unless the list is
+ * optional.
  */
-export const redirectUriList = vine.createRule((value, _, field) => {
-  const uris = redirectUriLines(String(value))
-  if (uris.length === 0) {
-    return field.report('Add at least one redirect URI', 'redirectUriList', field)
-  }
-  if (uris.length > 10) {
-    return field.report('Add at most 10 redirect URIs', 'redirectUriList', field)
-  }
+export const redirectUriList = vine.createRule<{ optional?: boolean } | undefined>(
+  (value, options, field) => {
+    const uris = redirectUriLines(String(value))
+    if (uris.length === 0 && !options?.optional) {
+      return field.report('Add at least one redirect URI', 'redirectUriList', field)
+    }
+    if (uris.length > 10) {
+      return field.report('Add at most 10 redirect URIs', 'redirectUriList', field)
+    }
 
-  const isProduction = isProductionField(field)
-  for (const [index, uri] of uris.entries()) {
-    const problem = clientUrlProblem(uri, isProduction)
-    if (problem) {
-      return field.report(`Line ${index + 1} ${problem}`, 'redirectUriList', field)
+    const isProduction = isProductionField(field)
+    for (const [index, uri] of uris.entries()) {
+      const problem = clientUrlProblem(uri, isProduction)
+      if (problem) {
+        return field.report(`Line ${index + 1} ${problem}`, 'redirectUriList', field)
+      }
     }
   }
-})
+)
