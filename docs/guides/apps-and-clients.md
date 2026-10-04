@@ -11,13 +11,14 @@ App "Invoices"                      apps
 
 ## Client columns
 
-| Column               | Notes                                                                        |
-| -------------------- | ---------------------------------------------------------------------------- |
-| `client_id`          | `app_` plus 24 random characters. Not secret; it appears in URLs             |
-| `client_secret`      | Encrypted with the app key. Use the `secret` getter to read it               |
-| `client_secret_hint` | The secret's last four characters, for display                               |
-| `app_url`            | Where the app runs in this environment                                       |
-| `redirect_uris`      | Where members may be sent back after signing in. Each one must match exactly |
+| Column                      | Notes                                                                            |
+| --------------------------- | -------------------------------------------------------------------------------- |
+| `client_id`                 | `app_` plus 24 random characters. Not secret; it appears in URLs                 |
+| `client_secret`             | Encrypted with the app key. Use the `secret` getter to read it                   |
+| `client_secret_hint`        | The secret's last four characters, for display                                   |
+| `app_url`                   | Where the app runs in this environment                                           |
+| `redirect_uris`             | Where members may be sent back after signing in. Each one must match exactly     |
+| `post_logout_redirect_uris` | Where members may be sent after [logout](logout.md). Each one must match exactly |
 
 Secrets start with `cp_live_` in production and `cp_test_` in every other environment, followed by 40 random characters.
 
@@ -29,8 +30,9 @@ Secrets start with `cp_live_` in production and `cp_test_` in every other enviro
 | `/w/:org/apps/create`              | Register an app: name and slug                                                  |
 | `/w/:org/apps/:app`                | The app, with one panel per environment                                         |
 | `/w/:org/apps/:app/clients/create` | Configure a client: environment, app URL, redirect URIs, sign-out redirect URIs |
+| `/w/:org/clients/:client/edit`     | Edit a client's URLs. Its environment can't change                              |
 
-- **App page.** Each environment's panel either says "No client yet" with a **Configure** button, or shows the issuer URL, client ID, secret, app URL, redirect URIs and sign-out redirect URIs.
+- **App page.** Each environment's panel either says "No client yet" with a **Configure** button, or shows the issuer URL, client ID, secret, app URL, redirect URIs and sign-out redirect URIs, with **Edit**, **Rotate secret** and **Remove**.
 - **Configure client.**
   - The environment dropdown lists only environments the app has no client in yet. **Configure** on a panel preselects that environment.
   - Redirect URIs are entered one per line, between 1 and 10.
@@ -41,7 +43,17 @@ Secrets start with `cp_live_` in production and `cp_test_` in every other enviro
   - In development and staging, the secret is masked with a **Show** button.
   - In production, the full secret is shown once, on the app page right after the client is created; after that, only the last four characters. It's passed to that one page view as the `clientSecret` flash message, and `AppClientTransformer` never sends a production secret.
 
-Editing and removing clients are not built yet.
+## Changing a client
+
+Client routes are shallow (`router.shallowResource`): a client ID is unique, so `/w/:org/clients/:client` needs no app in the URL. Clients are looked up through the organization (`organization.related('appClients')`), so another organization's client is a 404.
+
+| Action            | Effect                                                                                                                                                                                                            |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Edit**          | Saves the URLs, with the same rules as creating. The issuer uses them on the next request. Members already signed in stay signed in                                                                               |
+| **Rotate secret** | Replaces the secret right away (`AppClient.rotateSecret()`). The old one stops working, so the app can't sign members in or refresh until it has the new one. The new secret is shown the same way as on creation |
+| **Remove**        | Deletes the client, and with it its grants, codes and refresh tokens (foreign keys). Members are signed out of the app in that environment within 5 minutes. The panel goes back to **Configure**                 |
+
+**Rotate secret** and **Remove** break a running app, so both ask first, inside the panel, saying what will happen.
 
 ## Creating a client in code
 
@@ -83,8 +95,11 @@ Every client must use **PKCE** (`pkce.required` in the issuer middleware), inclu
 - registering an app;
 - configuring a development client and revealing its secret;
 - the production secret being shown only once;
-- `https` being required in production;
-- other organizations' apps returning 404.
+- `https` being required in production, for redirect and sign-out URIs;
+- editing a client, and the issuer refusing a redirect URI that was removed;
+- rotating a secret: shown once, the old one refused, the new one accepted;
+- removing a client signing members out of the app;
+- other organizations' apps and clients returning 404.
 
 `tests/functional/oidc/clients.spec.ts` covers:
 

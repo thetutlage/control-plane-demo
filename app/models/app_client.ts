@@ -34,14 +34,31 @@ export default class AppClient extends AppClientSchema {
    * every other environment.
    */
   static generateCredentials(kind: EnvironmentKind) {
+    return { clientId: `app_${string.random(24)}`, ...this.generateSecret(kind) }
+  }
+
+  /**
+   * A new client secret, encrypted, with its hint
+   */
+  static generateSecret(kind: EnvironmentKind) {
     const prefix = kind === EnvironmentKind.PRODUCTION ? 'cp_live_' : 'cp_test_'
     const secret = `${prefix}${string.random(40)}`
 
     return {
-      clientId: `app_${string.random(24)}`,
       clientSecret: encryption.encrypt(secret, { purpose: SECRET_PURPOSE }),
       clientSecretHint: secret.slice(-4),
     }
+  }
+
+  /**
+   * Replaces the client secret. The old one stops working as soon as this
+   * is saved: a client has one secret at a time.
+   */
+  rotateSecret(kind: EnvironmentKind) {
+    const { clientSecret, clientSecretHint } = AppClient.generateSecret(kind)
+    this.clientSecret = clientSecret
+    this.clientSecretHint = clientSecretHint
+    return this.save()
   }
 
   /**

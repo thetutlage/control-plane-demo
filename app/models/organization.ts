@@ -5,6 +5,7 @@ import User from '#models/user'
 import Member from '#models/member'
 import Environment from '#models/environment'
 import App from '#models/app'
+import AppClient from '#models/app_client'
 
 export default class Organization extends OrganizationSchema {
   @manyToMany(() => User, {
@@ -24,4 +25,10 @@ export default class Organization extends OrganizationSchema {
 
   @hasMany(() => App)
   declare apps: HasMany<typeof App>
+
+  /**
+   * Clients of every app, in every environment
+   */
+  @hasMany(() => AppClient)
+  declare appClients: HasMany<typeof AppClient>
 }

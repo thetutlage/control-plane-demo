@@ -90,6 +90,30 @@ const routes = {
     tokens: [{"old":"/w/:org/apps/:app/clients","type":0,"val":"w","end":""},{"old":"/w/:org/apps/:app/clients","type":1,"val":"org","end":""},{"old":"/w/:org/apps/:app/clients","type":0,"val":"apps","end":""},{"old":"/w/:org/apps/:app/clients","type":1,"val":"app","end":""},{"old":"/w/:org/apps/:app/clients","type":0,"val":"clients","end":""}],
     types: placeholder as Registry['apps.clients.store']['types'],
   },
+  'apps.clients.edit': {
+    methods: ["GET","HEAD"],
+    pattern: '/w/:org/clients/:client/edit',
+    tokens: [{"old":"/w/:org/clients/:client/edit","type":0,"val":"w","end":""},{"old":"/w/:org/clients/:client/edit","type":1,"val":"org","end":""},{"old":"/w/:org/clients/:client/edit","type":0,"val":"clients","end":""},{"old":"/w/:org/clients/:client/edit","type":1,"val":"client","end":""},{"old":"/w/:org/clients/:client/edit","type":0,"val":"edit","end":""}],
+    types: placeholder as Registry['apps.clients.edit']['types'],
+  },
+  'apps.clients.update': {
+    methods: ["PUT","PATCH"],
+    pattern: '/w/:org/clients/:client',
+    tokens: [{"old":"/w/:org/clients/:client","type":0,"val":"w","end":""},{"old":"/w/:org/clients/:client","type":1,"val":"org","end":""},{"old":"/w/:org/clients/:client","type":0,"val":"clients","end":""},{"old":"/w/:org/clients/:client","type":1,"val":"client","end":""}],
+    types: placeholder as Registry['apps.clients.update']['types'],
+  },
+  'apps.clients.destroy': {
+    methods: ["DELETE"],
+    pattern: '/w/:org/clients/:client',
+    tokens: [{"old":"/w/:org/clients/:client","type":0,"val":"w","end":""},{"old":"/w/:org/clients/:client","type":1,"val":"org","end":""},{"old":"/w/:org/clients/:client","type":0,"val":"clients","end":""},{"old":"/w/:org/clients/:client","type":1,"val":"client","end":""}],
+    types: placeholder as Registry['apps.clients.destroy']['types'],
+  },
+  'apps.clients.rotate_secret': {
+    methods: ["POST"],
+    pattern: '/w/:org/clients/:client/secret',
+    tokens: [{"old":"/w/:org/clients/:client/secret","type":0,"val":"w","end":""},{"old":"/w/:org/clients/:client/secret","type":1,"val":"org","end":""},{"old":"/w/:org/clients/:client/secret","type":0,"val":"clients","end":""},{"old":"/w/:org/clients/:client/secret","type":1,"val":"client","end":""},{"old":"/w/:org/clients/:client/secret","type":0,"val":"secret","end":""}],
+    types: placeholder as Registry['apps.clients.rotate_secret']['types'],
+  },
   'members.index': {
     methods: ["GET","HEAD"],
     pattern: '/w/:org/environments/:environment/members',

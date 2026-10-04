@@ -2,12 +2,12 @@ import vine from '@vinejs/vine'
 import type { FieldContext } from '@vinejs/vine/types'
 
 /**
- * Metadata the rule reads to know whether the chosen environment (the
- * sibling `environment` field) is production
+ * Metadata the rule reads to know whether the client's environment is
+ * production: when creating, the environments the sibling `environment`
+ * field can choose from; when editing, the client's own environment.
  */
-export type ClientUrlMetaData = {
-  environments: { slug: string; isProduction: boolean }[]
-}
+export type ClientUrlMetaData =
+  { environments: { slug: string; isProduction: boolean }[] } | { isProduction: boolean }
 
 const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '[::1]']
 
@@ -38,10 +38,15 @@ export function clientUrlProblem(value: string, isProduction: boolean) {
 }
 
 /**
- * Whether the environment chosen in the same form is production
+ * Whether the client's environment is production
  */
 export function isProductionField(field: FieldContext) {
-  const { environments } = field.meta as ClientUrlMetaData
+  const meta = field.meta as ClientUrlMetaData
+  if ('isProduction' in meta) {
+    return meta.isProduction
+  }
+
+  const { environments } = meta
   return environments.some(
     ({ slug, isProduction }) => isProduction && slug === field.parent.environment
   )

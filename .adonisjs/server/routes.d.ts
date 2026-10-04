@@ -18,6 +18,10 @@ export type ScannedRoutes = {
     'apps.show': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue} }
     'apps.clients.create': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue} }
     'apps.clients.store': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue} }
+    'apps.clients.edit': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'client': ParamValue} }
+    'apps.clients.update': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'client': ParamValue} }
+    'apps.clients.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'client': ParamValue} }
+    'apps.clients.rotate_secret': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'client': ParamValue} }
     'members.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
     'members.create': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
     'members.store': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
@@ -35,6 +39,7 @@ export type ScannedRoutes = {
     'apps.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'apps.show': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue} }
     'apps.clients.create': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue} }
+    'apps.clients.edit': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'client': ParamValue} }
     'members.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
     'members.create': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
     'roles.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
@@ -50,6 +55,7 @@ export type ScannedRoutes = {
     'apps.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'apps.show': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue} }
     'apps.clients.create': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue} }
+    'apps.clients.edit': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'client': ParamValue} }
     'members.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
     'members.create': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
     'roles.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
@@ -61,8 +67,18 @@ export type ScannedRoutes = {
     'session.destroy': { paramsTuple?: []; params?: {} }
     'apps.store': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'apps.clients.store': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue} }
+    'apps.clients.rotate_secret': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'client': ParamValue} }
     'members.store': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
     'sign_in.store': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
+  }
+  PUT: {
+    'apps.clients.update': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'client': ParamValue} }
+  }
+  PATCH: {
+    'apps.clients.update': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'client': ParamValue} }
+  }
+  DELETE: {
+    'apps.clients.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'client': ParamValue} }
   }
 }
 declare module '@adonisjs/core/types/http' {

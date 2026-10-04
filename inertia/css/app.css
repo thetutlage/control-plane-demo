@@ -139,6 +139,13 @@ input {
 .btn--ghost {
   color: var(--ink);
 }
+.btn--danger {
+  background: #c0392b;
+  color: #fff;
+}
+.btn--danger:hover {
+  opacity: 0.88;
+}
 .btn--ghost:hover {
   color: var(--muted);
 }
@@ -1102,9 +1109,28 @@ input {
 }
 .client__header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+.client__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.client__confirm {
+  flex-basis: 100%;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in oklab, #c0392b 40%, var(--line-2));
+  border-radius: var(--r);
+  color: var(--ink-2);
+  font-size: 14px;
+}
+.client__confirm-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
 }
 .client__empty {
   margin-top: 6px;

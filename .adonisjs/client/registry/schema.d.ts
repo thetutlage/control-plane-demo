@@ -175,6 +175,54 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_clients_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
+  'apps.clients.edit': {
+    methods: ["GET","HEAD"]
+    pattern: '/w/:org/clients/:client/edit'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue]
+      params: { org: ParamValue; client: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_clients_controller').default['edit']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_clients_controller').default['edit']>>>
+    }
+  }
+  'apps.clients.update': {
+    methods: ["PUT","PATCH"]
+    pattern: '/w/:org/clients/:client'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/app_client').updateAppClientValidator)>>
+      paramsTuple: [ParamValue, ParamValue]
+      params: { org: ParamValue; client: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/app_client').updateAppClientValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_clients_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_clients_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'apps.clients.destroy': {
+    methods: ["DELETE"]
+    pattern: '/w/:org/clients/:client'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue]
+      params: { org: ParamValue; client: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_clients_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_clients_controller').default['destroy']>>>
+    }
+  }
+  'apps.clients.rotate_secret': {
+    methods: ["POST"]
+    pattern: '/w/:org/clients/:client/secret'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue]
+      params: { org: ParamValue; client: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_clients_controller').default['rotateSecret']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_clients_controller').default['rotateSecret']>>>
+    }
+  }
   'members.index': {
     methods: ["GET","HEAD"]
     pattern: '/w/:org/environments/:environment/members'

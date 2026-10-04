@@ -1,6 +1,16 @@
 import { test } from '@japa/runner'
+import db from '@adonisjs/lucid/services/db'
 import testUtils from '@adonisjs/core/services/test_utils'
 import App from '#models/app'
+import {
+  authorizeUrl,
+  exchangeCode,
+  refresh,
+  setupAppClient,
+  setupMember,
+  tokenRequest,
+  visitIssuer,
+} from '#tests/helpers/oidc'
 import { setupOnboardedOrganization } from '#tests/helpers/organizations'
 
 test.group('Console apps', (group) => {
@@ -143,5 +153,160 @@ test.group('Console apps', (group) => {
     const response = await page.request.get(route('apps.show', { org: 'acme', app: 'billing' }))
 
     assert.equal(response.status(), 404)
+  })
+
+  test('editing a client saves its URLs, and the issuer uses them right away', async ({
+    visit,
+    route,
+    browserContext,
+    assert,
+  }) => {
+    const acme = await setupOnboardedOrganization({ slug: 'acme' })
+    const client = await setupAppClient(acme.organization, acme.development)
+
+    await browserContext.loginAs(acme.user)
+    const page = await visit(route('apps.show', { org: 'acme', app: 'invoices' }))
+    const development = page.getByRole('region', { name: 'Development', exact: true })
+    await development.getByRole('link', { name: 'Edit', exact: true }).click()
+
+    const form = page.locator('form')
+    await page.assertInputValue(form.getByLabel('App URL', { exact: true }), client.appUrl)
+    await page.assertNotExists(form.getByLabel('Environment'))
+    await form
+      .getByLabel('Redirect URIs', { exact: true })
+      .fill('https://invoices.acme.test/auth/callback')
+    await form.getByRole('button', { name: 'Save', exact: true }).click()
+
+    await page.assertPath(route('apps.show', { org: 'acme', app: 'invoices' }))
+    await page.assertVisible(
+      development.getByText('https://invoices.acme.test/auth/callback', { exact: true })
+    )
+
+    const oldRedirect = await fetch(authorizeUrl(acme.organization, acme.development, client), {
+      redirect: 'manual',
+    })
+    assert.equal(oldRedirect.status, 400)
+    assert.include(await oldRedirect.text(), 'invalid_redirect_uri')
+  })
+
+  test('editing checks the URLs against the client environment', async ({
+    visit,
+    route,
+    browserContext,
+  }) => {
+    const acme = await setupOnboardedOrganization({ slug: 'acme' })
+    const client = await setupAppClient(acme.organization, acme.production)
+
+    await browserContext.loginAs(acme.user)
+    const page = await visit(route('apps.clients.edit', { org: 'acme', client: client.id }))
+    await page
+      .locator('form')
+      .getByLabel('Redirect URIs', { exact: true })
+      .fill('http://localhost:3000/callback')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+
+    await page.assertVisible(page.getByText('Line 1 must use https in production', { exact: true }))
+  })
+
+  test('rotating a production secret shows the new one once, and the old one stops working', async ({
+    visit,
+    route,
+    browserContext,
+    assert,
+  }) => {
+    const acme = await setupOnboardedOrganization({ slug: 'acme' })
+    const client = await setupAppClient(acme.organization, acme.production)
+    const oldSecret = client.secret
+
+    await browserContext.loginAs(acme.user)
+    const page = await visit(route('apps.show', { org: 'acme', app: 'invoices' }))
+    const production = page.getByRole('region', { name: 'Production', exact: true })
+
+    await production.getByRole('button', { name: 'Rotate secret', exact: true }).click()
+    await production.getByRole('button', { name: 'Cancel', exact: true }).click()
+    await page.assertNotExists(production.getByRole('button', { name: 'Yes, rotate' }))
+
+    await production.getByRole('button', { name: 'Rotate secret', exact: true }).click()
+    await page.assertVisible(production.getByText(/The current secret stops working right away/))
+    await production.getByRole('button', { name: 'Yes, rotate', exact: true }).click()
+    await page.assertVisible(production.getByRole('alert'))
+
+    await client.refresh()
+    assert.notEqual(client.secret, oldSecret)
+    await page.assertVisible(production.getByText(client.secret, { exact: true }))
+    await page.reload()
+    await page.assertNotExists(production.getByText(client.secret, { exact: true }))
+
+    const token = (secret: string) =>
+      tokenRequest(
+        acme.organization,
+        acme.production,
+        { clientId: client.clientId, secret },
+        { grant_type: 'authorization_code', code: 'not-a-real-code' }
+      )
+    const withOldSecret = await token(oldSecret)
+    const withNewSecret = await token(client.secret)
+    assert.equal(withOldSecret.body.error, 'invalid_client')
+    assert.equal(withNewSecret.body.error, 'invalid_grant', 'authenticated, then refused the code')
+  })
+
+  test('removing a client signs members out of the app right away', async ({
+    visit,
+    route,
+    browserContext,
+    assert,
+  }) => {
+    const acme = await setupOnboardedOrganization({ slug: 'acme' })
+    const client = await setupAppClient(acme.organization, acme.production)
+    await setupMember(acme.production)
+    const memberBrowser = await browserContext.browser()!.newContext()
+    const code = await visitIssuer(memberBrowser, acme.organization, acme.production, client)
+    const tokens = await exchangeCode(acme.organization, acme.production, client, code)
+    await memberBrowser.close()
+
+    await browserContext.loginAs(acme.user)
+    const page = await visit(route('apps.show', { org: 'acme', app: 'invoices' }))
+    const production = page.getByRole('region', { name: 'Production', exact: true })
+    await production.getByRole('button', { name: 'Remove', exact: true }).click()
+    await page.assertVisible(production.getByText(/signed out of it within 5 minutes/))
+    await production.getByRole('button', { name: 'Yes, remove', exact: true }).click()
+
+    await page.assertVisible(production.getByRole('link', { name: 'Configure', exact: true }))
+    assert.lengthOf(await db.from('oidc_grants'), 0)
+
+    const refreshed = await refresh(
+      acme.organization,
+      acme.production,
+      client,
+      tokens.body.refresh_token
+    )
+    assert.equal(refreshed.body.error, 'invalid_client')
+  })
+
+  test("another organization's client is not found", async ({
+    visit,
+    route,
+    browserContext,
+    assert,
+  }) => {
+    const acme = await setupOnboardedOrganization({ slug: 'acme' })
+    const globex = await setupOnboardedOrganization({ slug: 'globex' })
+    const globexClient = await setupAppClient(globex.organization, globex.production)
+
+    await browserContext.loginAs(acme.user)
+    const page = await visit(route('apps.index', { org: 'acme' }))
+    const clientUrl = `/w/acme/clients/${globexClient.id}`
+
+    const cookies = await browserContext.cookies()
+    const xsrf = cookies.find(({ name }) => name === 'XSRF-TOKEN')!
+    const headers = { 'x-xsrf-token': decodeURIComponent(xsrf.value) }
+
+    const edit = await page.request.get(`${clientUrl}/edit`)
+    const rotate = await page.request.post(`${clientUrl}/secret`, { headers })
+    const remove = await page.request.delete(clientUrl, { headers })
+
+    assert.equal(edit.status(), 404)
+    assert.equal(rotate.status(), 404)
+    assert.equal(remove.status(), 404)
   })
 })

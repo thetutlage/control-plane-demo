@@ -46,10 +46,15 @@ router
       .params({ apps: 'app' })
       .where('app', router.matchers.slug())
     router
-      .resource('apps.clients', controllers.AppClients)
-      .only(['create', 'store'])
-      .params({ apps: 'app' })
+      .shallowResource('apps.clients', controllers.AppClients)
+      .only(['create', 'store', 'edit', 'update', 'destroy'])
+      .params({ apps: 'app', clients: 'client' })
       .where('app', router.matchers.slug())
+      .where('client', router.matchers.number())
+    router
+      .post('clients/:client/secret', [controllers.AppClients, 'rotateSecret'])
+      .as('apps.clients.rotate_secret')
+      .where('client', router.matchers.number())
 
     router
       .group(() => {

@@ -26,6 +26,10 @@ export interface ApiDefinition {
     clients: {
       create: typeof routes['apps.clients.create']
       store: typeof routes['apps.clients.store']
+      edit: typeof routes['apps.clients.edit']
+      update: typeof routes['apps.clients.update']
+      destroy: typeof routes['apps.clients.destroy']
+      rotateSecret: typeof routes['apps.clients.rotate_secret']
     }
   }
   members: {
