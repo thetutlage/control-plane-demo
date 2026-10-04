@@ -1174,3 +1174,31 @@ input {
     margin-top: 10px;
   }
 }
+
+/* --- issuer login page --- */
+.signin {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 20px 16px;
+  background: var(--card);
+}
+.signin__top {
+  display: flex;
+  justify-content: flex-end;
+}
+.signin__env {
+  display: inline-block;
+  margin-bottom: 14px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in oklab, #d97706 14%, var(--card));
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 500;
+}
+.signin__code {
+  margin-top: 16px;
+  color: var(--subtle);
+  font-size: 12px;
+}

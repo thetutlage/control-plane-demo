@@ -5,7 +5,7 @@ import testUtils from '@adonisjs/core/services/test_utils'
 import App from '#models/app'
 import type Environment from '#models/environment'
 import { MemberStatus } from '#values/member_status'
-import OidcStorageAdapter from '#middleware/oidc_storage_adapter'
+import OidcStorageAdapter from '#oidc/storage_adapter'
 import { setupOnboardedOrganization } from '#tests/helpers/organizations'
 
 const HOUR = 3600

@@ -48,9 +48,9 @@ const TABLES: Record<
 }
 
 /**
- * Stores oidc-provider's records for one environment. The issuer middleware
- * creates one per record type and request, so every query is limited to
- * that request's environment.
+ * Stores oidc-provider's records for one environment. oidc-provider creates
+ * one per record type, through the factory given to `createProvider`, so
+ * every query is limited to that request's environment.
  */
 export default class OidcStorageAdapter implements Adapter {
   #model: string

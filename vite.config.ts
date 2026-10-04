@@ -5,7 +5,14 @@ import adonisjs from '@adonisjs/vite/client'
 export default defineConfig({
   plugins: [
     react(),
-    adonisjs({ entryPoints: ['inertia/app.tsx'], reload: ['resources/views/**/*.edge'] }),
+    adonisjs({
+      /**
+       * The stylesheet is an entry point of its own too, for the Edge error
+       * page oidc-provider renders on issuer hosts
+       */
+      entryPoints: ['inertia/app.tsx', 'inertia/css/app.css'],
+      reload: ['resources/views/**/*.edge'],
+    }),
   ],
 
   /**

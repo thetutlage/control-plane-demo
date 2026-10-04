@@ -43,6 +43,45 @@ export default class Environment extends EnvironmentSchema {
   declare signingKeys: HasMany<typeof SigningKey>
 
   /**
+   * Whether a host is shaped like an issuer host: a subdomain of the
+   * console's host. It may still belong to no environment.
+   */
+  static isIssuerHost(host: string | null) {
+    return Boolean(host?.endsWith(`.${consoleUrl.host}`))
+  }
+
+  /**
+   * The environment an issuer host belongs to, with its organization and
+   * its signing keys (newest first) loaded for building its oidc-provider
+   * instance, or null when the host is not an issuer. The reverse of `issuerSubdomain`: `acme.<domain>` is Acme's
+   * production environment, `acme--staging.<domain>` its staging one.
+   */
+  static async findForIssuerHost(host: string | null) {
+    if (!host || !Environment.isIssuerHost(host)) {
+      return null
+    }
+
+    const subdomain = host.slice(0, -consoleUrl.host.length - 1)
+    const [organizationSlug, environmentSlug, ...rest] = subdomain.split('--')
+    if (!organizationSlug || rest.length) {
+      return null
+    }
+
+    return Environment.query()
+      .whereHas('organization', (query) => query.where('slug', organizationSlug))
+      .if(
+        environmentSlug,
+        (query) =>
+          query.where('slug', environmentSlug).whereNot('kind', EnvironmentKind.PRODUCTION),
+        (query) => query.where('kind', EnvironmentKind.PRODUCTION)
+      )
+      .whereHas('signingKeys', () => {})
+      .preload('organization')
+      .preload('signingKeys', (query) => query.orderBy('created_at', 'desc'))
+      .first()
+  }
+
+  /**
    * The subdomain of this environment's issuer: the organization slug for
    * production, and `<org>--<environment>` for every other environment.
    * Organization slugs cannot contain `--`, so the split is unambiguous.
@@ -54,12 +93,12 @@ export default class Environment extends EnvironmentSchema {
   }
 
   /**
-   * The URL of this environment's OpenID issuer, a subdomain of the
+   * The URL of this environment's OpenID issuer, on a subdomain of the
    * console's own URL. Apps are configured with it, and it is the `iss` of
    * every token the environment issues.
    */
   issuerUrl(organizationSlug: string) {
-    return `${consoleUrl.protocol}//${this.issuerSubdomain(organizationSlug)}.${consoleUrl.host}`
+    return `${consoleUrl.protocol}//${this.issuerSubdomain(organizationSlug)}.${consoleUrl.host}/oauth`
   }
 
   /**
@@ -97,7 +136,9 @@ export default class Environment extends EnvironmentSchema {
    * Adds a member to this environment, together with the actor that
    * represents them in role assignments and audit events.
    */
-  async createMember(values: Pick<Member, 'email' | 'fullName' | 'status'>) {
+  async createMember(
+    values: Pick<Member, 'email' | 'fullName' | 'status'> & { password?: string }
+  ) {
     return db.transaction(async (trx) => {
       const scope = { organizationId: this.organizationId, environmentId: this.id }
 

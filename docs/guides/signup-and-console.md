@@ -15,9 +15,9 @@ The user is then signed in and redirected to `/w/<org>/overview`.
 
 ### Organization slug rules
 
-The slug appears in console URLs (`/w/acme`) and issuer URLs (`acme.<domain>`), so it must be:
+The slug appears in console URLs (`/w/acme`) and issuer URLs (`acme.<domain>/oauth`), so it must be:
 
-- 2 to 32 characters, lowercase letters, digits and single hyphens (`acme-corp`, never `acme--corp`);
+- 3 to 32 characters, lowercase letters, digits and single hyphens (`acme-corp`, never `acme--corp`). Three is the minimum because DNS reserves `--` in a label's third and fourth characters, and staging's issuer host is `<slug>--staging`;
 - not a reserved word such as `www`, `api`, `login` or `admin`;
 - unused by any other organization.
 

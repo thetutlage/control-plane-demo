@@ -32,7 +32,7 @@ function authorize(
   environment: Environment,
   params: Record<string, string>
 ) {
-  const url = new URL('/auth', environment.issuerUrl(organization.slug))
+  const url = new URL(`${environment.issuerUrl(organization.slug)}/auth`)
   url.search = new URLSearchParams({
     response_type: 'code',
     scope: 'openid',
@@ -54,7 +54,7 @@ async function exchangeCode(
   environment: Environment,
   credentials: { clientId: string; secret: string }
 ) {
-  const response = await fetch(new URL('/token', environment.issuerUrl(organization.slug)), {
+  const response = await fetch(new URL(`${environment.issuerUrl(organization.slug)}/token`), {
     method: 'POST',
     headers: {
       'authorization': `Basic ${btoa(`${credentials.clientId}:${credentials.secret}`)}`,
@@ -106,7 +106,7 @@ test.group('OIDC clients', (group) => {
     const response = await authorize(organization, production, { client_id: client.clientId })
 
     assert.equal(response.status, 303)
-    assert.match(response.headers.get('location')!, /^\/interaction\/[\w-]+$/)
+    assert.match(response.headers.get('location')!, /^\/sign-in\/[\w-]+$/)
   })
 
   test('unknown clients and clients of other environments cannot start a sign-in', async ({
@@ -139,7 +139,7 @@ test.group('OIDC clients', (group) => {
     const { organization, production } = await setupOnboardedOrganization()
     const client = await setupClient(organization, production)
 
-    const url = new URL('/auth', production.issuerUrl(organization.slug))
+    const url = new URL(`${production.issuerUrl(organization.slug)}/auth`)
     url.search = new URLSearchParams({
       client_id: client.clientId,
       response_type: 'code',
@@ -168,5 +168,16 @@ test.group('OIDC clients', (group) => {
     assert.equal(valid.body.error, 'invalid_grant', 'authenticated, then rejected the fake code')
     assert.equal(invalid.status, 401)
     assert.equal(invalid.body.error, 'invalid_client')
+  })
+
+  test('an unexpected failure is answered as a server error', async ({ assert }) => {
+    const { organization, production } = await setupOnboardedOrganization()
+    const client = await setupClient(organization, production)
+    await db.from('app_clients').where('id', client.id).update({ client_secret: 'not-ciphertext' })
+
+    const result = await exchangeCode(organization, production, client)
+
+    assert.equal(result.status, 500)
+    assert.equal(result.body.error, 'server_error')
   })
 })

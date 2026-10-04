@@ -1,0 +1,24 @@
+{{--
+  The error page members see on an issuer host when a request to /oauth
+  fails in their browser and cannot be sent back to the app. It is the twin
+  of inertia/pages/errors/oidc.tsx, with the same stylesheet and markup,
+  because oidc-provider renders it outside Inertia.
+--}}
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ theme }}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title }}</title>
+    @vite(['inertia/css/app.css'])
+  </head>
+  <body>
+    <div class="signin">
+      <div class="auth__form-wrap">
+        <h1 class="auth__title">{{ title }}</h1>
+        <p class="auth__sub">{{ message }}</p>
+        <p class="signin__code mono">{{ code }}</p>
+      </div>
+    </div>
+  </body>
+</html>

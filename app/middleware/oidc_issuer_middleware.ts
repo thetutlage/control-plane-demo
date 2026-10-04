@@ -1,88 +1,87 @@
-import Provider from 'oidc-provider'
+import Environment from '#models/environment'
 import env from '#start/env'
+import Member from '#models/member'
+import OidcStorageAdapter from '#oidc/storage_adapter'
+import { createProvider } from '#oidc/create_provider'
+import { errorPage } from '#oidc/error_pages'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
-import Environment from '#models/environment'
-import OidcStorageAdapter from '#middleware/oidc_storage_adapter'
-import { EnvironmentKind } from '#values/environment_kind'
 
-const consoleHost = new URL(env.get('APP_URL')).host
+const PREFIX = '/oauth'
 
 /**
- * Hands requests for an issuer subdomain to that environment's
- * oidc-provider instance. It runs before routing, so the console's
- * bodyparser, session, CSRF and auth never touch the protocol endpoints.
- * Requests for any other host continue to the console.
+ * Hands every request under `/oauth` to the oidc-provider instance of the
+ * environment whose issuer host it was sent to. It runs before routing, so
+ * the console's body parser, session, CSRF and auth never touch the
+ * protocol endpoints. Every other request continues as usual.
  */
 export default class OidcIssuerMiddleware {
+  /**
+   * A host that is not an issuer: a mistyped link or a deleted
+   * organization. Browsers get the error page, apps' servers JSON.
+   */
+  async #unknownIssuer({ request, response, view }: HttpContext) {
+    if (request.accepts(['json', 'html']) !== 'html') {
+      return response.notFound({ error: 'unknown_issuer' })
+    }
+
+    const html = await view.render('errors/oidc', {
+      ...errorPage('not_found', 'unknown_issuer'),
+      theme: request.plainCookie('app_theme', { encoded: false }) === 'dark' ? 'dark' : 'light',
+    })
+    return response.status(404).header('content-type', 'text/html; charset=utf-8').send(html)
+  }
+
+  /**
+   * Behind a proxy that terminates TLS, oidc-provider must build its URLs
+   * from the `X-Forwarded-*` headers. Rather than trusting them on its own,
+   * it is given the protocol, host and IP that AdonisJS resolved, which
+   * honour the `trustProxy` setting: forwarded headers count only when they
+   * come from a proxy AdonisJS trusts.
+   */
+  #forwardTrustedOrigin(ctx: HttpContext) {
+    const headers = ctx.request.request.headers
+    headers['x-forwarded-proto'] = ctx.request.protocol()
+    headers['x-forwarded-host'] = ctx.request.host() ?? undefined
+    headers['x-forwarded-for'] = ctx.request.ip()
+  }
+
   async handle(ctx: HttpContext, next: NextFn) {
-    const host = ctx.request.host()
-    if (!host?.endsWith(`.${consoleHost}`)) {
+    const req = ctx.request.request
+    const url = req.url ?? '/'
+    if (url !== PREFIX && !url.startsWith(`${PREFIX}/`) && !url.startsWith(`${PREFIX}?`)) {
       return next()
     }
 
-    const environment = await this.#findEnvironment(host.slice(0, -consoleHost.length - 1))
-    if (!environment || environment.signingKeys.length === 0) {
-      return ctx.response.notFound({ error: 'unknown_issuer' })
+    const environment = await Environment.findForIssuerHost(ctx.request.host())
+    if (!environment) {
+      return this.#unknownIssuer(ctx)
     }
 
-    /**
-     * oidc-provider writes the response itself, after which AdonisJS
-     * sees the headers as sent and leaves the response alone.
-     */
-    const provider = this.#buildProvider(environment)
-    await provider.callback()(ctx.request.request, ctx.response.response)
-  }
-
-  /**
-   * The environment an issuer subdomain belongs to (the reverse of
-   * `Environment#issuerSubdomain`), with its organization and its signing
-   * keys, newest first.
-   */
-  async #findEnvironment(subdomain: string) {
-    const [organizationSlug, environmentSlug, ...rest] = subdomain.split('--')
-    if (!organizationSlug || rest.length) {
-      return null
-    }
-
-    return Environment.query()
-      .whereHas('organization', (query) => query.where('slug', organizationSlug))
-      .if(
-        environmentSlug,
-        (query) =>
-          query.where('slug', environmentSlug).whereNot('kind', EnvironmentKind.PRODUCTION),
-        (query) => query.where('kind', EnvironmentKind.PRODUCTION)
-      )
-      .preload('organization')
-      .preload('signingKeys', (query) => query.orderBy('created_at', 'desc'))
-      .first()
-  }
-
-  /**
-   * A new provider instance for every request, discarded afterwards, so it
-   * always sees the environment's current keys and settings (plan §8).
-   */
-  #buildProvider(environment: Environment) {
-    return new Provider(environment.issuerUrl(environment.organization.slug), {
+    this.#forwardTrustedOrigin(ctx)
+    const provider = createProvider({
+      issuer: environment.issuerUrl(environment.organization.slug),
+      jwks: environment.signingKeys.map((key) => key.toJwk()),
+      cookieKeys: [env.get('APP_KEY').release()],
       adapter: (model) => new OidcStorageAdapter(model, environment),
-      jwks: { keys: environment.signingKeys.map((key) => key.toJwk()) },
-      cookies: { keys: [env.get('APP_KEY').release()] },
-
-      /**
-       * oidc-provider only requires PKCE from clients without a secret.
-       * Current guidance (RFC 9700, OAuth 2.1) requires it from every client.
-       */
-      pkce: { required: () => true },
-      features: {
-        devInteractions: { enabled: false },
-
-        /**
-         * On by default and unused for now. Both store record types that
-         * have no table.
-         */
-        pushedAuthorizationRequests: { enabled: false },
-        dPoP: { enabled: false },
+      findAccount: async (_ctx, accountId) => {
+        const member = await Member.findActive(environment, accountId)
+        return member ? { accountId, claims: () => ({ sub: accountId }) } : undefined
       },
     })
+
+    /**
+     * Mount oidc-provider under the prefix, the way Express mounts a sub
+     * app: it sees the path without `/oauth`, and works out the prefix
+     * from `originalUrl` when building its URLs.
+     */
+    Object.assign(req, { originalUrl: url })
+    req.url = url.slice(PREFIX.length) || '/'
+
+    /**
+     * oidc-provider writes the response itself, after which AdonisJS sees
+     * the headers as sent and leaves the response alone.
+     */
+    await provider.callback()(req, ctx.response.response)
   }
 }

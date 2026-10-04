@@ -19,10 +19,13 @@ declare module '@adonisjs/inertia/types' {
     'auth/login': ExtractProps<(typeof import('../../inertia/pages/auth/login.tsx'))['default']>
     'auth/signup': ExtractProps<(typeof import('../../inertia/pages/auth/signup.tsx'))['default']>
     'errors/not_found': ExtractProps<(typeof import('../../inertia/pages/errors/not_found.tsx'))['default']>
+    'errors/oidc': ExtractProps<(typeof import('../../inertia/pages/errors/oidc.tsx'))['default']>
     'errors/server_error': ExtractProps<(typeof import('../../inertia/pages/errors/server_error.tsx'))['default']>
     'home': ExtractProps<(typeof import('../../inertia/pages/home.tsx'))['default']>
+    'members/create': ExtractProps<(typeof import('../../inertia/pages/members/create.tsx'))['default']>
     'members/index': ExtractProps<(typeof import('../../inertia/pages/members/index.tsx'))['default']>
     'overview/show': ExtractProps<(typeof import('../../inertia/pages/overview/show.tsx'))['default']>
     'roles/index': ExtractProps<(typeof import('../../inertia/pages/roles/index.tsx'))['default']>
+    'sign_in/show': ExtractProps<(typeof import('../../inertia/pages/sign_in/show.tsx'))['default']>
   }
 }

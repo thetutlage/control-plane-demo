@@ -12,4 +12,5 @@ export const controllers = {
   Overview: () => import('#controllers/overview_controller'),
   Roles: () => import('#controllers/roles_controller'),
   Session: () => import('#controllers/session_controller'),
+  SignIn: () => import('#controllers/sign_in_controller'),
 }

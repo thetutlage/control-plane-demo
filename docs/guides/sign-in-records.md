@@ -2,13 +2,13 @@
 
 While members sign in to apps, `oidc-provider` saves a few kinds of records. Each kind has its own table.
 
-| Table                      | Record                                                                                       | Lives for                              |
-| -------------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------- |
-| `oidc_interactions`        | A sign-in in progress: which app sent the member, and where to send them back                | Minutes                                |
-| `oidc_sessions`            | The member's sign-in to the environment's login page. This is what makes single sign-on work | Days, or until logout                  |
-| `oidc_grants`              | One sign-in of a member to one app ("Sara → Invoices"), with what it allows                  | As long as its refresh tokens are used |
-| `oidc_authorization_codes` | The one-time `code` an app exchanges for tokens                                              | About a minute, usable once            |
-| `oidc_refresh_tokens`      | Tokens an app uses to get new access tokens                                                  | Days                                   |
+| Table                      | Record                                                                                         | Lives for                              |
+| -------------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------- |
+| `oidc_interactions`        | A sign-in in progress: which app sent the member, and where to send them back                  | Minutes                                |
+| `oidc_sessions`            | The member's sign-in to the environment's sign-in page. This is what makes single sign-on work | Days, or until logout                  |
+| `oidc_grants`              | One sign-in of a member to one app ("Sara → Invoices"), with what it allows                    | As long as its refresh tokens are used |
+| `oidc_authorization_codes` | The one-time `code` an app exchanges for tokens                                                | About a minute, usable once            |
+| `oidc_refresh_tokens`      | Tokens an app uses to get new access tokens                                                    | Days                                   |
 
 ID tokens and access tokens are signed JWTs, so they're never stored. Apps verify them with the issuer's public key.
 
@@ -42,7 +42,7 @@ Each row stores the full record in `payload` (JSONB), in the shape `oidc-provide
 
 ## The storage adapter
 
-`app/middleware/oidc_storage_adapter.ts` is the only code that reads or writes these tables. The issuer middleware creates one adapter per record type for each request:
+`app/oidc/storage_adapter.ts` is the only code that reads or writes these tables. The issuer middleware creates one adapter per record type for each request:
 
 ```ts
 adapter: (model) => new OidcStorageAdapter(model, environment)

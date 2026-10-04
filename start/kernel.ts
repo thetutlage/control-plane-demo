@@ -24,10 +24,15 @@ server.errorHandler(() => import('#exceptions/handler'))
  */
 server.use([
   () => import('#middleware/container_bindings_middleware'),
-  () => import('#middleware/oidc_issuer_middleware'),
   () => import('@adonisjs/static/static_middleware'),
-  () => import('@adonisjs/cors/cors_middleware'),
   () => import('@adonisjs/vite/vite_middleware'),
+
+  /**
+   * Before CORS, so the protocol endpoints answer cross-origin requests
+   * themselves
+   */
+  () => import('#middleware/oidc_issuer_middleware'),
+  () => import('@adonisjs/cors/cors_middleware'),
   () => import('#middleware/inertia_middleware'),
 ])
 
@@ -52,4 +57,5 @@ export const middleware = router.named({
   auth: () => import('#middleware/auth_middleware'),
   organization: () => import('#middleware/organization_middleware'),
   environment: () => import('#middleware/environment_middleware'),
+  issuer: () => import('#middleware/issuer_middleware'),
 })

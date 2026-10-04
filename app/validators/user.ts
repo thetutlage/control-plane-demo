@@ -22,7 +22,7 @@ export const signupValidator = vine.create({
     .string()
     .trim()
     .toLowerCase()
-    .minLength(2)
+    .minLength(3)
     .maxLength(32)
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
     .notIn(RESERVED_SLUGS)

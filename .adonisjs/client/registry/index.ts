@@ -96,11 +96,35 @@ const routes = {
     tokens: [{"old":"/w/:org/environments/:environment/members","type":0,"val":"w","end":""},{"old":"/w/:org/environments/:environment/members","type":1,"val":"org","end":""},{"old":"/w/:org/environments/:environment/members","type":0,"val":"environments","end":""},{"old":"/w/:org/environments/:environment/members","type":1,"val":"environment","end":""},{"old":"/w/:org/environments/:environment/members","type":0,"val":"members","end":""}],
     types: placeholder as Registry['members.index']['types'],
   },
+  'members.create': {
+    methods: ["GET","HEAD"],
+    pattern: '/w/:org/environments/:environment/members/create',
+    tokens: [{"old":"/w/:org/environments/:environment/members/create","type":0,"val":"w","end":""},{"old":"/w/:org/environments/:environment/members/create","type":1,"val":"org","end":""},{"old":"/w/:org/environments/:environment/members/create","type":0,"val":"environments","end":""},{"old":"/w/:org/environments/:environment/members/create","type":1,"val":"environment","end":""},{"old":"/w/:org/environments/:environment/members/create","type":0,"val":"members","end":""},{"old":"/w/:org/environments/:environment/members/create","type":0,"val":"create","end":""}],
+    types: placeholder as Registry['members.create']['types'],
+  },
+  'members.store': {
+    methods: ["POST"],
+    pattern: '/w/:org/environments/:environment/members',
+    tokens: [{"old":"/w/:org/environments/:environment/members","type":0,"val":"w","end":""},{"old":"/w/:org/environments/:environment/members","type":1,"val":"org","end":""},{"old":"/w/:org/environments/:environment/members","type":0,"val":"environments","end":""},{"old":"/w/:org/environments/:environment/members","type":1,"val":"environment","end":""},{"old":"/w/:org/environments/:environment/members","type":0,"val":"members","end":""}],
+    types: placeholder as Registry['members.store']['types'],
+  },
   'roles.index': {
     methods: ["GET","HEAD"],
     pattern: '/w/:org/environments/:environment/roles',
     tokens: [{"old":"/w/:org/environments/:environment/roles","type":0,"val":"w","end":""},{"old":"/w/:org/environments/:environment/roles","type":1,"val":"org","end":""},{"old":"/w/:org/environments/:environment/roles","type":0,"val":"environments","end":""},{"old":"/w/:org/environments/:environment/roles","type":1,"val":"environment","end":""},{"old":"/w/:org/environments/:environment/roles","type":0,"val":"roles","end":""}],
     types: placeholder as Registry['roles.index']['types'],
+  },
+  'sign_in.show': {
+    methods: ["GET","HEAD"],
+    pattern: '/sign-in/:signInId',
+    tokens: [{"old":"/sign-in/:signInId","type":0,"val":"sign-in","end":""},{"old":"/sign-in/:signInId","type":1,"val":"signInId","end":""}],
+    types: placeholder as Registry['sign_in.show']['types'],
+  },
+  'sign_in.store': {
+    methods: ["POST"],
+    pattern: '/sign-in/:signInId',
+    tokens: [{"old":"/sign-in/:signInId","type":0,"val":"sign-in","end":""},{"old":"/sign-in/:signInId","type":1,"val":"signInId","end":""}],
+    types: placeholder as Registry['sign_in.store']['types'],
   },
 } as const satisfies Record<string, AdonisEndpoint>
 

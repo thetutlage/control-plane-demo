@@ -58,19 +58,19 @@ client.secret // 'cp_live_…'
 
 ## How `oidc-provider` finds a client
 
-When an app starts a sign-in or calls `/token`, `oidc-provider` asks the storage adapter (`app/middleware/oidc_storage_adapter.ts`) for the client. The adapter:
+When an app starts a sign-in or calls `/oauth/token`, `oidc-provider` asks the storage adapter (`app/oidc/storage_adapter.ts`) for the client. The adapter:
 
 - reads `app_clients` by `client_id`, **only within the request's environment**, so a staging client is unknown to production;
 - decrypts the secret;
 - returns the same settings for every client:
 
-| Setting                        | Value                                                                                                       |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| `grant_types`                  | `authorization_code`, `refresh_token`                                                                       |
-| `response_types`               | `code`                                                                                                      |
-| `token_endpoint_auth_method`   | `client_secret_basic`: the app sends `client_id:secret` in an HTTP Basic `Authorization` header to `/token` |
-| `id_token_signed_response_alg` | `ES256`                                                                                                     |
-| `redirect_uris`                | from the row                                                                                                |
+| Setting                        | Value                                                                                                             |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| `grant_types`                  | `authorization_code`, `refresh_token`                                                                             |
+| `response_types`               | `code`                                                                                                            |
+| `token_endpoint_auth_method`   | `client_secret_basic`: the app sends `client_id:secret` in an HTTP Basic `Authorization` header to `/oauth/token` |
+| `id_token_signed_response_alg` | `ES256`                                                                                                           |
+| `redirect_uris`                | from the row                                                                                                      |
 
 Every client must use **PKCE** (`pkce.required` in the issuer middleware), including clients with a secret.
 
@@ -91,4 +91,4 @@ Every client must use **PKCE** (`pkce.required` in the issuer middleware), inclu
 - unknown clients and clients of other environments being rejected;
 - unregistered redirect URIs being rejected;
 - sign-ins without PKCE being rejected;
-- `/token` accepting the right secret and rejecting a wrong one.
+- `/oauth/token` accepting the right secret and rejecting a wrong one.

@@ -187,6 +187,30 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/members_controller').default['index']>>>
     }
   }
+  'members.create': {
+    methods: ["GET","HEAD"]
+    pattern: '/w/:org/environments/:environment/members/create'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue]
+      params: { org: ParamValue; environment: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/members_controller').default['create']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/members_controller').default['create']>>>
+    }
+  }
+  'members.store': {
+    methods: ["POST"]
+    pattern: '/w/:org/environments/:environment/members'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/member').createMemberValidator)>>
+      paramsTuple: [ParamValue, ParamValue]
+      params: { org: ParamValue; environment: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/member').createMemberValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/members_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/members_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
   'roles.index': {
     methods: ["GET","HEAD"]
     pattern: '/w/:org/environments/:environment/roles'
@@ -197,6 +221,30 @@ export interface Registry {
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['index']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['index']>>>
+    }
+  }
+  'sign_in.show': {
+    methods: ["GET","HEAD"]
+    pattern: '/sign-in/:signInId'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { signInId: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/sign_in_controller').default['show']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sign_in_controller').default['show']>>>
+    }
+  }
+  'sign_in.store': {
+    methods: ["POST"]
+    pattern: '/sign-in/:signInId'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/member').memberLoginValidator)>>
+      paramsTuple: [ParamValue]
+      params: { signInId: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/member').memberLoginValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/sign_in_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sign_in_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
 }

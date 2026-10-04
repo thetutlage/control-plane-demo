@@ -4,12 +4,25 @@ import type { Data } from '@generated/data'
 import type { InertiaProps } from '~/types'
 import ConsoleLayout from '~/layouts/console'
 import EmptyState from '~/components/empty_state'
+import { Link } from '@adonisjs/inertia/react'
 
 type PageProps = InertiaProps<{ members: Data.Member[] }>
 
-export default function MembersIndex({ members }: PageProps) {
+export default function MembersIndex({ members, organization, currentEnvironment }: PageProps) {
   return (
-    <Page title="Members" description="People who sign in to this environment's apps.">
+    <Page
+      title="Members"
+      description="People who sign in to this environment's apps."
+      actions={
+        <Link
+          route="members.create"
+          routeParams={{ org: organization?.slug ?? '', environment: currentEnvironment ?? '' }}
+          className="btn btn--primary btn--sm"
+        >
+          Add member
+        </Link>
+      }
+    >
       <div className="table-wrap">
         {members.length === 0 ? (
           <EmptyState icon={Users} title="No members yet">

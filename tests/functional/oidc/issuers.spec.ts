@@ -4,7 +4,8 @@ import testUtils from '@adonisjs/core/services/test_utils'
 import { setupOnboardedOrganization } from '#tests/helpers/organizations'
 
 const consoleUrl = new URL(env.get('APP_URL'))
-const issuer = (subdomain: string) => `${consoleUrl.protocol}//${subdomain}.${consoleUrl.host}`
+const issuer = (subdomain: string) =>
+  `${consoleUrl.protocol}//${subdomain}.${consoleUrl.host}/oauth`
 
 async function getJson(url: string) {
   const response = await fetch(url)
@@ -54,6 +55,19 @@ test.group('OIDC issuers', (group) => {
     assert.notEqual(acme.body.keys[0].kid, globex.body.keys[0].kid)
   })
 
+  test('behind a trusted proxy, endpoints use the forwarded protocol', async ({ assert }) => {
+    await setupOnboardedOrganization({ slug: 'acme' })
+
+    const response = await fetch(`${issuer('acme')}/.well-known/openid-configuration`, {
+      headers: { 'x-forwarded-proto': 'https' },
+    })
+    const discovery = (await response.json()) as Record<string, string>
+
+    assert.equal(discovery.issuer, issuer('acme'))
+    assert.equal(discovery.token_endpoint, `${issuer('acme')}/token`.replace(/^http:/, 'https:'))
+    assert.equal(discovery.jwks_uri, `${issuer('acme')}/jwks`.replace(/^http:/, 'https:'))
+  })
+
   test('unknown issuer subdomains return 404', async ({ assert }) => {
     await setupOnboardedOrganization({ slug: 'acme' })
 
@@ -64,9 +78,19 @@ test.group('OIDC issuers', (group) => {
     }
   })
 
+  test('an issuer host serves nothing outside /oauth and the sign-in page', async ({ assert }) => {
+    await setupOnboardedOrganization({ slug: 'acme' })
+    const host = `${consoleUrl.protocol}//acme.${consoleUrl.host}`
+
+    for (const path of ['/login', '/w', '/.well-known/openid-configuration']) {
+      const response = await fetch(`${host}${path}`, { redirect: 'manual' })
+      assert.equal(response.status, 404, path)
+    }
+  })
+
   test('the console host is not handled as an issuer', async ({ assert }) => {
     const response = await fetch(new URL('/login', consoleUrl))
-    const discovery = await fetch(new URL('/.well-known/openid-configuration', consoleUrl))
+    const discovery = await fetch(new URL('/oauth/.well-known/openid-configuration', consoleUrl))
 
     assert.equal(response.status, 200)
     assert.equal(discovery.status, 404)

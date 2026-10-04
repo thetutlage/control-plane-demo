@@ -7,6 +7,7 @@
 |
 */
 
+import env from '#start/env'
 import { middleware } from '#start/kernel'
 import { controllers } from '#generated/controllers'
 import router from '@adonisjs/core/services/router'
@@ -52,7 +53,7 @@ router
 
     router
       .group(() => {
-        router.get('members', [controllers.Members, 'index'])
+        router.resource('members', controllers.Members).only(['index', 'create', 'store'])
         router.get('roles', [controllers.Roles, 'index'])
       })
       .prefix('environments/:environment')
@@ -62,3 +63,16 @@ router
   .prefix('w/:org')
   .where('org', router.matchers.slug())
   .use([middleware.auth(), middleware.organization()])
+
+/**
+ * The sign-in page of an environment's issuer, on the issuer's own host
+ * (`acme.<domain>`, `acme--staging.<domain>`). oidc-provider sends members
+ * here; its own endpoints live under `/oauth` and never reach the router.
+ */
+router
+  .group(() => {
+    router.get('sign-in/:signInId', [controllers.SignIn, 'show']).as('sign_in.show')
+    router.post('sign-in/:signInId', [controllers.SignIn, 'store']).as('sign_in.store')
+  })
+  .domain(`:issuer.${new URL(env.get('APP_URL')).hostname}`)
+  .use(middleware.issuer())

@@ -30,8 +30,14 @@ export interface ApiDefinition {
   }
   members: {
     index: typeof routes['members.index']
+    create: typeof routes['members.create']
+    store: typeof routes['members.store']
   }
   roles: {
     index: typeof routes['roles.index']
+  }
+  signIn: {
+    show: typeof routes['sign_in.show']
+    store: typeof routes['sign_in.store']
   }
 }
