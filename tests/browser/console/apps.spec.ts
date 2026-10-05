@@ -12,6 +12,8 @@ import {
   visitIssuer,
 } from '#tests/helpers/oidc'
 import { setupOnboardedOrganization } from '#tests/helpers/organizations'
+import MemberApp from '#models/member_app'
+import { MemberStatus } from '#values/member_status'
 
 /**
  * Fills the register form with a name, a slug and the given URLs
@@ -156,6 +158,59 @@ test.group('Console apps', (group) => {
 
     await page.assertVisible(page.getByRole('link', { name: 'Payroll', exact: true }))
     await page.assertNotExists(page.getByRole('link', { name: 'Invoices', exact: true }))
+  })
+
+  test("an app's members tab lists everyone who signed in, marking who is active", async ({
+    visit,
+    route,
+    browserContext,
+  }) => {
+    const acme = await setupOnboardedOrganization({ slug: 'acme' })
+    const invoices = await setupApp(acme.production, 'invoices')
+    const payroll = await setupApp(acme.production, 'payroll')
+    const stagingInvoices = await setupApp(acme.staging, 'invoices')
+    const addMember = (email: string) =>
+      acme.production.createMember({ email, fullName: null, status: MemberStatus.ACTIVE })
+
+    await setupMember(acme.production)
+    const memberBrowser = await browserContext.browser()!.newContext()
+    await visitIssuer(memberBrowser, acme.organization, acme.production, invoices)
+    await memberBrowser.close()
+
+    const expired = await addMember('signed-out@acme.test')
+    await MemberApp.recordSignIn(acme.production, String(expired.actorId), invoices.clientId)
+    await db.table('oidc_sessions').insert({
+      id: 'expired-session',
+      organization_id: acme.organization.id,
+      environment_id: acme.production.id,
+      uid: 'expired-session-uid',
+      actor_id: expired.actorId,
+      payload: JSON.stringify({}),
+      expires_at: new Date(Date.now() - 60_000),
+      created_at: new Date(),
+    })
+    const payrollOnly = await addMember('payroll@acme.test')
+    await MemberApp.recordSignIn(acme.production, String(payrollOnly.actorId), payroll.clientId)
+    const stagingMember = await setupMember(acme.staging)
+    await MemberApp.recordSignIn(
+      acme.staging,
+      String(stagingMember.actorId),
+      stagingInvoices.clientId
+    )
+
+    await browserContext.loginAs(acme.user)
+    const appParams = { org: 'acme', environment: 'production', app: 'invoices' }
+    const page = await visit(route('apps.show', appParams))
+    await page.assertVisible(page.getByText('2 members have used Invoices · 1 active now'))
+
+    await page.getByRole('link', { name: 'Members', exact: true }).last().click()
+    await page.assertPath(route('app_members.index', appParams))
+    await page.assertElementsCount(page.locator('tbody tr'), 2)
+    const active = page.getByRole('row', { name: /sara@acme\.test/ })
+    const inactive = page.getByRole('row', { name: /signed-out@acme\.test/ })
+    await page.assertVisible(active.getByText('Active', { exact: true }))
+    await page.assertNotExists(inactive.getByText('Active', { exact: true }))
+    await page.assertNotExists(page.getByRole('row', { name: /payroll@acme\.test/ }))
   })
 
   test('editing an app saves its URLs, and the issuer uses them right away', async ({

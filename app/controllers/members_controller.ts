@@ -1,4 +1,3 @@
-import { DateTime } from 'luxon'
 import type { HttpContext } from '@adonisjs/core/http'
 import type Environment from '#models/environment'
 import { MemberStatus } from '#values/member_status'
@@ -20,7 +19,7 @@ export default class MembersController {
     const members = await environment
       .related('members')
       .query()
-      .withCount('sessions', (query) => query.where('expires_at', '>', DateTime.now().toSQL()))
+      .withCount('sessions', (query) => query.withScopes((scopes) => scopes.live()))
       .orderBy('email', 'asc')
 
     return inertia.render('members/index', {
@@ -57,7 +56,7 @@ export default class MembersController {
     const sessions = await member
       .related('sessions')
       .query()
-      .where('expires_at', '>', DateTime.now().toSQL())
+      .withScopes((scopes) => scopes.live())
       .orderBy('signed_in_at', 'desc')
     const apps = await member
       .related('apps')

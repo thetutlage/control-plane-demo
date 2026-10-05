@@ -1,10 +1,11 @@
 import string from '@adonisjs/core/helpers/string'
-import { belongsTo, column } from '@adonisjs/lucid/orm'
+import { belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
 import encryption from '@adonisjs/core/services/encryption'
-import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import { AppSchema } from '#database/schema'
 import { EnvironmentKind } from '#values/environment_kind'
 import Environment from '#models/environment'
+import MemberApp from '#models/member_app'
 
 const SECRET_PURPOSE = 'apps.client_secret'
 
@@ -23,6 +24,13 @@ export default class App extends AppSchema {
 
   @belongsTo(() => Environment)
   declare environment: BelongsTo<typeof Environment>
+
+  /**
+   * Members who have ever signed in to the app, with their first and last
+   * sign-in
+   */
+  @hasMany(() => MemberApp)
+  declare members: HasMany<typeof MemberApp>
 
   /**
    * A new client ID and secret. The secret's prefix shows which kind of

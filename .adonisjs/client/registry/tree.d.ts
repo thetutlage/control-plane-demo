@@ -26,6 +26,9 @@ export interface ApiDefinition {
     show: typeof routes['apps.show']
     destroy: typeof routes['apps.destroy']
   }
+  appMembers: {
+    index: typeof routes['app_members.index']
+  }
   appSettings: {
     show: typeof routes['app_settings.show']
     edit: typeof routes['app_settings.edit']

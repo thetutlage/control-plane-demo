@@ -43,14 +43,25 @@ export default class AppsController {
   }
 
   /**
-   * The app's overview tab
+   * The app's overview tab, with how many members have ever signed in to
+   * it and how many of them have a live session right now
    */
   async show({ inertia, params, organization, environment }: HttpContext) {
     const app = await environment.related('apps').query().where('slug', params.app).firstOrFail()
+    const [members] = await app.related('members').query().count('* as total')
+    const [active] = await app
+      .related('members')
+      .query()
+      .whereHas('member', (member) =>
+        member.whereHas('sessions', (sessions) => sessions.withScopes((scopes) => scopes.live()))
+      )
+      .count('* as total')
 
     return inertia.render('apps/show', {
       app: AppTransformer.transform(app),
       issuerUrl: environment.issuerUrl(organization.slug),
+      membersCount: Number(members.$extras.total),
+      activeMembersCount: Number(active.$extras.total),
     })
   }
 

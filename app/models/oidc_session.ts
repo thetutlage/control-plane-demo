@@ -1,3 +1,5 @@
+import { DateTime } from 'luxon'
+import { scope } from '@adonisjs/lucid/orm'
 import { OidcSessionSchema } from '#database/schema'
 
 /**
@@ -8,4 +10,12 @@ import { OidcSessionSchema } from '#database/schema'
 export default class OidcSession extends OidcSessionSchema {
   static table = 'oidc_sessions'
   static selfAssignPrimaryKey = true
+
+  /**
+   * Sessions that haven't expired. Expired rows stay until they are
+   * cleaned up.
+   */
+  static live = scope((query) => {
+    query.where('expires_at', '>', DateTime.now().toSQL())
+  })
 }

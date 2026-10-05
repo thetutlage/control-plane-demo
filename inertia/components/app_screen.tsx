@@ -23,6 +23,9 @@ export default function AppScreen({ app, children }: { app: Data.App; children: 
         <NavLink route="apps.show" routeParams={routeParams} exact className="tabs__item">
           Overview
         </NavLink>
+        <NavLink route="app_members.index" routeParams={routeParams} className="tabs__item">
+          Members
+        </NavLink>
         <NavLink route="app_settings.show" routeParams={routeParams} className="tabs__item">
           Settings
         </NavLink>

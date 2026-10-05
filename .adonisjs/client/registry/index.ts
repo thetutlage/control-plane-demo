@@ -90,6 +90,12 @@ const routes = {
     tokens: [{"old":"/w/:org/:environment/apps/:app","type":0,"val":"w","end":""},{"old":"/w/:org/:environment/apps/:app","type":1,"val":"org","end":""},{"old":"/w/:org/:environment/apps/:app","type":1,"val":"environment","end":""},{"old":"/w/:org/:environment/apps/:app","type":0,"val":"apps","end":""},{"old":"/w/:org/:environment/apps/:app","type":1,"val":"app","end":""}],
     types: placeholder as Registry['apps.destroy']['types'],
   },
+  'app_members.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/w/:org/:environment/apps/:app/members',
+    tokens: [{"old":"/w/:org/:environment/apps/:app/members","type":0,"val":"w","end":""},{"old":"/w/:org/:environment/apps/:app/members","type":1,"val":"org","end":""},{"old":"/w/:org/:environment/apps/:app/members","type":1,"val":"environment","end":""},{"old":"/w/:org/:environment/apps/:app/members","type":0,"val":"apps","end":""},{"old":"/w/:org/:environment/apps/:app/members","type":1,"val":"app","end":""},{"old":"/w/:org/:environment/apps/:app/members","type":0,"val":"members","end":""}],
+    types: placeholder as Registry['app_members.index']['types'],
+  },
   'app_settings.show': {
     methods: ["GET","HEAD"],
     pattern: '/w/:org/:environment/apps/:app/settings',

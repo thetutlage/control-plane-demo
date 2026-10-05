@@ -51,7 +51,7 @@ Grants are temporary: they expire after 14 days, and sign-out deletes them. So `
 
 A row is written on every visit to the issuer, including silent SSO ones: `createProvider()` calls its `recordSignIn` input when it creates a grant, and both issuer middleware pass `MemberApp.recordSignIn()`.
 
-There's no "active apps": a member is signed in on browsers (sessions), and has used apps.
+There's no "active apps": a member is signed in on browsers (sessions), and has used apps. An app's Members tab reads the same rows the other way round ([Apps](apps.md#in-the-console)).
 
 **Add member** (`/members/create`) adds an **active** member with a password the admin chooses (8 to 32 characters). They can sign in right away. Emails are unique within the environment (`app/validators/member.ts`).
 

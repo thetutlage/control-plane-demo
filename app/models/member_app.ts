@@ -4,6 +4,7 @@ import { belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { MemberAppSchema } from '#database/schema'
 import App from '#models/app'
+import Member from '#models/member'
 import type Environment from '#models/environment'
 
 /**
@@ -12,6 +13,9 @@ import type Environment from '#models/environment'
 export default class MemberApp extends MemberAppSchema {
   @belongsTo(() => App)
   declare app: BelongsTo<typeof App>
+
+  @belongsTo(() => Member, { foreignKey: 'actorId', localKey: 'actorId' })
+  declare member: BelongsTo<typeof Member>
 
   /**
    * Notes a member's sign-in to the app with a client ID: adds the app to

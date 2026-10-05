@@ -18,13 +18,14 @@ Secrets start with `cp_live_` in production and `cp_test_` in every other enviro
 
 ## In the console
 
-| URL                                            | Page                                                               | Controller                   |
-| ---------------------------------------------- | ------------------------------------------------------------------ | ---------------------------- |
-| `/w/:org/:environment/apps`                    | The environment's apps, with **Register app**                      | `AppsController.index`       |
-| `/w/:org/:environment/apps/create`             | Register an app: name, slug, app URL, redirect URIs, sign-out URIs | `AppsController.create`      |
-| `/w/:org/:environment/apps/:app`               | The **Overview** tab: issuer URL, client ID and app URL            | `AppsController.show`        |
-| `/w/:org/:environment/apps/:app/settings`      | The **Settings** tab: credentials and URLs                         | `AppSettingsController.show` |
-| `/w/:org/:environment/apps/:app/settings/edit` | Edit the app's URLs                                                | `AppSettingsController.edit` |
+| URL                                            | Page                                                                   | Controller                   |
+| ---------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------- |
+| `/w/:org/:environment/apps`                    | The environment's apps, with **Register app**                          | `AppsController.index`       |
+| `/w/:org/:environment/apps/create`             | Register an app: name, slug, app URL, redirect URIs, sign-out URIs     | `AppsController.create`      |
+| `/w/:org/:environment/apps/:app`               | The **Overview** tab: member counts, issuer URL, client ID and app URL | `AppsController.show`        |
+| `/w/:org/:environment/apps/:app/members`       | The **Members** tab: everyone who has signed in to the app             | `AppMembersController.index` |
+| `/w/:org/:environment/apps/:app/settings`      | The **Settings** tab: credentials and URLs                             | `AppSettingsController.show` |
+| `/w/:org/:environment/apps/:app/settings/edit` | Edit the app's URLs                                                    | `AppSettingsController.edit` |
 
 Rotating the secret is `POST …/apps/:app/secret` (`AppSecretsController.store`): it creates a new secret, which replaces the old one. Removing is `DELETE …/apps/:app` (`AppsController.destroy`).
 
@@ -33,6 +34,8 @@ Rotating the secret is `POST …/apps/:app/secret` (`AppSecretsController.store`
   - Sign-out redirect URIs are where the app may send members after [logout](logout.md): optional, one per line, up to 10, with the same rules.
   - Production accepts only `https`. Other environments also accept `http` on `localhost`, `127.0.0.1` and `[::1]`.
   - URLs can't contain wildcards or `#fragments`. These rules are in `app/validators/rules/client_url.ts` and `redirect_uri_list.ts`.
+- **Members tab.** One row per member who has ever signed in to the app (`member_apps`, through `app.related('members')`), most recent sign-in first, with their first and last sign-in. An **Active** badge marks members with a live session at the issuer right now (`OidcSession.live` scope). The Overview tab shows both counts: "12 members have used Invoices · 3 active now".
+  - Active means signed in at the issuer, not to this app. A session lasts 30 days and the app's grant 14, so a member can be active after the app's grant has expired. Their next visit to the app signs them in again without a password.
 - **Secrets.**
   - In development and staging, the secret is masked with a **Show** button.
   - In production, the full secret is shown once, on the Settings tab right after registering or rotating; after that, only the last four characters. It's passed to that one page view as the `clientSecret` flash message, and `AppTransformer` never sends a production secret.
@@ -95,6 +98,7 @@ Every app must use **PKCE** (`pkce.required` in the issuer middleware), even wit
 - the apps list showing only its environment's apps;
 - editing an app, and the issuer refusing a redirect URI that was removed;
 - rotating a secret: shown once, the old one refused, the new one accepted;
+- the Members tab listing only the app's members, marking those with a live session, and the Overview counts;
 - removing an app signing members out of it;
 - apps of other environments and organizations returning 404.
 

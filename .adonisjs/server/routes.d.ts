@@ -18,6 +18,7 @@ export type ScannedRoutes = {
     'apps.store': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
     'apps.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
     'apps.destroy': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
+    'app_members.index': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
     'app_settings.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
     'app_settings.edit': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
     'app_settings.update': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
@@ -41,6 +42,7 @@ export type ScannedRoutes = {
     'apps.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
     'apps.create': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
     'apps.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
+    'app_members.index': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
     'app_settings.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
     'app_settings.edit': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
     'members.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
@@ -59,6 +61,7 @@ export type ScannedRoutes = {
     'apps.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
     'apps.create': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
     'apps.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
+    'app_members.index': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
     'app_settings.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
     'app_settings.edit': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
     'members.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }

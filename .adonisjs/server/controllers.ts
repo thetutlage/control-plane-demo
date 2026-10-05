@@ -4,6 +4,7 @@
  */
 
 export const controllers = {
+  AppMembers: () => import('#controllers/app_members_controller'),
   AppSecrets: () => import('#controllers/app_secrets_controller'),
   AppSettings: () => import('#controllers/app_settings_controller'),
   Apps: () => import('#controllers/apps_controller'),

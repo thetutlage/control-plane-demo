@@ -52,6 +52,7 @@ router
       .resource('apps', controllers.Apps)
       .only(['index', 'create', 'store', 'show', 'destroy'])
       .params({ apps: 'app' })
+    router.get('apps/:app/members', [controllers.AppMembers, 'index'])
     router.get('apps/:app/settings', [controllers.AppSettings, 'show'])
     router.get('apps/:app/settings/edit', [controllers.AppSettings, 'edit'])
     router.put('apps/:app/settings', [controllers.AppSettings, 'update'])

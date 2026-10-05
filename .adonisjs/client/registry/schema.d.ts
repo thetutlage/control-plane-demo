@@ -175,6 +175,18 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/apps_controller').default['destroy']>>>
     }
   }
+  'app_members.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/w/:org/:environment/apps/:app/members'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue, ParamValue]
+      params: { org: ParamValue; environment: ParamValue; app: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_members_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_members_controller').default['index']>>>
+    }
+  }
   'app_settings.show': {
     methods: ["GET","HEAD"]
     pattern: '/w/:org/:environment/apps/:app/settings'

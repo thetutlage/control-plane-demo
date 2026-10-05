@@ -988,6 +988,13 @@ input {
 :root[data-theme='dark'] .badge--warn {
   color: #f0b45b;
 }
+.badge--active {
+  color: #15803d;
+  border-color: color-mix(in oklab, #15803d 35%, var(--card));
+}
+:root[data-theme='dark'] .badge--active {
+  color: #6fd393;
+}
 .cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
