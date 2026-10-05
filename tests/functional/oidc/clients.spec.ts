@@ -2,6 +2,7 @@ import { test } from '@japa/runner'
 import { createHash } from 'node:crypto'
 import db from '@adonisjs/lucid/services/db'
 import testUtils from '@adonisjs/core/services/test_utils'
+import App from '#models/app'
 import type Environment from '#models/environment'
 import type Organization from '#models/organization'
 import { setupOnboardedOrganization } from '#tests/helpers/organizations'
@@ -10,10 +11,15 @@ const REDIRECT_URI = 'https://invoices.acme.test/callback'
 const CODE_VERIFIER = 'a-code-verifier-that-is-at-least-forty-three-characters-long'
 const CODE_CHALLENGE = createHash('sha256').update(CODE_VERIFIER).digest('base64url')
 
-function setupClient(environment: Environment) {
-  return environment.createApp({
-    name: 'Invoices',
-    slug: 'invoices',
+/**
+ * Sets the Invoices app up in an environment, registering it on first use
+ */
+async function setupClient(environment: Environment) {
+  const app = await App.firstOrCreate(
+    { organizationId: environment.organizationId, slug: 'invoices' },
+    { name: 'Invoices' }
+  )
+  return environment.setUpApp(app, {
     appUrl: 'https://invoices.acme.test',
     redirectUris: [REDIRECT_URI],
   })
@@ -69,7 +75,9 @@ async function exchangeCode(
 test.group('OIDC clients', (group) => {
   group.each.setup(() => testUtils.db().truncate())
 
-  test('an app gets credentials whose prefix shows its environment', async ({ assert }) => {
+  test('an app gets credentials in each environment, whose prefix shows which', async ({
+    assert,
+  }) => {
     const { production, staging } = await setupOnboardedOrganization()
 
     const live = await setupClient(production)
@@ -79,8 +87,10 @@ test.group('OIDC clients', (group) => {
     assert.match(live.secret, /^cp_live_.{40}$/)
     assert.match(nonProduction.secret, /^cp_test_.{40}$/)
     assert.equal(live.clientSecretHint, live.secret.slice(-4))
+    assert.equal(live.appId, nonProduction.appId, 'one app, set up in two environments')
+    assert.notEqual(live.clientId, nonProduction.clientId)
 
-    const stored = await db.from('apps').where('id', live.id).firstOrFail()
+    const stored = await db.from('app_environments').where('id', live.id).firstOrFail()
     assert.notInclude(stored.client_secret, live.secret, 'the secret must be encrypted at rest')
   })
 
@@ -158,7 +168,10 @@ test.group('OIDC clients', (group) => {
   test('an unexpected failure is answered as a server error', async ({ assert }) => {
     const { organization, production } = await setupOnboardedOrganization()
     const client = await setupClient(production)
-    await db.from('apps').where('id', client.id).update({ client_secret: 'not-ciphertext' })
+    await db
+      .from('app_environments')
+      .where('id', client.id)
+      .update({ client_secret: 'not-ciphertext' })
 
     const result = await exchangeCode(organization, production, client)
 

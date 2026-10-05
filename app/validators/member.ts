@@ -1,10 +1,10 @@
 import vine from '@vinejs/vine'
 
 /**
- * Validator to use when an admin adds a member to an environment, with the
- * password they sign in with. Emails are unique within the environment.
+ * Validator to use when an admin adds a member, with the password they sign
+ * in with. Emails are unique within the organization.
  */
-export const createMemberValidator = vine.withMetaData<{ environmentId: number }>().create({
+export const createMemberValidator = vine.withMetaData<{ organizationId: number }>().create({
   fullName: vine.string().trim().maxLength(100).nullable(),
   email: vine
     .string()
@@ -15,7 +15,7 @@ export const createMemberValidator = vine.withMetaData<{ environmentId: number }
       table: 'members',
       column: 'email',
       filter: (db, _value, field) => {
-        db.where('environment_id', field.meta.environmentId)
+        db.where('organization_id', field.meta.organizationId)
       },
     }),
   password: vine.string().minLength(8).maxLength(32),

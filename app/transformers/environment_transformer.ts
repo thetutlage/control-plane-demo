@@ -16,4 +16,17 @@ export default class EnvironmentTransformer extends BaseTransformer<Environment>
       isProduction: this.resource.kind === EnvironmentKind.PRODUCTION,
     }
   }
+
+  /**
+   * The environment's issuer URL and how many apps are set up in it.
+   * Expects `organization` to be preloaded and the query to load
+   * `withCount('appEnvironments')`.
+   */
+  forSettings() {
+    return {
+      ...this.toObject(),
+      issuerUrl: this.resource.issuerUrl(this.resource.organization.slug),
+      appsCount: Number(this.resource.$extras.appEnvironments_count ?? 0),
+    }
+  }
 }

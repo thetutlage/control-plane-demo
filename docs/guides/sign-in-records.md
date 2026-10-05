@@ -16,14 +16,14 @@ ID tokens and access tokens are signed JWTs, so they're never stored. Apps verif
 
 ```
 oidc_sessions          actor_id → actors
-oidc_grants            actor_id → actors, client_id → apps
+oidc_grants            actor_id → actors, client_id → app_environments
 ├── oidc_authorization_codes   grant_id → oidc_grants
 └── oidc_refresh_tokens        grant_id → oidc_grants
 ```
 
-- **Every table has `organization_id` and `environment_id`**, with the same composite foreign keys as every other environment table. A grant can't point to an actor or app in another environment.
+- **Every table has `organization_id` and `environment_id`**, with the same composite foreign keys as every other environment table. A grant can't point to an actor of another organization, or to an app not set up in its environment.
 - **Deleting a grant deletes its codes and refresh tokens.** The foreign keys cascade. That's how a sign-in is revoked: the app's next refresh fails, and the app signs the member out.
-- **Deleting an actor or an app** deletes their sessions and grants.
+- **Deleting an actor, or removing an app from an environment,** deletes their sessions and grants.
 
 ## Columns
 

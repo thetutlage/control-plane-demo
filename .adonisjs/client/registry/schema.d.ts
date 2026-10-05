@@ -91,25 +91,13 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/organizations_controller').default['index']>>>
     }
   }
-  'organizations.show': {
+  'overview.show': {
     methods: ["GET","HEAD"]
-    pattern: '/w/:org'
+    pattern: '/w/:org/overview'
     types: {
       body: {}
       paramsTuple: [ParamValue]
       params: { org: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/organizations_controller').default['show']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/organizations_controller').default['show']>>>
-    }
-  }
-  'overview.show': {
-    methods: ["GET","HEAD"]
-    pattern: '/w/:org/:environment/overview'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue, ParamValue]
-      params: { org: ParamValue; environment: ParamValue }
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/overview_controller').default['show']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/overview_controller').default['show']>>>
@@ -117,11 +105,11 @@ export interface Registry {
   }
   'apps.index': {
     methods: ["GET","HEAD"]
-    pattern: '/w/:org/:environment/apps'
+    pattern: '/w/:org/apps'
     types: {
       body: {}
-      paramsTuple: [ParamValue, ParamValue]
-      params: { org: ParamValue; environment: ParamValue }
+      paramsTuple: [ParamValue]
+      params: { org: ParamValue }
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/apps_controller').default['index']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/apps_controller').default['index']>>>
@@ -129,11 +117,11 @@ export interface Registry {
   }
   'apps.create': {
     methods: ["GET","HEAD"]
-    pattern: '/w/:org/:environment/apps/create'
+    pattern: '/w/:org/apps/create'
     types: {
       body: {}
-      paramsTuple: [ParamValue, ParamValue]
-      params: { org: ParamValue; environment: ParamValue }
+      paramsTuple: [ParamValue]
+      params: { org: ParamValue }
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/apps_controller').default['create']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/apps_controller').default['create']>>>
@@ -141,11 +129,11 @@ export interface Registry {
   }
   'apps.store': {
     methods: ["POST"]
-    pattern: '/w/:org/:environment/apps'
+    pattern: '/w/:org/apps'
     types: {
       body: ExtractBody<InferInput<(typeof import('#validators/app').createAppValidator)>>
-      paramsTuple: [ParamValue, ParamValue]
-      params: { org: ParamValue; environment: ParamValue }
+      paramsTuple: [ParamValue]
+      params: { org: ParamValue }
       query: ExtractQuery<InferInput<(typeof import('#validators/app').createAppValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/apps_controller').default['store']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/apps_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
@@ -153,11 +141,11 @@ export interface Registry {
   }
   'apps.show': {
     methods: ["GET","HEAD"]
-    pattern: '/w/:org/:environment/apps/:app'
+    pattern: '/w/:org/apps/:app'
     types: {
       body: {}
-      paramsTuple: [ParamValue, ParamValue, ParamValue]
-      params: { org: ParamValue; environment: ParamValue; app: ParamValue }
+      paramsTuple: [ParamValue, ParamValue]
+      params: { org: ParamValue; app: ParamValue }
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/apps_controller').default['show']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/apps_controller').default['show']>>>
@@ -165,83 +153,167 @@ export interface Registry {
   }
   'apps.destroy': {
     methods: ["DELETE"]
-    pattern: '/w/:org/:environment/apps/:app'
+    pattern: '/w/:org/apps/:app'
     types: {
       body: {}
-      paramsTuple: [ParamValue, ParamValue, ParamValue]
-      params: { org: ParamValue; environment: ParamValue; app: ParamValue }
+      paramsTuple: [ParamValue, ParamValue]
+      params: { org: ParamValue; app: ParamValue }
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/apps_controller').default['destroy']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/apps_controller').default['destroy']>>>
     }
   }
-  'app_members.index': {
+  'app_environments.show': {
     methods: ["GET","HEAD"]
-    pattern: '/w/:org/:environment/apps/:app/members'
+    pattern: '/w/:org/apps/:app/environments/:environment'
     types: {
       body: {}
       paramsTuple: [ParamValue, ParamValue, ParamValue]
-      params: { org: ParamValue; environment: ParamValue; app: ParamValue }
+      params: { org: ParamValue; app: ParamValue; environment: ParamValue }
       query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_members_controller').default['index']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_members_controller').default['index']>>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_environments_controller').default['show']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_environments_controller').default['show']>>>
     }
   }
-  'app_settings.show': {
+  'app_environments.create': {
     methods: ["GET","HEAD"]
-    pattern: '/w/:org/:environment/apps/:app/settings'
+    pattern: '/w/:org/apps/:app/environments/:environment/create'
     types: {
       body: {}
       paramsTuple: [ParamValue, ParamValue, ParamValue]
-      params: { org: ParamValue; environment: ParamValue; app: ParamValue }
+      params: { org: ParamValue; app: ParamValue; environment: ParamValue }
       query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_settings_controller').default['show']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_settings_controller').default['show']>>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_environments_controller').default['create']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_environments_controller').default['create']>>>
     }
   }
-  'app_settings.edit': {
+  'app_environments.store': {
+    methods: ["POST"]
+    pattern: '/w/:org/apps/:app/environments/:environment'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/app').appEnvironmentValidator)>>
+      paramsTuple: [ParamValue, ParamValue, ParamValue]
+      params: { org: ParamValue; app: ParamValue; environment: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/app').appEnvironmentValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_environments_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_environments_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'app_environments.edit': {
     methods: ["GET","HEAD"]
-    pattern: '/w/:org/:environment/apps/:app/settings/edit'
+    pattern: '/w/:org/apps/:app/environments/:environment/edit'
     types: {
       body: {}
       paramsTuple: [ParamValue, ParamValue, ParamValue]
-      params: { org: ParamValue; environment: ParamValue; app: ParamValue }
+      params: { org: ParamValue; app: ParamValue; environment: ParamValue }
       query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_settings_controller').default['edit']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_settings_controller').default['edit']>>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_environments_controller').default['edit']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_environments_controller').default['edit']>>>
     }
   }
-  'app_settings.update': {
+  'app_environments.update': {
     methods: ["PUT"]
-    pattern: '/w/:org/:environment/apps/:app/settings'
+    pattern: '/w/:org/apps/:app/environments/:environment'
     types: {
-      body: ExtractBody<InferInput<(typeof import('#validators/app').updateAppValidator)>>
+      body: ExtractBody<InferInput<(typeof import('#validators/app').appEnvironmentValidator)>>
       paramsTuple: [ParamValue, ParamValue, ParamValue]
-      params: { org: ParamValue; environment: ParamValue; app: ParamValue }
-      query: ExtractQuery<InferInput<(typeof import('#validators/app').updateAppValidator)>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_settings_controller').default['update']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_settings_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+      params: { org: ParamValue; app: ParamValue; environment: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/app').appEnvironmentValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_environments_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_environments_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'app_environments.destroy': {
+    methods: ["DELETE"]
+    pattern: '/w/:org/apps/:app/environments/:environment'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue, ParamValue]
+      params: { org: ParamValue; app: ParamValue; environment: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_environments_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_environments_controller').default['destroy']>>>
     }
   }
   'app_secrets.store': {
     methods: ["POST"]
-    pattern: '/w/:org/:environment/apps/:app/secret'
+    pattern: '/w/:org/apps/:app/environments/:environment/secret'
     types: {
       body: {}
       paramsTuple: [ParamValue, ParamValue, ParamValue]
-      params: { org: ParamValue; environment: ParamValue; app: ParamValue }
+      params: { org: ParamValue; app: ParamValue; environment: ParamValue }
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_secrets_controller').default['store']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_secrets_controller').default['store']>>>
     }
   }
-  'members.index': {
+  'app_members.create': {
     methods: ["GET","HEAD"]
-    pattern: '/w/:org/:environment/members'
+    pattern: '/w/:org/apps/:app/environments/:environment/members/create'
     types: {
       body: {}
-      paramsTuple: [ParamValue, ParamValue]
-      params: { org: ParamValue; environment: ParamValue }
+      paramsTuple: [ParamValue, ParamValue, ParamValue]
+      params: { org: ParamValue; app: ParamValue; environment: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_members_controller').default['create']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_members_controller').default['create']>>>
+    }
+  }
+  'app_members.store': {
+    methods: ["POST"]
+    pattern: '/w/:org/apps/:app/environments/:environment/members'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/app_member').createAppMemberValidator)>>
+      paramsTuple: [ParamValue, ParamValue, ParamValue]
+      params: { org: ParamValue; app: ParamValue; environment: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/app_member').createAppMemberValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_members_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_members_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'app_members.edit': {
+    methods: ["GET","HEAD"]
+    pattern: '/w/:org/apps/:app/environments/:environment/members/:member/edit'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue, ParamValue, ParamValue]
+      params: { org: ParamValue; app: ParamValue; environment: ParamValue; member: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_members_controller').default['edit']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_members_controller').default['edit']>>>
+    }
+  }
+  'app_members.update': {
+    methods: ["PUT","PATCH"]
+    pattern: '/w/:org/apps/:app/environments/:environment/members/:member'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/app_member').updateAppMemberValidator)>>
+      paramsTuple: [ParamValue, ParamValue, ParamValue, ParamValue]
+      params: { org: ParamValue; app: ParamValue; environment: ParamValue; member: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/app_member').updateAppMemberValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_members_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_members_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'app_members.destroy': {
+    methods: ["DELETE"]
+    pattern: '/w/:org/apps/:app/environments/:environment/members/:member'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue, ParamValue, ParamValue]
+      params: { org: ParamValue; app: ParamValue; environment: ParamValue; member: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_members_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_members_controller').default['destroy']>>>
+    }
+  }
+  'members.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/w/:org/members'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { org: ParamValue }
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/members_controller').default['index']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/members_controller').default['index']>>>
@@ -249,11 +321,11 @@ export interface Registry {
   }
   'members.create': {
     methods: ["GET","HEAD"]
-    pattern: '/w/:org/:environment/members/create'
+    pattern: '/w/:org/members/create'
     types: {
       body: {}
-      paramsTuple: [ParamValue, ParamValue]
-      params: { org: ParamValue; environment: ParamValue }
+      paramsTuple: [ParamValue]
+      params: { org: ParamValue }
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/members_controller').default['create']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/members_controller').default['create']>>>
@@ -261,11 +333,11 @@ export interface Registry {
   }
   'members.store': {
     methods: ["POST"]
-    pattern: '/w/:org/:environment/members'
+    pattern: '/w/:org/members'
     types: {
       body: ExtractBody<InferInput<(typeof import('#validators/member').createMemberValidator)>>
-      paramsTuple: [ParamValue, ParamValue]
-      params: { org: ParamValue; environment: ParamValue }
+      paramsTuple: [ParamValue]
+      params: { org: ParamValue }
       query: ExtractQuery<InferInput<(typeof import('#validators/member').createMemberValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/members_controller').default['store']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/members_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
@@ -273,11 +345,11 @@ export interface Registry {
   }
   'members.show': {
     methods: ["GET","HEAD"]
-    pattern: '/w/:org/:environment/members/:member'
+    pattern: '/w/:org/members/:member'
     types: {
       body: {}
-      paramsTuple: [ParamValue, ParamValue, ParamValue]
-      params: { org: ParamValue; environment: ParamValue; member: ParamValue }
+      paramsTuple: [ParamValue, ParamValue]
+      params: { org: ParamValue; member: ParamValue }
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/members_controller').default['show']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/members_controller').default['show']>>>
@@ -285,11 +357,11 @@ export interface Registry {
   }
   'member_sessions.destroy': {
     methods: ["DELETE"]
-    pattern: '/w/:org/:environment/members/:member/sessions'
+    pattern: '/w/:org/members/:member/sessions'
     types: {
       body: {}
-      paramsTuple: [ParamValue, ParamValue, ParamValue]
-      params: { org: ParamValue; environment: ParamValue; member: ParamValue }
+      paramsTuple: [ParamValue, ParamValue]
+      params: { org: ParamValue; member: ParamValue }
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/member_sessions_controller').default['destroy']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/member_sessions_controller').default['destroy']>>>
@@ -297,14 +369,86 @@ export interface Registry {
   }
   'roles.index': {
     methods: ["GET","HEAD"]
-    pattern: '/w/:org/:environment/roles'
+    pattern: '/w/:org/roles'
     types: {
       body: {}
-      paramsTuple: [ParamValue, ParamValue]
-      params: { org: ParamValue; environment: ParamValue }
+      paramsTuple: [ParamValue]
+      params: { org: ParamValue }
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['index']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['index']>>>
+    }
+  }
+  'roles.create': {
+    methods: ["GET","HEAD"]
+    pattern: '/w/:org/roles/create'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { org: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['create']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['create']>>>
+    }
+  }
+  'roles.store': {
+    methods: ["POST"]
+    pattern: '/w/:org/roles'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/role').roleValidator)>>
+      paramsTuple: [ParamValue]
+      params: { org: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/role').roleValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'roles.edit': {
+    methods: ["GET","HEAD"]
+    pattern: '/w/:org/roles/:role/edit'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue]
+      params: { org: ParamValue; role: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['edit']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['edit']>>>
+    }
+  }
+  'roles.update': {
+    methods: ["PUT","PATCH"]
+    pattern: '/w/:org/roles/:role'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/role').roleValidator)>>
+      paramsTuple: [ParamValue, ParamValue]
+      params: { org: ParamValue; role: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/role').roleValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'roles.destroy': {
+    methods: ["DELETE"]
+    pattern: '/w/:org/roles/:role'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue]
+      params: { org: ParamValue; role: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['destroy']>>>
+    }
+  }
+  'environments.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/w/:org/settings/environments'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { org: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/environments_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/environments_controller').default['index']>>>
     }
   }
   'sign_in.show': {
@@ -329,6 +473,18 @@ export interface Registry {
       query: ExtractQuery<InferInput<(typeof import('#validators/member').memberLoginValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/sign_in_controller').default['store']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sign_in_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'sign_in.destroy': {
+    methods: ["DELETE"]
+    pattern: '/sign-in/:signInId'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { signInId: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/sign_in_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sign_in_controller').default['destroy']>>>
     }
   }
 }

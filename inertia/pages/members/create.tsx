@@ -2,22 +2,14 @@ import Page from '~/components/page'
 import type { InertiaProps } from '~/types'
 import ConsoleLayout from '~/layouts/console'
 import { Form, Link } from '@adonisjs/inertia/react'
-import EnvironmentBadge from '~/components/environment_badge'
-import { useConsoleParams, useCurrentEnvironment } from '~/components/environment_switcher'
 
-export default function MembersCreate(_props: InertiaProps) {
-  const routeParams = useConsoleParams()
-  const environment = useCurrentEnvironment()!
+export default function MembersCreate({ organization }: InertiaProps) {
+  const routeParams = { org: organization?.slug ?? '' }
 
   return (
     <Page
       title="Add member"
-      description={
-        <>
-          <EnvironmentBadge environment={environment} /> Add someone who signs in to the apps. They
-          can sign in right away with this password.
-        </>
-      }
+      description="Add someone who signs in to your apps. They can sign in right away with this password, in every environment."
     >
       <Form route="members.store" routeParams={routeParams} options={{ preserveScroll: true }}>
         {({ errors, processing }) => (

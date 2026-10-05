@@ -11,12 +11,10 @@ import type { EnvironmentKind } from '#values/environment_kind'
 import type { MemberStatus } from '#values/member_status'
 
 export class ActorSchema extends BaseModel {
-  static $columns = ['createdAt', 'environmentId', 'id', 'organizationId', 'type'] as const
+  static $columns = ['createdAt', 'id', 'organizationId', 'type'] as const
   $columns = ActorSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
-  @column()
-  declare environmentId: number
   @column()
   declare id: number
   @column()
@@ -25,9 +23,11 @@ export class ActorSchema extends BaseModel {
   declare type: ActorType
 }
 
-export class AppSchema extends BaseModel {
-  static $columns = ['appUrl', 'clientId', 'clientSecret', 'clientSecretHint', 'createdAt', 'environmentId', 'id', 'name', 'organizationId', 'postLogoutRedirectUris', 'redirectUris', 'slug', 'updatedAt'] as const
-  $columns = AppSchema.$columns
+export class AppEnvironmentSchema extends BaseModel {
+  static $columns = ['appId', 'appUrl', 'clientId', 'clientSecret', 'clientSecretHint', 'createdAt', 'environmentId', 'id', 'organizationId', 'postLogoutRedirectUris', 'redirectUris', 'updatedAt'] as const
+  $columns = AppEnvironmentSchema.$columns
+  @column()
+  declare appId: number
   @column()
   declare appUrl: string
   @column()
@@ -43,13 +43,64 @@ export class AppSchema extends BaseModel {
   @column()
   declare id: number
   @column()
-  declare name: string
-  @column()
   declare organizationId: number
   @column()
   declare postLogoutRedirectUris: string[]
   @column()
   declare redirectUris: string[]
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
+export class AppMemberRoleSchema extends BaseModel {
+  static $columns = ['appMemberId', 'createdAt', 'environmentId', 'id', 'organizationId', 'roleId'] as const
+  $columns = AppMemberRoleSchema.$columns
+  @column()
+  declare appMemberId: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare environmentId: number
+  @column()
+  declare id: number
+  @column()
+  declare organizationId: number
+  @column()
+  declare roleId: number
+}
+
+export class AppMemberSchema extends BaseModel {
+  static $columns = ['actorId', 'appId', 'createdAt', 'environmentId', 'firstSignedInAt', 'id', 'lastSignedInAt', 'organizationId'] as const
+  $columns = AppMemberSchema.$columns
+  @column()
+  declare actorId: number
+  @column()
+  declare appId: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare environmentId: number
+  @column.dateTime()
+  declare firstSignedInAt: DateTime | null
+  @column()
+  declare id: number
+  @column.dateTime()
+  declare lastSignedInAt: DateTime | null
+  @column()
+  declare organizationId: number
+}
+
+export class AppSchema extends BaseModel {
+  static $columns = ['createdAt', 'id', 'name', 'organizationId', 'slug', 'updatedAt'] as const
+  $columns = AppSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare id: number
+  @column()
+  declare name: string
+  @column()
+  declare organizationId: number
   @column()
   declare slug: string
   @column.dateTime({ autoCreate: true, autoUpdate: true })
@@ -75,27 +126,8 @@ export class EnvironmentSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
-export class MemberAppSchema extends BaseModel {
-  static $columns = ['actorId', 'appId', 'environmentId', 'firstSignedInAt', 'id', 'lastSignedInAt', 'organizationId'] as const
-  $columns = MemberAppSchema.$columns
-  @column()
-  declare actorId: number
-  @column()
-  declare appId: number
-  @column()
-  declare environmentId: number
-  @column.dateTime()
-  declare firstSignedInAt: DateTime
-  @column()
-  declare id: number
-  @column.dateTime()
-  declare lastSignedInAt: DateTime
-  @column()
-  declare organizationId: number
-}
-
 export class MemberSchema extends BaseModel {
-  static $columns = ['actorId', 'createdAt', 'email', 'environmentId', 'fullName', 'id', 'organizationId', 'password', 'status', 'updatedAt'] as const
+  static $columns = ['actorId', 'createdAt', 'email', 'fullName', 'id', 'organizationId', 'password', 'status', 'updatedAt'] as const
   $columns = MemberSchema.$columns
   @column()
   declare actorId: number
@@ -103,8 +135,6 @@ export class MemberSchema extends BaseModel {
   declare createdAt: DateTime
   @column()
   declare email: string
-  @column()
-  declare environmentId: number
   @column()
   declare fullName: string | null
   @column()
@@ -238,12 +268,10 @@ export class OrganizationSchema extends BaseModel {
 }
 
 export class PermissionCatalogSchema extends BaseModel {
-  static $columns = ['createdAt', 'environmentId', 'gitSha', 'hash', 'id', 'organizationId', 'permissions', 'syncedAt', 'updatedAt'] as const
+  static $columns = ['createdAt', 'gitSha', 'hash', 'id', 'organizationId', 'permissions', 'syncedAt', 'updatedAt'] as const
   $columns = PermissionCatalogSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
-  @column()
-  declare environmentId: number
   @column()
   declare gitSha: string | null
   @column()
@@ -260,34 +288,13 @@ export class PermissionCatalogSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
-export class RoleAssignmentSchema extends BaseModel {
-  static $columns = ['actorId', 'createdAt', 'environmentId', 'expiresAt', 'id', 'organizationId', 'roleId'] as const
-  $columns = RoleAssignmentSchema.$columns
-  @column()
-  declare actorId: number
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
-  @column()
-  declare environmentId: number
-  @column.dateTime()
-  declare expiresAt: DateTime | null
-  @column()
-  declare id: number
-  @column()
-  declare organizationId: number
-  @column()
-  declare roleId: number
-}
-
 export class RoleSchema extends BaseModel {
-  static $columns = ['createdAt', 'description', 'environmentId', 'id', 'name', 'organizationId', 'permissions', 'updatedAt'] as const
+  static $columns = ['createdAt', 'description', 'id', 'name', 'organizationId', 'permissions', 'updatedAt'] as const
   $columns = RoleSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column()
   declare description: string | null
-  @column()
-  declare environmentId: number
   @column()
   declare id: number
   @column()

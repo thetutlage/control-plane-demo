@@ -7,7 +7,7 @@ import type Environment from '#models/environment'
  * Where each oidc-provider record type is stored, and which payload fields
  * are copied into their own columns. Record types without a table are not
  * stored: reads find nothing and saving fails loudly. Clients are the one
- * exception, read from `apps`.
+ * exception, read from `app_environments`.
  */
 const TABLES: Record<
   string,
@@ -145,21 +145,25 @@ export default class OidcStorageAdapter implements Adapter {
   }
 
   /**
-   * Clients are not stored by oidc-provider: they are the environment's
-   * apps, and every app gets the same settings.
+   * Clients are not stored by oidc-provider: they are the apps set up in
+   * the environment, and every app gets the same settings.
    */
   async #findClient(clientId: string): Promise<AdapterPayload | undefined> {
-    const app = await this.#environment.related('apps').query().where('client_id', clientId).first()
+    const setup = await this.#environment
+      .related('appEnvironments')
+      .query()
+      .where('client_id', clientId)
+      .first()
 
-    if (!app) {
+    if (!setup) {
       return undefined
     }
 
     return {
-      client_id: app.clientId,
-      client_secret: app.secret,
-      redirect_uris: app.redirectUris,
-      post_logout_redirect_uris: app.postLogoutRedirectUris,
+      client_id: setup.clientId,
+      client_secret: setup.secret,
+      redirect_uris: setup.redirectUris,
+      post_logout_redirect_uris: setup.postLogoutRedirectUris,
       grant_types: ['authorization_code', 'refresh_token'],
       response_types: ['code'],
       token_endpoint_auth_method: 'client_secret_basic',

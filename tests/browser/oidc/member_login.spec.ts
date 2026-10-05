@@ -3,7 +3,7 @@ import env from '#start/env'
 import db from '@adonisjs/lucid/services/db'
 import testUtils from '@adonisjs/core/services/test_utils'
 import { MemberStatus } from '#values/member_status'
-import { appCallback, authorizeUrl, setupApp, signIn } from '#tests/helpers/oidc'
+import { appCallback, authorizeUrl, giveAccess, setupApp, signIn } from '#tests/helpers/oidc'
 import { setupOnboardedOrganization } from '#tests/helpers/organizations'
 
 const PASSWORD = 'correct-horse'
@@ -17,12 +17,13 @@ test.group('Member login', (group) => {
   }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
     const client = await setupApp(production)
-    await production.createMember({
+    const sara = await organization.createMember({
       email: 'sara@acme.test',
       fullName: 'Sara',
       status: MemberStatus.ACTIVE,
       password: PASSWORD,
     })
+    await giveAccess(sara, client)
 
     const page = await browserContext.newPage()
     await page.goto(authorizeUrl(organization, production, client))
@@ -46,12 +47,13 @@ test.group('Member login', (group) => {
     const { organization, staging } = await setupOnboardedOrganization({ slug: 'acme' })
     const invoices = await setupApp(staging, 'invoices')
     const payroll = await setupApp(staging, 'payroll')
-    await staging.createMember({
+    const sara = await organization.createMember({
       email: 'sara@acme.test',
       fullName: 'Sara',
       status: MemberStatus.ACTIVE,
       password: PASSWORD,
     })
+    await giveAccess(sara, invoices, payroll)
 
     const page = await browserContext.newPage()
     await page.goto(authorizeUrl(organization, staging, invoices))
@@ -76,29 +78,29 @@ test.group('Member login', (group) => {
   test('sign-in is refused with the same message for every bad attempt', async ({
     browserContext,
   }) => {
-    const { organization, production, staging } = await setupOnboardedOrganization({
-      slug: 'acme',
-    })
+    const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
+    const globex = await setupOnboardedOrganization({ slug: 'globex' })
     const client = await setupApp(production)
-    await production.createMember({
+    const sara = await organization.createMember({
       email: 'sara@acme.test',
       fullName: 'Sara',
       status: MemberStatus.ACTIVE,
       password: PASSWORD,
     })
-    await production.createMember({
+    await giveAccess(sara, client)
+    await organization.createMember({
       email: 'suspended@acme.test',
       fullName: null,
       status: MemberStatus.SUSPENDED,
       password: PASSWORD,
     })
-    await production.createMember({
+    await organization.createMember({
       email: 'invited@acme.test',
       fullName: null,
       status: MemberStatus.INVITED,
     })
-    await staging.createMember({
-      email: 'staging-only@acme.test',
+    await globex.organization.createMember({
+      email: 'other-organization@globex.test',
       fullName: null,
       status: MemberStatus.ACTIVE,
       password: PASSWORD,
@@ -109,7 +111,7 @@ test.group('Member login', (group) => {
       ['nobody@acme.test', PASSWORD],
       ['suspended@acme.test', PASSWORD],
       ['invited@acme.test', PASSWORD],
-      ['staging-only@acme.test', PASSWORD],
+      ['other-organization@globex.test', PASSWORD],
     ]
 
     const page = await browserContext.newPage()
@@ -158,12 +160,13 @@ test.group('Member login', (group) => {
   }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
     const client = await setupApp(production)
-    await production.createMember({
+    const sara = await organization.createMember({
       email: 'sara@acme.test',
       fullName: 'Sara',
       status: MemberStatus.ACTIVE,
       password: PASSWORD,
     })
+    await giveAccess(sara, client)
 
     const page = await browserContext.newPage()
     await page.goto(authorizeUrl(organization, production, client))
@@ -208,5 +211,63 @@ test.group('Member login', (group) => {
     const response = await page.request.get('/sign-in/abc')
 
     assert.equal(response.status(), 404)
+  })
+
+  test('a member without access to the app is told so, and the app gets access_denied', async ({
+    browserContext,
+    assert,
+  }) => {
+    const { organization, staging } = await setupOnboardedOrganization({ slug: 'acme' })
+    const client = await setupApp(staging)
+    await organization.createMember({
+      email: 'sara@acme.test',
+      fullName: 'Sara',
+      status: MemberStatus.ACTIVE,
+      password: PASSWORD,
+    })
+
+    const page = await browserContext.newPage()
+    await page.goto(authorizeUrl(organization, staging, client))
+    await signIn(page, 'sara@acme.test', PASSWORD)
+
+    await page.assertVisible(
+      page.getByRole('heading', { name: "You don't have access to Invoices" })
+    )
+    await page.assertVisible(page.getByRole('note'))
+    const callback = appCallback(page, client.redirectUris[0])
+    await page.getByRole('button', { name: 'Back to Invoices', exact: true }).click()
+
+    const { searchParams } = await callback
+    assert.equal(searchParams.get('error'), 'access_denied')
+    assert.isNull(searchParams.get('code'))
+    assert.lengthOf(await db.from('oidc_grants'), 0)
+  })
+
+  test('single sign-on still checks access to each app', async ({ browserContext, assert }) => {
+    const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
+    const invoices = await setupApp(production, 'invoices')
+    const payroll = await setupApp(production, 'payroll')
+    const sara = await organization.createMember({
+      email: 'sara@acme.test',
+      fullName: 'Sara',
+      status: MemberStatus.ACTIVE,
+      password: PASSWORD,
+    })
+    await giveAccess(sara, invoices)
+
+    const page = await browserContext.newPage()
+    const invoicesCallback = appCallback(page, invoices.redirectUris[0])
+    await page.goto(authorizeUrl(organization, production, invoices))
+    await signIn(page, 'sara@acme.test', PASSWORD)
+    await invoicesCallback
+
+    await page.goto(authorizeUrl(organization, production, payroll))
+    await page.assertVisible(
+      page.getByRole('heading', { name: "You don't have access to Payroll" })
+    )
+    await page.assertNotExists(page.getByLabel('Password', { exact: true }))
+
+    const [appMember] = await db.from('app_members')
+    assert.isNotNull(appMember.last_signed_in_at, 'the sign-in to Invoices is recorded')
   })
 })

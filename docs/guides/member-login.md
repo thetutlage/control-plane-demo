@@ -34,14 +34,25 @@ The page uses `inertia/layouts/sign_in.tsx`, which has no console navigation. No
 
 ## Checking a member
 
-- **Lookup:** by email, **within the issuer's environment only**. A member of staging can't sign in to production, even with the same email and password.
+- **Lookup:** by email, **within the issuer's organization only**. A member of another organization can't sign in, even with the same email and password.
 - **Rules:** the member must be `ACTIVE` and have a password. The password is checked with `member.verifyPassword()`.
 - **Same answer for every failure:** "Email or password is incorrect", whether the email is unknown, the password is wrong, or the member is invited or suspended. Unknown emails still hash the password, so they take as long as a wrong one.
-- **Account:** `oidc-provider` signs in the member's **actor ID**. Both middleware pass `createProvider()` a `findAccount` that uses `Member.findActive(environment, actorId)`, which only finds active members of the environment, so a suspended member's existing sessions stop working too.
+- **Account:** `oidc-provider` signs in the member's **actor ID**. Both middleware pass `createProvider()` a `findAccount` that uses `Member.findActive(environment, actorId)`, which only finds active members of the environment's organization, so a suspended member's existing sessions stop working too.
 
 ## No consent screen
 
 Every app is first-party. Our `loadExistingGrant` hook gives a signed-in member whatever the app asks for, in a new grant on every visit to the issuer, replacing the app's previous one in that browser ([Tokens](tokens.md#lifetimes)).
+
+## Access to the app
+
+A member can only sign in to apps they're an [app member](members-and-actors.md#access-to-apps) of, in that environment. The check is in one place, `loadExistingGrant`, so it applies both after the password and on silent single sign-on:
+
+1. `createProvider()` calls its `admit(accountId, clientId)` input. Both issuer middleware pass a function that finds the app member (`AppMember.findForSignIn()`), records the sign-in on it, and says whether there was one.
+2. Without access, no grant is created. `oidc-provider` then asks for consent, which sends the browser back to the sign-in page.
+3. `SignInController.show` renders `sign_in/no_access` for a consent prompt: "You don't have access to Invoices", with the environment as a badge outside production.
+4. **Back to Invoices** (`DELETE /sign-in/:signInId`) ends the request with `access_denied`, so `oidc-provider` redirects to the app with `?error=access_denied`, as OAuth expects for a refused sign-in.
+
+The member stays signed in at the issuer, so apps they do have access to still open without a password.
 
 So when a signed-in member opens a second app, there's no sign-in page at all: `oidc-provider` redirects straight back with a code.
 

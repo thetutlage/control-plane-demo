@@ -1,6 +1,10 @@
 import { createHash, createPublicKey, verify } from 'node:crypto'
 import type { BrowserContext, Page } from 'playwright'
-import type App from '#models/app'
+import App from '#models/app'
+import Role from '#models/role'
+import AppMember from '#models/app_member'
+import type Member from '#models/member'
+import type AppEnvironment from '#models/app_environment'
 import type Environment from '#models/environment'
 import type Organization from '#models/organization'
 import { MemberStatus } from '#values/member_status'
@@ -12,8 +16,8 @@ export const CODE_VERIFIER = 'a-code-verifier-that-is-at-least-forty-three-chara
  */
 export const MEMBER = { email: 'sara@acme.test', password: 'correct-horse' }
 
-export function setupMember(environment: Environment) {
-  return environment.createMember({
+export function setupMember(organization: Organization) {
+  return organization.createMember({
     email: MEMBER.email,
     fullName: 'Sara',
     status: MemberStatus.ACTIVE,
@@ -22,19 +26,44 @@ export function setupMember(environment: Environment) {
 }
 
 /**
- * Registers an app in one environment, with a single redirect URI and a
- * single sign-out redirect URI on the app's own (fake) host
+ * Registers an app (once per organization) and sets it up in one
+ * environment, with a single redirect URI and a single sign-out redirect
+ * URI on the app's own (fake) host. Returns the setup: the app's client in
+ * that environment.
  */
-export function setupApp(environment: Environment, slug = 'invoices') {
+export async function setupApp(environment: Environment, slug = 'invoices') {
+  const app = await App.firstOrCreate(
+    { organizationId: environment.organizationId, slug },
+    { name: slug.charAt(0).toUpperCase() + slug.slice(1) }
+  )
   const appUrl = `https://${slug}.acme.test`
 
-  return environment.createApp({
-    name: slug.charAt(0).toUpperCase() + slug.slice(1),
-    slug,
+  return environment.setUpApp(app, {
     appUrl,
     redirectUris: [`${appUrl}/callback`],
     postLogoutRedirectUris: [`${appUrl}/signed-out`],
   })
+}
+
+/**
+ * Gives a member access to apps where they're set up, with one role (a
+ * "Member" role, created on first use), so they can sign in to them
+ */
+export async function giveAccess(member: Member, ...setups: AppEnvironment[]) {
+  const role = await Role.firstOrCreate(
+    { organizationId: member.organizationId, name: 'Member' },
+    { description: null, permissions: [] }
+  )
+
+  for (const setup of setups) {
+    const appMember = await AppMember.create({
+      organizationId: setup.organizationId,
+      environmentId: setup.environmentId,
+      actorId: member.actorId,
+      appId: setup.appId,
+    })
+    await appMember.syncRoles([role.id])
+  }
 }
 
 /**
@@ -84,7 +113,7 @@ export async function visitIssuer(
   browserContext: BrowserContext,
   organization: Organization,
   environment: Environment,
-  client: App,
+  client: AppEnvironment,
   scope = 'openid profile email'
 ) {
   const page = await browserContext.newPage()
@@ -110,7 +139,7 @@ export async function visitIssuer(
 export function exchangeCode(
   organization: Organization,
   environment: Environment,
-  client: App,
+  client: AppEnvironment,
   code: string,
   overrides: { secret?: string; codeVerifier?: string } = {}
 ) {
@@ -130,7 +159,7 @@ export function exchangeCode(
 export function refresh(
   organization: Organization,
   environment: Environment,
-  client: App,
+  client: AppEnvironment,
   refreshToken: string
 ) {
   return tokenRequest(organization, environment, client, {

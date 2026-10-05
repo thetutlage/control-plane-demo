@@ -11,44 +11,61 @@ export type ScannedRoutes = {
     'session.store': { paramsTuple?: []; params?: {} }
     'session.destroy': { paramsTuple?: []; params?: {} }
     'organizations.index': { paramsTuple?: []; params?: {} }
-    'organizations.show': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
-    'overview.show': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
-    'apps.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
-    'apps.create': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
-    'apps.store': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
-    'apps.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
-    'apps.destroy': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
-    'app_members.index': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
-    'app_settings.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
-    'app_settings.edit': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
-    'app_settings.update': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
-    'app_secrets.store': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
-    'members.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
-    'members.create': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
-    'members.store': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
-    'members.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'member': ParamValue} }
-    'member_sessions.destroy': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'member': ParamValue} }
-    'roles.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
+    'overview.show': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'apps.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'apps.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'apps.store': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'apps.show': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue} }
+    'apps.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue} }
+    'app_environments.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
+    'app_environments.create': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
+    'app_environments.store': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
+    'app_environments.edit': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
+    'app_environments.update': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
+    'app_environments.destroy': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
+    'app_secrets.store': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
+    'app_members.create': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
+    'app_members.store': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
+    'app_members.edit': { paramsTuple: [ParamValue,ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue,'member': ParamValue} }
+    'app_members.update': { paramsTuple: [ParamValue,ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue,'member': ParamValue} }
+    'app_members.destroy': { paramsTuple: [ParamValue,ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue,'member': ParamValue} }
+    'members.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'members.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'members.store': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'members.show': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'member': ParamValue} }
+    'member_sessions.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'member': ParamValue} }
+    'roles.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'roles.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'roles.store': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'roles.edit': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'role': ParamValue} }
+    'roles.update': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'role': ParamValue} }
+    'roles.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'role': ParamValue} }
+    'environments.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'sign_in.show': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
     'sign_in.store': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
+    'sign_in.destroy': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
   }
   GET: {
     'home': { paramsTuple?: []; params?: {} }
     'new_account.create': { paramsTuple?: []; params?: {} }
     'session.create': { paramsTuple?: []; params?: {} }
     'organizations.index': { paramsTuple?: []; params?: {} }
-    'organizations.show': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
-    'overview.show': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
-    'apps.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
-    'apps.create': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
-    'apps.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
-    'app_members.index': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
-    'app_settings.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
-    'app_settings.edit': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
-    'members.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
-    'members.create': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
-    'members.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'member': ParamValue} }
-    'roles.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
+    'overview.show': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'apps.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'apps.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'apps.show': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue} }
+    'app_environments.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
+    'app_environments.create': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
+    'app_environments.edit': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
+    'app_members.create': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
+    'app_members.edit': { paramsTuple: [ParamValue,ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue,'member': ParamValue} }
+    'members.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'members.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'members.show': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'member': ParamValue} }
+    'roles.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'roles.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'roles.edit': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'role': ParamValue} }
+    'environments.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'sign_in.show': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
   }
   HEAD: {
@@ -56,35 +73,52 @@ export type ScannedRoutes = {
     'new_account.create': { paramsTuple?: []; params?: {} }
     'session.create': { paramsTuple?: []; params?: {} }
     'organizations.index': { paramsTuple?: []; params?: {} }
-    'organizations.show': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
-    'overview.show': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
-    'apps.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
-    'apps.create': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
-    'apps.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
-    'app_members.index': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
-    'app_settings.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
-    'app_settings.edit': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
-    'members.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
-    'members.create': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
-    'members.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'member': ParamValue} }
-    'roles.index': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
+    'overview.show': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'apps.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'apps.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'apps.show': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue} }
+    'app_environments.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
+    'app_environments.create': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
+    'app_environments.edit': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
+    'app_members.create': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
+    'app_members.edit': { paramsTuple: [ParamValue,ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue,'member': ParamValue} }
+    'members.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'members.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'members.show': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'member': ParamValue} }
+    'roles.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'roles.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'roles.edit': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'role': ParamValue} }
+    'environments.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'sign_in.show': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
   }
   POST: {
     'new_account.store': { paramsTuple?: []; params?: {} }
     'session.store': { paramsTuple?: []; params?: {} }
     'session.destroy': { paramsTuple?: []; params?: {} }
-    'apps.store': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
-    'app_secrets.store': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
-    'members.store': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue} }
+    'apps.store': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'app_environments.store': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
+    'app_secrets.store': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
+    'app_members.store': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
+    'members.store': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'roles.store': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'sign_in.store': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
   }
   DELETE: {
-    'apps.destroy': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
-    'member_sessions.destroy': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'member': ParamValue} }
+    'apps.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue} }
+    'app_environments.destroy': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
+    'app_members.destroy': { paramsTuple: [ParamValue,ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue,'member': ParamValue} }
+    'member_sessions.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'member': ParamValue} }
+    'roles.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'role': ParamValue} }
+    'sign_in.destroy': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
   }
   PUT: {
-    'app_settings.update': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'environment': ParamValue,'app': ParamValue} }
+    'app_environments.update': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
+    'app_members.update': { paramsTuple: [ParamValue,ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue,'member': ParamValue} }
+    'roles.update': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'role': ParamValue} }
+  }
+  PATCH: {
+    'app_members.update': { paramsTuple: [ParamValue,ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue,'member': ParamValue} }
+    'roles.update': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'role': ParamValue} }
   }
 }
 declare module '@adonisjs/core/types/http' {

@@ -21,6 +21,6 @@ export default class NewAccountController {
     })
 
     await auth.use('web').login(user)
-    response.redirect().toRoute('organizations.show', { org: organization.slug })
+    response.redirect().toRoute('overview.show', { org: organization.slug })
   }
 }

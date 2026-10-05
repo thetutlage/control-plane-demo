@@ -217,6 +217,34 @@ input {
 :root[data-theme='dark'] .field__input[data-invalid='true'] {
   border-color: #e0685c;
 }
+.checks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.checks__title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.check {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.check__hint {
+  color: var(--muted);
+  font-size: 13px;
+}
+fieldset.field {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
 .field__hint {
   font-size: 12.5px;
   color: var(--muted);
@@ -865,48 +893,57 @@ input {
   flex-direction: column;
   background: var(--paper);
 }
-.envbar {
-  display: flex;
-  flex-direction: column;
-}
-.envswitch {
-  width: 100%;
-  height: 34px;
-  padding: 0 12px;
-  border-radius: 999px;
-  font-size: 13.5px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.envswitch--production,
 .env-badge--production {
   border-color: color-mix(in oklab, #c0392b 45%, var(--line-2));
   background: color-mix(in oklab, #c0392b 10%, var(--card));
   color: #a93226;
 }
-.envswitch--staging,
 .env-badge--staging {
   border-color: color-mix(in oklab, #d97706 45%, var(--line-2));
   background: color-mix(in oklab, #d97706 10%, var(--card));
   color: #b45309;
 }
-.envswitch--development,
 .env-badge--development {
   border-color: color-mix(in oklab, #2563eb 40%, var(--line-2));
   background: color-mix(in oklab, #2563eb 8%, var(--card));
   color: #1d4ed8;
 }
-:root[data-theme='dark'] .envswitch--production,
 :root[data-theme='dark'] .env-badge--production {
   color: #f08a7e;
 }
-:root[data-theme='dark'] .envswitch--staging,
 :root[data-theme='dark'] .env-badge--staging {
   color: #f0b45b;
 }
-:root[data-theme='dark'] .envswitch--development,
 :root[data-theme='dark'] .env-badge--development {
   color: #8db4ff;
+}
+/* An environment tab's dot: filled when the app is set up there, hollow when not */
+.env-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border: 1.5px solid currentColor;
+  border-radius: 999px;
+}
+.env-dot--set-up {
+  background: currentColor;
+}
+.env-dot--production {
+  color: #a93226;
+}
+.env-dot--staging {
+  color: #b45309;
+}
+.env-dot--development {
+  color: #1d4ed8;
+}
+.env-status {
+  white-space: nowrap;
+  color: var(--muted);
+}
+.env-status--set-up {
+  color: var(--ok);
 }
 .tabs {
   display: flex;
@@ -1148,7 +1185,7 @@ input {
 }
 
 /* --- app clients, one panel per environment --- */
-.clients {
+.panels {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -1180,11 +1217,6 @@ input {
   display: flex;
   gap: 8px;
   margin-top: 10px;
-}
-.client__empty {
-  margin-top: 6px;
-  color: var(--muted);
-  font-size: 14px;
 }
 .notice--secret {
   margin: 14px 0 0;

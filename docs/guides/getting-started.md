@@ -16,6 +16,8 @@ npm run dev                 # http://localhost:3333
 
 Open `/signup` to create an organization. Signing up redirects you to its console at `/w/<org>/overview`.
 
+Until the catalogue sync API exists, `node ace db:seed` gives every organization the catalogue in `database/permission_catalog.json`, so roles have keys to pick from. It only runs in development; run it again after signing up a new organization or editing the file.
+
 The database runs on port **5433**, so it never clashes with a PostgreSQL already running on 5432. On first start, Docker creates two databases: `control_plane` for development and `control_plane_test` for tests (`docker/postgres/create_test_database.sql`).
 
 ## Running on HTTPS domains with portless

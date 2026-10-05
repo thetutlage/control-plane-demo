@@ -2,12 +2,11 @@ import Page from '~/components/page'
 import { Link } from '@adonisjs/inertia/react'
 import type { InertiaProps } from '~/types'
 import ConsoleLayout from '~/layouts/console'
-import { useConsoleParams } from '~/components/environment_switcher'
 
 type PageProps = InertiaProps<{ appsCount: number; membersCount: number }>
 
 export default function OverviewShow({ appsCount, membersCount, organization }: PageProps) {
-  const routeParams = useConsoleParams()
+  const routeParams = { org: organization?.slug ?? '' }
 
   return (
     <Page title="Overview" description={organization?.name}>

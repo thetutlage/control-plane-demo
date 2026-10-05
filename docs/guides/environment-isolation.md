@@ -1,6 +1,6 @@
 # Environment isolation
 
-An environment never sees another environment's data, even within the same organization. This is enforced in two places.
+Apps, members, the catalogue and roles belong to the organization and are shared by its environments. What runs in an environment never leaks into another: an app's setup there (credentials, URLs), its sign-ins (sessions, grants, tokens) and its signing keys. This is enforced in two places.
 
 ## 1. The database
 
@@ -15,17 +15,17 @@ table
 
 This means a row can't name an environment from a different organization.
 
-Links between environment rows include `environment_id` in the foreign key too. For example, `role_assignments` references `roles(environment_id, id)` and `actors(environment_id, id)`. A production role can't be assigned to a staging actor: the insert fails.
+Links between environment rows include `environment_id` in the foreign key too. `oidc_grants` references `app_environments(environment_id, client_id)`, so a grant can only be for an app set up in its own environment, and `app_members` references `app_environments(environment_id, app_id)` the same way. `app_member_roles` references `app_members(environment_id, id)` and `roles(organization_id, id)`, so a role of another organization can't be held.
 
-Sign-in records and history point to apps the same way: `oidc_grants` references `apps(environment_id, client_id)` and `member_apps` references `apps(environment_id, id)`.
+Links to organization rows include `organization_id`: `app_environments` references `apps(organization_id, id)`, and sessions, grants, members and app members reference `actors(organization_id, id)`. An app or actor of another organization can't be used.
 
 ## 2. The console
 
-Console requests resolve the organization and environment from the URL through middleware, and controllers only query through them. See [Signup and console access](signup-and-console.md#how-a-console-page-finds-its-data).
+Console requests resolve the organization from the URL through middleware, and the environment too on an app's environment pages. Controllers only query through them. See [Signup and console access](signup-and-console.md#how-a-console-page-finds-its-data).
 
 ## Tests
 
 - `tests/functional/database/environment_boundaries.spec.ts` tries to insert rows that cross environments and organizations, and expects each insert to fail.
-- `tests/browser/console/environment_isolation.spec.ts` checks that one environment's pages never show another's data, and that another organization's URLs return 404.
+- `tests/browser/console/environment_isolation.spec.ts` checks that pages show only their organization's data, and that another organization's URLs and environments return 404.
 
 When you add an environment table, give it both columns and the composite foreign key, and add a boundary test.

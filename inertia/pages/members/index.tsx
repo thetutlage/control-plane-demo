@@ -4,18 +4,17 @@ import type { Data } from '@generated/data'
 import type { InertiaProps } from '~/types'
 import ConsoleLayout from '~/layouts/console'
 import EmptyState from '~/components/empty_state'
-import { useConsoleParams } from '~/components/environment_switcher'
 import { Link } from '@adonisjs/inertia/react'
 
 type PageProps = InertiaProps<{ members: Data.Member.Variants['forList'][] }>
 
-export default function MembersIndex({ members }: PageProps) {
-  const routeParams = useConsoleParams()
+export default function MembersIndex({ members, organization }: PageProps) {
+  const routeParams = { org: organization?.slug ?? '' }
 
   return (
     <Page
       title="Members"
-      description="People who sign in to the apps, in one environment at a time."
+      description="People who sign in to your apps. Each one is the same member in every environment."
       actions={
         <Link route="members.create" routeParams={routeParams} className="btn btn--primary btn--sm">
           Add member
@@ -25,7 +24,7 @@ export default function MembersIndex({ members }: PageProps) {
       <div className="table-wrap">
         {members.length === 0 ? (
           <EmptyState icon={Users} title="No members yet">
-            Members you add to this environment show up here.
+            Members you add show up here.
           </EmptyState>
         ) : (
           <table className="table">

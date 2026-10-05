@@ -8,6 +8,7 @@ import { BaseTransformer } from '@adonisjs/core/transformers'
 export default class OidcSessionTransformer extends BaseTransformer<OidcSession> {
   toObject() {
     return {
+      environmentId: this.resource.environmentId,
       signedInAt: this.resource.signedInAt?.toFormat('d LLL yyyy, HH:mm') ?? null,
       expiresAt: this.resource.expiresAt.toFormat('d LLL yyyy'),
     }

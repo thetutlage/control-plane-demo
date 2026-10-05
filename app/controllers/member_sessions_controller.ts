@@ -5,10 +5,11 @@ import type { HttpContext } from '@adonisjs/core/http'
  */
 export default class MemberSessionsController {
   /**
-   * Signs the member out of every app, on every browser
+   * Signs the member out of every app, on every browser, in every
+   * environment
    */
-  async destroy({ response, session, params, organization, environment }: HttpContext) {
-    const member = await environment
+  async destroy({ response, session, params, organization }: HttpContext) {
+    const member = await organization
       .related('members')
       .query()
       .where('id', params.member)
@@ -16,10 +17,8 @@ export default class MemberSessionsController {
     await member.signOutEverywhere()
 
     session.flash('success', `${member.email} is signed out everywhere.`)
-    return response.redirect().toRoute('members.show', {
-      org: organization.slug,
-      environment: environment.slug,
-      member: member.id,
-    })
+    return response
+      .redirect()
+      .toRoute('members.show', { org: organization.slug, member: member.id })
   }
 }

@@ -5,12 +5,11 @@ import { Form } from '@adonisjs/inertia/react'
 import FlashToasts from '~/components/flash_toasts'
 import ThemeToggle from '~/components/theme_toggle'
 import NavLink, { type NavItem } from '~/components/nav_link'
-import EnvironmentSwitcher, { useConsoleParams } from '~/components/environment_switcher'
-import { AppWindow, House, KeyRound, LogOut, Users } from 'lucide-react'
+import { AppWindow, House, KeyRound, LogOut, Settings, Users } from 'lucide-react'
 
 /**
- * Every console page belongs to the environment picked in the switcher
- * above the nav
+ * Every console page belongs to the organization. Environments appear on
+ * the pages of apps and members, where something differs per environment.
  */
 const nav: NavItem[] = [
   { label: 'Overview', route: 'overview.show', icon: House },
@@ -19,9 +18,29 @@ const nav: NavItem[] = [
   { label: 'Roles', route: 'roles.index', icon: KeyRound },
 ]
 
+const settingsNav: NavItem[] = [{ label: 'Settings', route: 'environments.index', icon: Settings }]
+
+function NavGroup({ label, items, org }: { label: string; items: NavItem[]; org: string }) {
+  return (
+    <nav className="console__group" aria-label={label}>
+      {items.map(({ label: itemLabel, route, icon: Icon }) => (
+        <NavLink
+          key={itemLabel}
+          route={route}
+          routeParams={{ org }}
+          className="sidebar-layout__item"
+        >
+          {Icon && <Icon size={16} />}
+          {itemLabel}
+        </NavLink>
+      ))}
+    </nav>
+  )
+}
+
 export default function ConsoleLayout({ children }: { children: ReactNode }) {
   const { props } = usePage()
-  const routeParams = useConsoleParams()
+  const org = props.organization?.slug ?? ''
 
   return (
     <>
@@ -44,20 +63,8 @@ export default function ConsoleLayout({ children }: { children: ReactNode }) {
 
       <div className="console">
         <aside className="console__sidebar">
-          <EnvironmentSwitcher />
-          <nav className="console__group" aria-label="Console">
-            {nav.map(({ label, route, icon: Icon }) => (
-              <NavLink
-                key={label}
-                route={route}
-                routeParams={routeParams}
-                className="sidebar-layout__item"
-              >
-                {Icon && <Icon size={16} />}
-                {label}
-              </NavLink>
-            ))}
-          </nav>
+          <NavGroup label="Console" items={nav} org={org} />
+          <NavGroup label="Settings" items={settingsNav} org={org} />
         </aside>
 
         <main className="console__main">{children}</main>

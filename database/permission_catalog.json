@@ -1,0 +1,11 @@
+{
+  "billing:invoice.read": { "description": "View invoices" },
+  "billing:invoice.create": { "description": "Create and send invoices" },
+  "billing:invoice.refund": { "description": "Refund a paid invoice" },
+  "billing:report.read": { "description": "View billing reports" },
+  "payroll:run.read": { "description": "View payroll runs" },
+  "payroll:run.approve": { "description": "Approve a payroll run" },
+  "hr:employee.read": { "description": "View employee records" },
+  "hr:employee.update": { "description": "Edit employee records" },
+  "company:pii.view": { "description": "See personal data of customers" }
+}

@@ -1,17 +1,11 @@
-import db from '@adonisjs/lucid/services/db'
 import env from '#start/env'
-import { belongsTo, hasMany, hasOne } from '@adonisjs/lucid/orm'
-import type { BelongsTo, HasMany, HasOne } from '@adonisjs/lucid/types/relations'
+import { belongsTo, hasMany } from '@adonisjs/lucid/orm'
+import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import { EnvironmentSchema } from '#database/schema'
-import { ActorType } from '#values/actor_type'
 import { EnvironmentKind } from '#values/environment_kind'
 import Organization from '#models/organization'
-import Actor from '#models/actor'
-import Member from '#models/member'
-import App from '#models/app'
-import PermissionCatalog from '#models/permission_catalog'
-import Role from '#models/role'
-import RoleAssignment from '#models/role_assignment'
+import type App from '#models/app'
+import AppEnvironment from '#models/app_environment'
 import SigningKey from '#models/signing_key'
 
 const consoleUrl = new URL(env.get('APP_URL'))
@@ -20,23 +14,11 @@ export default class Environment extends EnvironmentSchema {
   @belongsTo(() => Organization)
   declare organization: BelongsTo<typeof Organization>
 
-  @hasMany(() => Actor)
-  declare actors: HasMany<typeof Actor>
-
-  @hasMany(() => Member)
-  declare members: HasMany<typeof Member>
-
-  @hasMany(() => App)
-  declare apps: HasMany<typeof App>
-
-  @hasOne(() => PermissionCatalog)
-  declare permissionCatalog: HasOne<typeof PermissionCatalog>
-
-  @hasMany(() => Role)
-  declare roles: HasMany<typeof Role>
-
-  @hasMany(() => RoleAssignment)
-  declare roleAssignments: HasMany<typeof RoleAssignment>
+  /**
+   * The apps set up in this environment, with their credentials here
+   */
+  @hasMany(() => AppEnvironment)
+  declare appEnvironments: HasMany<typeof AppEnvironment>
 
   @hasMany(() => SigningKey)
   declare signingKeys: HasMany<typeof SigningKey>
@@ -115,35 +97,22 @@ export default class Environment extends EnvironmentSchema {
   }
 
   /**
-   * Registers an app in this environment, with a new client ID and secret
+   * Sets an app up in this environment, with a new client ID and secret
    */
-  async createApp(
-    values: Pick<App, 'name' | 'slug' | 'appUrl' | 'redirectUris'> &
-      Partial<Pick<App, 'postLogoutRedirectUris'>>
+  async setUpApp(
+    app: App,
+    values: Pick<AppEnvironment, 'appUrl' | 'redirectUris'> &
+      Partial<Pick<AppEnvironment, 'postLogoutRedirectUris'>>
   ) {
-    return App.create(
+    return AppEnvironment.create(
       {
         ...values,
         organizationId: this.organizationId,
         environmentId: this.id,
-        ...App.generateCredentials(this.kind),
+        appId: app.id,
+        ...AppEnvironment.generateCredentials(this.kind),
       },
       { client: this.$trx }
     )
-  }
-
-  /**
-   * Adds a member to this environment, together with the actor that
-   * represents them in role assignments and audit events.
-   */
-  async createMember(
-    values: Pick<Member, 'email' | 'fullName' | 'status'> & { password?: string }
-  ) {
-    return db.transaction(async (trx) => {
-      const scope = { organizationId: this.organizationId, environmentId: this.id }
-
-      const actor = await Actor.create({ ...scope, type: ActorType.MEMBER }, { client: trx })
-      return Member.create({ ...values, ...scope, actorId: actor.id }, { client: trx })
-    })
   }
 }

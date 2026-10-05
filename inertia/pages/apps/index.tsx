@@ -5,19 +5,23 @@ import type { InertiaProps } from '~/types'
 import { Link } from '@adonisjs/inertia/react'
 import ConsoleLayout from '~/layouts/console'
 import EmptyState from '~/components/empty_state'
-import { useConsoleParams } from '~/components/environment_switcher'
+import EnvironmentBadge from '~/components/environment_badge'
 
-type PageProps = InertiaProps<{ apps: Data.App[] }>
+type PageProps = InertiaProps<{ apps: Data.App.Variants['forList'][] }>
 
-export default function AppsIndex({ apps }: PageProps) {
-  const routeParams = useConsoleParams()
+/**
+ * The organization's apps, with a column per environment showing how far
+ * each app has reached
+ */
+export default function AppsIndex({ apps, organization, environments = [] }: PageProps) {
+  const org = organization?.slug ?? ''
 
   return (
     <Page
       title="Apps"
-      description="Internal apps that sign their users in through this console."
+      description="Internal apps, and how far each one has reached."
       actions={
-        <Link route="apps.create" routeParams={routeParams} className="btn btn--primary btn--sm">
+        <Link route="apps.create" routeParams={{ org }} className="btn btn--primary btn--sm">
           Register app
         </Link>
       }
@@ -25,14 +29,18 @@ export default function AppsIndex({ apps }: PageProps) {
       <div className="table-wrap">
         {apps.length === 0 ? (
           <EmptyState icon={AppWindow} title="No apps yet">
-            Register an app to let it sign members in to this environment.
+            Register an app, then set it up in each environment it reaches.
           </EmptyState>
         ) : (
           <table className="table">
             <thead>
               <tr>
                 <th>Name</th>
-                <th>Slug</th>
+                {environments.map((environment) => (
+                  <th key={environment.id}>
+                    <EnvironmentBadge environment={environment} />
+                  </th>
+                ))}
                 <th>Registered</th>
               </tr>
             </thead>
@@ -40,11 +48,21 @@ export default function AppsIndex({ apps }: PageProps) {
               {apps.map((app) => (
                 <tr key={app.id}>
                   <td>
-                    <Link route="apps.show" routeParams={{ ...routeParams, app: app.slug }}>
+                    <Link route="apps.show" routeParams={{ org, app: app.slug }}>
                       {app.name}
                     </Link>
                   </td>
-                  <td className="mono">{app.slug}</td>
+                  {environments.map((environment) =>
+                    app.environmentIds.includes(environment.id) ? (
+                      <td key={environment.id} className="env-status env-status--set-up">
+                        ● Set up
+                      </td>
+                    ) : (
+                      <td key={environment.id} className="env-status">
+                        ○ Not yet
+                      </td>
+                    )
+                  )}
                   <td>{app.createdAt}</td>
                 </tr>
               ))}

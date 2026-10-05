@@ -2,23 +2,14 @@ import Page from '~/components/page'
 import type { InertiaProps } from '~/types'
 import ConsoleLayout from '~/layouts/console'
 import { Form, Link } from '@adonisjs/inertia/react'
-import ClientUrlFields from '~/components/client_url_fields'
-import EnvironmentBadge from '~/components/environment_badge'
-import { useConsoleParams, useCurrentEnvironment } from '~/components/environment_switcher'
 
-export default function AppsCreate(_props: InertiaProps) {
-  const routeParams = useConsoleParams()
-  const environment = useCurrentEnvironment()!
+export default function AppsCreate({ organization }: InertiaProps) {
+  const routeParams = { org: organization?.slug ?? '' }
 
   return (
     <Page
       title="Register app"
-      description={
-        <>
-          <EnvironmentBadge environment={environment} /> Register an internal app. You get its
-          client ID and secret next.
-        </>
-      }
+      description="Register an internal app once. You set it up in each environment it reaches next."
     >
       <Form route="apps.store" routeParams={routeParams} options={{ preserveScroll: true }}>
         {({ errors, processing }) => (
@@ -58,8 +49,6 @@ export default function AppsCreate(_props: InertiaProps) {
               </span>
               {errors.slug && <span className="field__error">{errors.slug}</span>}
             </div>
-
-            <ClientUrlFields errors={errors} />
 
             <div className="form__actions">
               <button type="submit" className="btn btn--primary" disabled={processing}>

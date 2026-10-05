@@ -8,6 +8,7 @@ import {
   refresh,
   setupApp,
   setupMember,
+  giveAccess,
   verifyJwt,
   visitIssuer,
 } from '#tests/helpers/oidc'
@@ -24,7 +25,8 @@ test.group('Tokens', (group) => {
   }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
     const client = await setupApp(production)
-    const member = await setupMember(production)
+    const member = await setupMember(organization)
+    await giveAccess(member, client)
     const issuer = production.issuerUrl(organization.slug)
 
     const code = await visitIssuer(browserContext, organization, production, client)
@@ -60,7 +62,7 @@ test.group('Tokens', (group) => {
   }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
     const client = await setupApp(production)
-    await setupMember(production)
+    await giveAccess(await setupMember(organization), client)
 
     const code = await visitIssuer(browserContext, organization, production, client, 'openid')
     const { body } = await exchangeCode(organization, production, client, code)
@@ -77,7 +79,7 @@ test.group('Tokens', (group) => {
   }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
     const client = await setupApp(production)
-    await setupMember(production)
+    await giveAccess(await setupMember(organization), client)
 
     const code = await visitIssuer(browserContext, organization, production, client)
 
@@ -107,7 +109,7 @@ test.group('Tokens', (group) => {
   test('refresh tokens work until the grant expires', async ({ browserContext, assert }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
     const client = await setupApp(production)
-    await setupMember(production)
+    await giveAccess(await setupMember(organization), client)
 
     const code = await visitIssuer(browserContext, organization, production, client)
     const { body } = await exchangeCode(organization, production, client, code)
@@ -127,7 +129,7 @@ test.group('Tokens', (group) => {
   test('refresh tokens stop working when the session ends', async ({ browserContext, assert }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
     const client = await setupApp(production)
-    await setupMember(production)
+    await giveAccess(await setupMember(organization), client)
 
     const code = await visitIssuer(browserContext, organization, production, client)
     const { body } = await exchangeCode(organization, production, client, code)
@@ -144,7 +146,7 @@ test.group('Tokens', (group) => {
   }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
     const client = await setupApp(production)
-    await setupMember(production)
+    await giveAccess(await setupMember(organization), client)
 
     const code = await visitIssuer(browserContext, organization, production, client)
     await exchangeCode(organization, production, client, code)
@@ -164,7 +166,7 @@ test.group('Tokens', (group) => {
   }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
     const client = await setupApp(production)
-    await setupMember(production)
+    await giveAccess(await setupMember(organization), client)
 
     const otherBrowser = await browserContext.browser()!.newContext()
     const elsewhere = await visitIssuer(otherBrowser, organization, production, client)
@@ -204,7 +206,8 @@ test.group('Tokens', (group) => {
   test('a suspended member cannot refresh', async ({ browserContext, assert }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
     const client = await setupApp(production)
-    const member = await setupMember(production)
+    const member = await setupMember(organization)
+    await giveAccess(member, client)
 
     const code = await visitIssuer(browserContext, organization, production, client)
     const { body } = await exchangeCode(organization, production, client, code)
@@ -224,7 +227,7 @@ test.group('Tokens', (group) => {
       slug: 'acme',
     })
     const client = await setupApp(staging)
-    await setupMember(staging)
+    await giveAccess(await setupMember(organization), client)
 
     const code = await visitIssuer(browserContext, organization, staging, client)
     const { body } = await exchangeCode(organization, staging, client, code)

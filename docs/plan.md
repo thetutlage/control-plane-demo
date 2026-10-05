@@ -53,30 +53,36 @@ These are the targets we will benchmark against.
 The tables in `database/migrations` are the source of truth. This section explains them.
 
 ```
-── Management plane (shared by every environment of an organization) ──
+── Organization level: everything that is created (shared by every environment) ──
 User ── a control plane account: signs up and runs the console.
         email unique across all users; one account per person
 UserOrg ── user ↔ organization (many-to-many). Signup creates one
            organization; more can be created later, with a switcher
 Organization (tenant) ── name, slug (login subdomain)
+Actor ── anything that holds roles or acts in audit events:
+         member | app | agent
+Member ── a person who signs in to the internal apps.
+          email unique per organization
+App ── an internal app: name, slug
+PermissionCatalog ── the company's master catalogue (JSONB), hash,
+                     git SHA, synced_at
+Role ── a named set of catalogue keys (JSONB), can span apps
 AdminAuditEvent ── (ClickHouse) console actions by users, tagged with the
                    environment when one applies
 
-── Data plane (one hard boundary per environment) ──
+── Environment level: runtime and access ──
 Environment ── kind: development | staging | production
   Every row below carries organization_id AND environment_id, tied
   together by a composite foreign key to environments, and never
   references another environment.
-  Actor ── anything that holds roles or acts in audit events:
-           member | app | agent
-  Member ── a person who signs in to the internal apps.
-            email unique per environment
-  App ── an internal app and the OAuth client it signs in with:
-         client_id, secret, redirect_uris
-  PermissionCatalog ── the company's master catalogue for this
-                       environment (JSONB), hash, git SHA, synced_at
-  Role ── a named set of catalogue keys (JSONB), can span apps
-  RoleAssignment ── actor × role, with optional expires_at
+  AppEnvironment ── the app in this environment: client_id, secret,
+                    app_url, redirect_uris. Missing until the app
+                    reaches this stage
+  AppMember ── an actor's access to an app in this environment, with
+               their first and last sign-in, and one or more roles
+               (app_member_roles). No app member, no sign-in
+  Sessions, grants, codes, refresh tokens ── oidc-provider's records
+  SigningKey ── the keys this environment's issuer signs with
   AuditEvent ── (ClickHouse) actor, action, target, app, ip, user_agent,
                 metadata
 ```
@@ -84,27 +90,30 @@ Environment ── kind: development | staging | production
 **Users and members are different people, or different roles of the same person.**
 
 - **Users** run the control plane. One account per email. They belong to organizations through `user_orgs`, and are shown in a billing area later rather than in the main sidebar.
-- **Members** sign in to the organization's internal apps. They exist per environment, so the same person has a separate member record in staging and in production.
+- **Members** sign in to the organization's internal apps. A person is one member across every environment, with one password. What they can sign in to is decided per environment, by access.
 - A member of Acme can also sign up as a user with the same email and create their own organization.
 
-**Environments belong to the organization, not to each app.** "Acme staging" is one sign-in realm: all of Acme's staging apps share its members and single sign-on. An `App` is registered in one environment, with its own client credentials. The same app in another environment is a separate record that shares nothing with it but, usually, its name. _Decided 2026-10-05; replaced an organization-level app with an `AppClient` per environment._
+**Everything is created once, for the organization. Environments decide where it runs and who gets in.** _Decided 2026-10-05, after two shorter-lived designs the same day (see below)._
 
-**Every environment is fully isolated, and the setup is the same in each one:** sync the catalogue, define roles, add members, and assign roles.
+- **Created once:** apps, members, the permission catalogue, and roles. Nobody needs "a development app" or "staging permissions": an app moves through development, staging and production, as a Vercel project or a Neon schema change does, and the same people, permissions and roles follow it.
+- **Per environment:**
+  - _the app's setup there:_ client ID, secret, app URL, redirect URIs. These genuinely differ: development runs on `localhost`, production on its own domain with a `cp_live_` secret. An app with no setup in an environment hasn't reached that stage;
+  - _access:_ which roles each member holds on each app. A member with no role on an app can't sign in to it there. Beta testers get access in staging only. The same person can hold different roles in staging and in production;
+  - _runtime:_ the issuer and its signing keys, sessions, grants and tokens, and audit events.
+- **Changing a definition changes it everywhere at once.** That is safe for the catalogue, because tokens are built from roles, not filtered through the catalogue (see "Permission catalogue"): removing a key revokes nothing. Editing a role does change access in every environment at once. To try a role change in staging first, create a new role, assign it in staging, then move production's assignments to it.
+- **One member, one password, everywhere.** Credentials are only ever typed on our sign-in page, never into an app, so a development app sees no more than a production one. Suspending a member signs them out of every app in every environment.
 
-- **Per environment:** everything that runs in it. That covers members, sessions, and MFA enrolments; apps and their credentials; the permission catalogue, roles, and role assignments; signing keys and issuer; and runtime audit events.
-- **Shared across environments:** only the management layer. That is the organization, its users, billing, and the console audit log.
-- **No change in one environment ever affects another.** Promoting from staging to prod takes extra steps on purpose. We prefer that to accidental changes.
-- **Staging uses separate staging accounts.** The people testing staging are usually real employees. They get a staging member record, either invited there or later federated in. Prod members are never copied in.
+**Two designs this replaced, both on 2026-10-05.** _Full isolation_ (members, apps, catalogue and roles all per environment, as WorkOS and Clerk do) made every app, role and person exist up to three times, although none of them is really per environment. A _per-page environment filter_ over shared apps (closer to Retool and Appsmith) left pages mixing environments. The research on both still holds: repeating setup per environment is the common complaint about identity products, and editors unsure which environment they are in is the common complaint about low-code platforms. This design shares what is defined, and keeps what runs and who gets in per environment, always labelled with the environment.
 
-**In the console, one switcher picks the environment, and everything below it belongs to that environment.** The environment is in every console URL (`/w/acme/staging/apps`), and `/w/acme` opens the one last picked, else production. Switching keeps the section but not the record, since a record never exists in two environments. Environments are always shown as colored badges. _Decided 2026-10-05, the same day as a short-lived per-page filter._ Products that isolate everything (WorkOS, Clerk, Auth0) draw complaints about repeating setup per environment. Products that share an app across environments and swap only its data (Retool, Appsmith) draw complaints about confusion: editors unsure which environment they are in, end users changing real data while testing. Repetition can be eased later with a "copy from another environment" action; confusion can't be fixed with a feature.
+**The console has no global environment switcher.** Apps, members, permissions and roles are organization pages. Environments appear only where something differs per environment: as tabs on an app's page (that environment's setup, and its members with their roles), and as sections on a member's page (their access in each environment). Environments are always shown as colored badges.
 
 ### Multi-tenancy rules
 
-- **Isolation is enforced in one place.** Every environment table has `organization_id` and `environment_id`, so data can also be found across a whole organization. Console requests resolve the organization and environment once, and controllers only read through them. Composite foreign keys make links across environments impossible in the database itself. Tests try to read across tenants and across environments, and both attempts must fail.
+- **Isolation is enforced in one place.** Every environment table (app setups, access, sign-in records, keys) has `organization_id` and `environment_id`, so data can also be found across a whole organization. Console requests resolve the organization and environment once, and controllers only read through them. Composite foreign keys make links across environments impossible in the database itself. Tests try to read across tenants and across environments, and both attempts must fail.
 - **Each environment gets its own OIDC issuer**, for example `https://acme.<our-domain>/oauth` for prod and `https://acme--staging.<our-domain>/oauth` for staging. Each issuer has its own discovery document, JWKS, and signing keys. A token issued for one tenant or environment fails verification in any other because both `iss` and the key differ. The SDK checks `iss` and audience against the environment it is configured for. Issuers are subdomains of the console URL (`APP_URL`). Organization and environment slugs cannot be renamed, because they are part of every app's issuer URL. Custom domains (`login.acme.com`) come later and are production only.
-- **Each environment has its own credentials, and the key prefix shows which one:** `cp_test_…` for dev and staging, `cp_live_…` for prod. A staging CI key cannot write to production.
+- **Each environment has its own app credentials, and the key prefix shows which one:** `cp_test_…` for dev and staging, `cp_live_…` for prod. A staging secret cannot sign anyone in to production.
 - **Dev and staging are relaxed but clearly labelled.** They allow `http://localhost` redirects, keep keys viewable, show a console banner, and add a `[STAGING]` prefix to emails. Production requires https, shows secrets once, and applies production rate limits.
-- **No automatic copying between environments.** Members and role assignments are never mirrored from prod to staging, because that spreads real personal data into a weaker environment and creates surprise access. Later, an explicit and audited "import members from environment X" action could cover the need. A new environment can clone _settings_ (branding, session lifetimes, MFA policy) from an existing one, but never secrets.
+- **Access is never copied between environments automatically.** Granting production access because someone has staging access would create surprise access. Later, an explicit and audited "copy access from environment X" action could cover the need. A new environment can clone _settings_ (branding, session lifetimes, MFA policy) from an existing one, but never secrets.
 - **Two levels of admin:** _platform operators_ (us, with a separate guard and console) and the organization's _users_.
 - **Rate limits apply per tenant**, so one busy company cannot slow down the others.
 
@@ -122,16 +131,18 @@ export default defineCatalog({
 })
 ```
 
-- **Sync:** `await controlPlane.catalog.sync(catalog)` runs from that repo's CI. **The credential decides the target environment**, so there is no `env` parameter to get wrong, and a staging key cannot touch prod. Because only one repo writes the catalogue, syncs never clobber each other.
-- **Each environment holds its own copy of the catalogue** in `permission_catalogs`. Promoting it is the prod pipeline running the same sync with the prod key.
+- **Sync:** `await controlPlane.catalog.sync(catalog)` runs from that repo's CI, with an organization-level key. Because only one repo writes the catalogue, syncs never clobber each other.
+- **One catalogue for the organization,** in `permission_catalogs`, used by every environment.
 - **Sync is declarative and idempotent.** An unchanged catalogue costs one cheap request (the hash matches), and every sync returns a diff (added, changed, removed).
-- **The catalogue is the source of truth, and sync never rejects a change.** If a key is removed while a role still lists it, nothing breaks, because no app checks that key any more. The console flags role keys that are missing from the catalogue.
+- **Sync never rejects a change, and never revokes anything.** Tokens carry the keys of the member's roles (with aliases resolved), not the roles' keys filtered through the catalogue. So removing a key from the catalogue only removes it from the role editor, and the console flags roles that still list it. This matters because environments run different versions of an app: production may still check a key that development's code has dropped.
 - **Key naming is the company's choice.** We do not enforce namespaces. The docs recommend `<area>:<resource>.<action>`, as used by AWS (`s3:GetObject`), GCP, and Backstage, so that keys from different areas never collide.
-- **Roles are built in the console** from the keys in the environment's catalogue. They are stored as a JSONB list of keys, they can span apps (a "Finance" role covering Billing and Payroll), and they exist only in the environment where they were created.
-- **Promoting roles from staging to prod is manual for now:** you recreate the role in prod. If customers ask for it, we can add an explicit, reviewed "copy roles from environment X" action that shows a diff and is audited. It will never sync automatically.
-- **Tokens carry all of the member's permissions.** An app that needs less can downscope its token, through token exchange or a narrower scope.
+- **Roles are built in the console** from the catalogue's keys, once for the organization. They are stored as a JSONB list of keys and can span apps (a "Finance" role covering Billing and Payroll).
+- **Roles are assigned per app, per environment, and a member can hold several on one app.** A token for an app carries the union of the keys of the roles held on that app, in that environment. There are no roles made of other roles.
+- **Types follow the app's own version of the catalogue.** An app compiles against the catalogue version it imports, so its types move through environments with its code.
 - **The catalogue generates types**, so `member.can('billing:invoice.raed')` (misspelled) is a compile error in apps that import it.
 - **Catalogue keys become agent capabilities.** The same catalogue, plus optional input constraints, is what agents request in M6.
+
+**Several roles per member, not one.** _(Researched 2026-10-05.)_ The NIST RBAC model requires that a user can hold several roles at once; Auth0, Retool (whose groups are "always additive") and Keycloak allow it, with permissions combined as a union. WorkOS started with one role per membership and added multiple roles as an opt-in, because combined roles ("Approver + Viewer") multiplied. Clerk allows one role per membership, the usual convention in customer-facing SaaS rather than for staff. Keycloak also offers composite roles (roles made of roles), and its docs warn they make auditing harder, so we leave them out. Sources: [WorkOS multiple roles](https://workos.com/blog/multiple-roles), [Auth0 RBAC](https://auth0.com/docs/manage-users/access-control/rbac), [Retool permission groups](https://docs.retool.com/org-users/concepts/permission-groups), [Keycloak server administration](https://www.keycloak.org/docs/latest/server_admin/index.html), [Clerk roles](https://clerk.com/docs/guides/organizations/control-access/roles-and-permissions), [NIST RBAC model](https://tsapps.nist.gov/publication/get_pdf.cfm?pub_id=916402).
 
 **Why one master catalogue.** Roles modelled once for the whole company are common: Auth0 tenant roles, Keycloak composite roles, Entra access packages, AWS and GCP organization roles, and SailPoint business roles all work this way. Systems with one global catalogue (AWS, GCP, Backstage, Zanzibar) namespace their keys so that different areas never collide. Ownership of each area is usually handled by code review (for example, CODEOWNERS in the repo), which is the company's job rather than ours.
 
@@ -149,7 +160,7 @@ export default defineCatalog({
 - **Low-code platforms have no app permissions at all.** Retool and Appsmith govern the platform (who can view or edit an app), not what a user may do inside it. Inside an app, access is a group-name check repeated in each component's settings, invisible in review and broken by a rename. This is their weak spot for internal-app governance, and the one our catalogue fills.
 - **Identity products make you define every permission twice:** once in a dashboard, again as strings in code, with nothing keeping them in step. A typo or rename fails silently as a denial.
 - **Every environment repeats the setup.** Auth0 (a tenant per environment, synced with its Deploy CLI) and WorkOS (seed files, Terraform) fix that only with extra tooling.
-- **What we do differently:** the catalogue is defined once in code, synced per environment from CI, and its types come from the same definition. `aliases` make renames safe. Assignment stays a console concern, as everywhere else.
+- **What we do differently:** the catalogue is defined once in code, synced once from CI for every environment, and its types come from the same definition. `aliases` make renames safe. Assignment stays a console concern, as everywhere else.
 
 Sources: [WorkOS RBAC](https://workos.com/docs/rbac/integration), [WorkOS permissions](https://workos.com/docs/reference/roles/permission), [Terraform provider for WorkOS](https://github.com/osodevops/terraform-provider-workos), [Retool current_user](https://docs.retool.com/permissions/guides/current-user), [Retool forum: groups by name](https://community.retool.com/t/hide-show-components-based-off-of-permission-group/1983), [Retool forum: keys instead of names](https://community.retool.com/t/ability-to-check-for-permission-group-using-keys-instead-of-group-name/39942), [Appsmith granular access control](https://docs.appsmith.com/advanced-concepts/granular-access-control), [Appsmith custom roles](https://docs.appsmith.com/advanced-concepts/granular-access-control/reference/custom-roles), [Okta groups claim](https://developer.okta.com/docs/guides/customize-tokens-groups-claim/main/), [Okta authorization servers](https://developer.okta.com/docs/concepts/auth-servers/), [Auth0 RBAC for APIs](https://auth0.com/docs/get-started/apis/enable-role-based-access-control-for-apis), [Auth0 role permissions](https://auth0.com/docs/manage-users/access-control/configure-core-rbac/roles/add-permissions-to-roles), [Clerk roles and permissions](https://clerk.com/docs/guides/organizations/control-access/roles-and-permissions), [Clerk custom types](https://clerk.com/docs/guides/development/override-clerk-types-interfaces).
 
@@ -184,18 +195,18 @@ Both candidate specs are **drafts**. Neither should shape the core schema beyond
 
 ## 5. Decisions needed before building
 
-| #   | Decision                                                       | Status                                                                                                                                                                                                                                                                                                                                                                                               |
-| --- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D1  | Self-hosted per company, or multi-tenant SaaS?                 | **Decided: hosted multi-tenant.** See the multi-tenancy rules in §3.                                                                                                                                                                                                                                                                                                                                 |
-| D2  | Our own accounts, or the company's existing identity provider? | **Decided: our own accounts first** (passkeys, password, TOTP). There are two separate later features: _upstream SSO_ (staff sign in with Google, Okta, or Entra) and _directory sync_ (SCIM 2.0 automatically creates and removes staff when HR or IT changes them). We will choose the order later.                                                                                                |
-| D3  | OAuth/OIDC engine                                              | **Decided: `oidc-provider`, with a new instance per request.** See §8.                                                                                                                                                                                                                                                                                                                               |
-| D4  | Permission model                                               | **Decided: one master catalogue of static permissions**, kept in one company repo and synced per environment. Roles span apps, and tokens carry all of the member's permissions. See §3.                                                                                                                                                                                                             |
-| D5  | SDK shape                                                      | **Decided: one framework-agnostic TypeScript package, with no framework adapters.** Its functions take plain inputs (token string, callback URL, cookie values) and return plain results. The docs show a short wiring example for each popular framework.                                                                                                                                           |
-| D6  | Databases                                                      | **Decided: PostgreSQL for app data, self-hosted ClickHouse for audit events from day one.** See "Audit events" in §3.                                                                                                                                                                                                                                                                                |
-| D7  | Audit tamper-evidence                                          | **Decided: none in v1.** Events are append-only and only the ingest path writes them, which matches WorkOS, Okta, Auth0 and GitHub. Archiving, exports and integrity digests come later if customers ask.                                                                                                                                                                                            |
-| D8  | Environments                                                   | **Decided: full isolation.** Members, apps, catalogues, roles, role assignments, keys, and runtime audit are all separate per environment. Only the management layer (organization, its users, billing) is shared. Environments sit at the organization level. This matches WorkOS, Clerk, Auth0, Okta, Stytch, Descope, and Permit.io. Promoting roles between environments is manual for now (§3). |
-| D9  | Environment limits                                             | **Decided:** dev, staging, and prod by default, with the number of environments set by plan. Billing counts active **prod** members only. Later: short-lived preview environments per pull request.                                                                                                                                                                                                  |
-| D10 | Real staff in staging                                          | **Decided: separate staging member records.** Every environment is set up the same way: sync the catalogue, define roles, add members, assign roles.                                                                                                                                                                                                                                                 |
+| #   | Decision                                                       | Status                                                                                                                                                                                                                                                                                                                       |
+| --- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | Self-hosted per company, or multi-tenant SaaS?                 | **Decided: hosted multi-tenant.** See the multi-tenancy rules in §3.                                                                                                                                                                                                                                                         |
+| D2  | Our own accounts, or the company's existing identity provider? | **Decided: our own accounts first** (passkeys, password, TOTP). There are two separate later features: _upstream SSO_ (staff sign in with Google, Okta, or Entra) and _directory sync_ (SCIM 2.0 automatically creates and removes staff when HR or IT changes them). We will choose the order later.                        |
+| D3  | OAuth/OIDC engine                                              | **Decided: `oidc-provider`, with a new instance per request.** See §8.                                                                                                                                                                                                                                                       |
+| D4  | Permission model                                               | **Decided: one master catalogue of static permissions**, kept in one company repo and synced once for the organization. Roles span apps; members hold several roles per app, per environment, and an app's token carries the union of their keys. See §3.                                                                    |
+| D5  | SDK shape                                                      | **Decided: one framework-agnostic TypeScript package, with no framework adapters.** Its functions take plain inputs (token string, callback URL, cookie values) and return plain results. The docs show a short wiring example for each popular framework.                                                                   |
+| D6  | Databases                                                      | **Decided: PostgreSQL for app data, self-hosted ClickHouse for audit events from day one.** See "Audit events" in §3.                                                                                                                                                                                                        |
+| D7  | Audit tamper-evidence                                          | **Decided: none in v1.** Events are append-only and only the ingest path writes them, which matches WorkOS, Okta, Auth0 and GitHub. Archiving, exports and integrity digests come later if customers ask.                                                                                                                    |
+| D8  | Environments                                                   | **Decided: definitions shared, runtime and access per environment.** Apps, members, the catalogue and roles are created once for the organization. Each environment has its own app setups (credentials, URLs), access (member × app × role), issuer, keys, sessions and audit. Revised 2026-10-05 from full isolation (§3). |
+| D9  | Environment limits                                             | **Decided:** dev, staging, and prod by default, with the number of environments set by plan. Billing counts active **prod** members only. Later: short-lived preview environments per pull request.                                                                                                                          |
+| D10 | Real staff in staging                                          | **Decided: one member record per person, with access per environment.** Staging access is granted separately from production access. Revised 2026-10-05 from separate member records per environment (§3).                                                                                                                   |
 
 ## 6. Milestones
 
@@ -215,7 +226,7 @@ Each milestone ends with something that can be demonstrated.
 
 - Invite, activate, and suspend staff.
 - Register apps: client credentials, redirect URIs, secret rotation. **v1 has one secret per client**, so rotating replaces it immediately and the old secret stops working. Several secrets at once, like WorkOS's create-then-delete rotation with `last_used_at`, can come later; it needs an override of `oidc-provider`'s single-secret check.
-- Catalog sync API and the console views of app permissions, roles, role assignments, and groups.
+- Catalog sync API and the console views of app permissions, roles, access, and groups.
 
 **M2: Identity provider**
 
@@ -338,6 +349,7 @@ These are defaults found in the source. Each one must be checked against best pr
 8. **Default lifetimes and error page.** `oidc-provider` warns that it uses its default TTL for interactions (and other records) and its default HTML error page. Lifetimes are set with token contents. _The error page was replaced in step 4 (`resources/views/errors/oidc.edge`). Lifetimes are set in step 5 (docs/guides/tokens.md). Refresh tokens for apps with a secret are replaced only once 70% through their life (`rotateRefreshToken`); we keep that default, since a stolen refresh token is useless without the client secret (RFC 9700)._
 9. **Default logout pages.** RP-initiated logout is on by default and renders `oidc-provider`'s unstyled confirmation and success pages (`logoutSource`, `postLogoutSuccessSource`). Replace them with pages in the sign-in style when logout is built. _Done in step 6 (`resources/views/oidc/sign_out.edge`, `signed_out.edge`). The confirmation submits itself when the request carries a valid `id_token_hint`, and always signs out of every app._
 10. **`offline_access` needs `prompt=consent`.** The authorization endpoint drops `offline_access` unless the request's `prompt` includes `consent` (`lib/actions/authorization/scopes.js:25`), as OIDC Core §11 asks. With no consent step, our apps never get it, which is why refresh tokens are issued without it (item 3).
+11. **No grant means a consent prompt, and an interaction can end with an error.** When `loadExistingGrant` returns nothing, `oidc-provider` asks for consent, through the same interaction URL as sign-in. Finishing an interaction with `{ error, error_description }` makes the resumed request fail with that error (`lib/actions/authorization/resume.js:90`), which is sent to the app's redirect URI. _Step 3 of the shared-definitions work uses both: a member without access gets no grant, the sign-in page answers the consent prompt with "You don't have access", and going back ends it with `access_denied`._
 
 ### Logout (step 6)
 

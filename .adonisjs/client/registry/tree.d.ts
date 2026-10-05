@@ -14,7 +14,6 @@ export interface ApiDefinition {
   }
   organizations: {
     index: typeof routes['organizations.index']
-    show: typeof routes['organizations.show']
   }
   overview: {
     show: typeof routes['overview.show']
@@ -26,16 +25,23 @@ export interface ApiDefinition {
     show: typeof routes['apps.show']
     destroy: typeof routes['apps.destroy']
   }
-  appMembers: {
-    index: typeof routes['app_members.index']
-  }
-  appSettings: {
-    show: typeof routes['app_settings.show']
-    edit: typeof routes['app_settings.edit']
-    update: typeof routes['app_settings.update']
+  appEnvironments: {
+    show: typeof routes['app_environments.show']
+    create: typeof routes['app_environments.create']
+    store: typeof routes['app_environments.store']
+    edit: typeof routes['app_environments.edit']
+    update: typeof routes['app_environments.update']
+    destroy: typeof routes['app_environments.destroy']
   }
   appSecrets: {
     store: typeof routes['app_secrets.store']
+  }
+  appMembers: {
+    create: typeof routes['app_members.create']
+    store: typeof routes['app_members.store']
+    edit: typeof routes['app_members.edit']
+    update: typeof routes['app_members.update']
+    destroy: typeof routes['app_members.destroy']
   }
   members: {
     index: typeof routes['members.index']
@@ -48,9 +54,18 @@ export interface ApiDefinition {
   }
   roles: {
     index: typeof routes['roles.index']
+    create: typeof routes['roles.create']
+    store: typeof routes['roles.store']
+    edit: typeof routes['roles.edit']
+    update: typeof routes['roles.update']
+    destroy: typeof routes['roles.destroy']
+  }
+  environments: {
+    index: typeof routes['environments.index']
   }
   signIn: {
     show: typeof routes['sign_in.show']
     store: typeof routes['sign_in.store']
+    destroy: typeof routes['sign_in.destroy']
   }
 }

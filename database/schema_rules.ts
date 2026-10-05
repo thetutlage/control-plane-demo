@@ -49,7 +49,7 @@ export default {
         permissions: { tsType: 'string[]', decorators: [{ name: '@column' }] },
       },
     },
-    apps: {
+    app_environments: {
       columns: {
         redirect_uris: { tsType: 'string[]', decorators: [{ name: '@column' }] },
         post_logout_redirect_uris: { tsType: 'string[]', decorators: [{ name: '@column' }] },

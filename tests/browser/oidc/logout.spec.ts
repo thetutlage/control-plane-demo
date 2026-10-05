@@ -9,6 +9,7 @@ import {
   refresh,
   setupApp,
   setupMember,
+  giveAccess,
   visitIssuer,
 } from '#tests/helpers/oidc'
 import { setupOnboardedOrganization } from '#tests/helpers/organizations'
@@ -46,7 +47,7 @@ test.group('Logout', (group) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
     const invoices = await setupApp(production, 'invoices')
     const payroll = await setupApp(production, 'payroll')
-    await setupMember(production)
+    await giveAccess(await setupMember(organization), invoices, payroll)
 
     const invoicesCode = await visitIssuer(browserContext, organization, production, invoices)
     const invoicesTokens = await exchangeCode(organization, production, invoices, invoicesCode)
@@ -88,7 +89,7 @@ test.group('Logout', (group) => {
   }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
     const invoices = await setupApp(production)
-    await setupMember(production)
+    await giveAccess(await setupMember(organization), invoices)
 
     const code = await visitIssuer(browserContext, organization, production, invoices)
     const tokens = await exchangeCode(organization, production, invoices, code)
@@ -109,7 +110,7 @@ test.group('Logout', (group) => {
   }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
     const invoices = await setupApp(production)
-    await setupMember(production)
+    await giveAccess(await setupMember(organization), invoices)
 
     const code = await visitIssuer(browserContext, organization, production, invoices)
     const tokens = await exchangeCode(organization, production, invoices, code)

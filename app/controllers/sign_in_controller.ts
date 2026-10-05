@@ -10,29 +10,54 @@ import { EnvironmentKind } from '#values/environment_kind'
  * they have no session with the issuer yet, oidc-provider pauses that
  * request and sends them here with its ID. oidc-provider calls a paused
  * request an "interaction"; we call it a sign-in.
+ *
+ * A signed-in member without access to the app is sent here too, because
+ * no grant is created for them and oidc-provider asks for consent instead
+ * (`loadExistingGrant` in `createProvider`). The page then says they don't
+ * have access.
  */
 export default class SignInController {
   async show(ctx: HttpContext) {
     const signIn = await this.#pendingSignIn(ctx)
     const { issuer, inertia } = ctx
 
-    const app = await issuer.environment
-      .related('apps')
+    const setup = await issuer.environment
+      .related('appEnvironments')
       .query()
       .where('client_id', String(signIn.params.client_id))
+      .preload('app')
       .firstOrFail()
 
-    return inertia.render('sign_in/show', {
+    const page = signIn.prompt.name === 'consent' ? 'sign_in/no_access' : 'sign_in/show'
+    return inertia.render(page, {
       signInId: signIn.uid,
       organizationName: issuer.environment.organization.name,
       environmentName: issuer.environment.name,
       isProduction: issuer.environment.kind === EnvironmentKind.PRODUCTION,
-      appName: app.name,
+      appName: setup.app.name,
     })
   }
 
   /**
-   * Checks the member's credentials within the issuer's environment and
+   * Ends a sign-in the member can't finish, because they have no access
+   * to the app: the app is told `access_denied`, the standard error for a
+   * refused sign-in, and shows it however it likes
+   */
+  async destroy(ctx: HttpContext) {
+    await this.#pendingSignIn(ctx)
+    const { issuer, inertia, request, response } = ctx
+
+    const returnTo = await issuer.provider.interactionResult(
+      request.request,
+      response.response,
+      { error: 'access_denied', error_description: 'the member has no access to this app' },
+      { mergeWithLastSubmission: false }
+    )
+    return inertia.location(returnTo)
+  }
+
+  /**
+   * Checks the member's credentials within the issuer's organization and
    * finishes the sign-in. Every failure gets the same message, so the page
    * never reveals whether an email has an account. Unknown emails still pay
    * for a hash, so they take as long as a wrong password.
@@ -42,7 +67,11 @@ export default class SignInController {
     const { issuer, inertia, request, response, session } = ctx
     const { email, password } = await request.validateUsing(memberLoginValidator)
 
-    const member = await issuer.environment.related('members').query().where('email', email).first()
+    const member = await issuer.environment.organization
+      .related('members')
+      .query()
+      .where('email', email)
+      .first()
 
     let signedIn = false
     if (member?.password && member.status === MemberStatus.ACTIVE) {

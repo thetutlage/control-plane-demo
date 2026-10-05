@@ -4,8 +4,8 @@ import Organization from '#models/organization'
 import { EnvironmentKind } from '#values/environment_kind'
 
 /**
- * Every organization starts with these environments. Each one is a fully
- * isolated sign-in realm with its own members, roles and keys.
+ * Every organization starts with these environments: the stages its apps
+ * move through. Each one has its own issuer, signing keys and sign-ins.
  */
 const DEFAULT_ENVIRONMENTS = [
   { name: 'Development', slug: 'development', kind: EnvironmentKind.DEVELOPMENT },

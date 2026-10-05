@@ -3,8 +3,8 @@ import { BaseTransformer } from '@adonisjs/core/transformers'
 
 export default class RoleTransformer extends BaseTransformer<Role> {
   /**
-   * Keys of the environment's permission catalogue, or null when the
-   * environment has not synced one yet
+   * Keys of the organization's permission catalogue, or null when it has
+   * not synced one yet
    */
   #catalogKeys: Set<string> | null
 
@@ -22,6 +22,16 @@ export default class RoleTransformer extends BaseTransformer<Role> {
       missingKeys: catalogKeys
         ? this.resource.permissions.filter((key) => !catalogKeys.has(key))
         : [],
+    }
+  }
+
+  /**
+   * The role with its keys, for the edit form
+   */
+  forEdit() {
+    return {
+      ...this.toObject(),
+      permissions: this.resource.permissions,
     }
   }
 }

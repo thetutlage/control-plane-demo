@@ -1,45 +1,108 @@
+import { useState } from 'react'
 import type { Data } from '@generated/data'
 import type { InertiaProps } from '~/types'
 import ConsoleLayout from '~/layouts/console'
 import AppScreen from '~/components/app_screen'
-import CopyButton from '~/components/copy_button'
+import { Form, Link } from '@adonisjs/inertia/react'
+import EnvironmentBadge from '~/components/environment_badge'
 
-type PageProps = InertiaProps<{
-  app: Data.App
-  issuerUrl: string
-  membersCount: number
-  activeMembersCount: number
-}>
+type App = Data.App.Variants['forList']
 
-export default function AppsShow({ app, issuerUrl, membersCount, activeMembersCount }: PageProps) {
+type PageProps = InertiaProps<{ app: App }>
+
+/**
+ * Deleting an app removes it from every environment, so it asks first and
+ * says what happens
+ */
+function DeleteApp({ app, org }: { app: App; org: string }) {
+  const [confirming, setConfirming] = useState(false)
+
+  if (!confirming) {
+    return (
+      <button
+        type="button"
+        className="btn btn--secondary btn--sm"
+        onClick={() => setConfirming(true)}
+      >
+        Delete app
+      </button>
+    )
+  }
+
   return (
-    <AppScreen app={app}>
-      <section className="panel client" aria-label="Overview">
-        <dl className="kv">
-          <dt>Members</dt>
-          <dd>
-            {membersCount} {membersCount === 1 ? 'member has' : 'members have'} used {app.name} ·{' '}
-            {activeMembersCount} active now
-          </dd>
+    <Form
+      route="apps.destroy"
+      routeParams={{ org, app: app.slug }}
+      className="client__confirm"
+      onSuccess={() => setConfirming(false)}
+    >
+      {({ processing }) => (
+        <>
+          <p>
+            {app.name} is removed from every environment, with its credentials and sign-in history.
+            Members are signed out of it within 5 minutes.
+          </p>
+          <div className="client__confirm-actions">
+            <button type="submit" className="btn btn--danger btn--sm" disabled={processing}>
+              Yes, delete
+            </button>
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              onClick={() => setConfirming(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </>
+      )}
+    </Form>
+  )
+}
 
-          <dt>Issuer URL</dt>
-          <dd className="kv__value">
-            <code className="mono">{issuerUrl}</code>
-            <CopyButton value={issuerUrl} label="Copy issuer URL" />
-          </dd>
+/**
+ * The app's Overview tab: where it is set up so far
+ */
+export default function AppsShow({ app, organization, environments = [] }: PageProps) {
+  const org = organization?.slug ?? ''
 
-          <dt>Client ID</dt>
-          <dd className="kv__value">
-            <code className="mono">{app.clientId}</code>
-            <CopyButton value={app.clientId} label="Copy client ID" />
-          </dd>
+  return (
+    <AppScreen app={app} actions={<DeleteApp app={app} org={org} />}>
+      <div className="table-wrap">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Environment</th>
+              <th>Status</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {environments.map((environment) => {
+              const setUp = app.environmentIds.includes(environment.id)
 
-          <dt>App URL</dt>
-          <dd>
-            <code className="mono">{app.appUrl}</code>
-          </dd>
-        </dl>
-      </section>
+              return (
+                <tr key={environment.id}>
+                  <td>
+                    <EnvironmentBadge environment={environment} />
+                  </td>
+                  <td className={setUp ? 'env-status env-status--set-up' : 'env-status'}>
+                    {setUp ? '● Set up' : '○ Not yet'}
+                  </td>
+                  <td>
+                    <Link
+                      route="app_environments.show"
+                      routeParams={{ org, app: app.slug, environment: environment.slug }}
+                    >
+                      {setUp ? 'Open' : `Set up in ${environment.name}`}
+                    </Link>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
     </AppScreen>
   )
 }

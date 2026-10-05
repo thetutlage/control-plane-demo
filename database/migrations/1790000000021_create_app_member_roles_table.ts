@@ -1,39 +1,39 @@
 import { BaseSchema } from '@adonisjs/lucid/schema'
 
 /**
- * Grants a role to an actor. Both composite foreign keys include the
- * environment, so a staging member can never hold a production role.
+ * The roles an app member holds on the app, in its environment. Roles
+ * belong to the organization; holding one is per app and environment.
+ * Deleting a role takes it away from everyone who held it.
  */
 export default class extends BaseSchema {
-  protected tableName = 'role_assignments'
+  protected tableName = 'app_member_roles'
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
       table.integer('organization_id').unsigned().notNullable()
       table.integer('environment_id').unsigned().notNullable()
+      table.integer('app_member_id').unsigned().notNullable()
       table.integer('role_id').unsigned().notNullable()
-      table.integer('actor_id').unsigned().notNullable()
-      table.timestamp('expires_at', { useTz: true }).nullable()
 
       table.timestamp('created_at', { useTz: true }).notNullable()
 
-      table.unique(['role_id', 'actor_id'])
-      table.index(['organization_id', 'environment_id'])
+      table.unique(['app_member_id', 'role_id'])
+      table.index(['organization_id', 'role_id'])
       table
         .foreign(['organization_id', 'environment_id'])
         .references(['organization_id', 'id'])
         .inTable('environments')
         .onDelete('CASCADE')
       table
-        .foreign(['environment_id', 'role_id'])
+        .foreign(['environment_id', 'app_member_id'])
         .references(['environment_id', 'id'])
-        .inTable('roles')
+        .inTable('app_members')
         .onDelete('CASCADE')
       table
-        .foreign(['environment_id', 'actor_id'])
-        .references(['environment_id', 'id'])
-        .inTable('actors')
+        .foreign(['organization_id', 'role_id'])
+        .references(['organization_id', 'id'])
+        .inTable('roles')
         .onDelete('CASCADE')
     })
   }

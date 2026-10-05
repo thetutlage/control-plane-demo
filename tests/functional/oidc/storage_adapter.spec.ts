@@ -2,7 +2,9 @@ import { test } from '@japa/runner'
 import { errors } from 'oidc-provider'
 import db from '@adonisjs/lucid/services/db'
 import testUtils from '@adonisjs/core/services/test_utils'
+import Organization from '#models/organization'
 import type Environment from '#models/environment'
+import { setupApp } from '#tests/helpers/oidc'
 import { MemberStatus } from '#values/member_status'
 import OidcStorageAdapter from '#oidc/storage_adapter'
 import { setupOnboardedOrganization } from '#tests/helpers/organizations'
@@ -15,17 +17,13 @@ const HOUR = 3600
  * adapter.
  */
 async function setupSignIn(environment: Environment) {
-  const member = await environment.createMember({
+  const organization = await Organization.findOrFail(environment.organizationId)
+  const member = await organization.createMember({
     email: 'sara@acme.test',
     fullName: 'Sara',
     status: MemberStatus.ACTIVE,
   })
-  const client = await environment.createApp({
-    name: 'Invoices',
-    slug: 'invoices',
-    appUrl: 'https://invoices.acme.test',
-    redirectUris: ['https://invoices.acme.test/callback'],
-  })
+  const client = await setupApp(environment)
 
   const adapter = (model: string) => new OidcStorageAdapter(model, environment)
   const accountId = String(member.actorId)
@@ -145,16 +143,32 @@ test.group('OIDC storage adapter', (group) => {
     assert.isDefined(await adapter('RefreshToken').find('g1-refresh'))
   })
 
-  test('a grant cannot point to an actor or app client of another environment', async ({
-    assert,
-  }) => {
+  test('a grant cannot point to an app set up only in another environment', async ({ assert }) => {
     const { production, staging } = await setupOnboardedOrganization()
     const { accountId, clientId } = await setupSignIn(production)
     const stagingGrants = new OidcStorageAdapter('Grant', staging)
 
     await assert.rejects(
       () => stagingGrants.upsert('g2', { accountId, clientId }, HOUR),
-      /oidc_grants_environment_id_actor_id_foreign/
+      /oidc_grants_environment_id_client_id_foreign/
+    )
+  })
+
+  test('a grant cannot point to an actor of another organization', async ({ assert }) => {
+    const acme = await setupOnboardedOrganization({ slug: 'acme' })
+    const globex = await setupOnboardedOrganization({ slug: 'globex' })
+    const { clientId } = await setupSignIn(acme.production)
+    const globexMember = await globex.organization.createMember({
+      email: 'sara@globex.test',
+      fullName: 'Sara',
+      status: MemberStatus.ACTIVE,
+    })
+    const acmeGrants = new OidcStorageAdapter('Grant', acme.production)
+    const accountId = String(globexMember.actorId)
+
+    await assert.rejects(
+      () => acmeGrants.upsert('g2', { accountId, clientId }, HOUR),
+      /oidc_grants_organization_id_actor_id_foreign/
     )
   })
 

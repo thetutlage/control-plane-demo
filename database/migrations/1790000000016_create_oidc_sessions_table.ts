@@ -30,8 +30,8 @@ export default class extends BaseSchema {
         .inTable('environments')
         .onDelete('CASCADE')
       table
-        .foreign(['environment_id', 'actor_id'])
-        .references(['environment_id', 'id'])
+        .foreign(['organization_id', 'actor_id'])
+        .references(['organization_id', 'id'])
         .inTable('actors')
         .onDelete('CASCADE')
     })

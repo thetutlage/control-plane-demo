@@ -3,7 +3,7 @@ import { errors } from '@adonisjs/lucid'
 import Environment from '#models/environment'
 import env from '#start/env'
 import Member from '#models/member'
-import MemberApp from '#models/member_app'
+import AppMember from '#models/app_member'
 import OidcStorageAdapter from '#oidc/storage_adapter'
 import { createProvider } from '#oidc/create_provider'
 import type { HttpContext } from '@adonisjs/core/http'
@@ -51,8 +51,11 @@ export default class IssuerMiddleware {
           }),
         }
       },
-      recordSignIn: (accountId, clientId) =>
-        MemberApp.recordSignIn(environment, accountId, clientId),
+      admit: async (accountId, clientId) => {
+        const appMember = await AppMember.findForSignIn(environment, accountId, clientId)
+        await appMember?.recordSignIn()
+        return appMember !== null
+      },
     })
 
     ctx.issuer = { environment, provider }

@@ -15,7 +15,7 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
      * In that case, we must always assume that HttpContext is not fully hydrated
      * with all the properties
      */
-    const { auth, request, organization, environment } = ctx as Partial<HttpContext>
+    const { auth, request, organization } = ctx as Partial<HttpContext>
 
     const theme: 'light' | 'dark' =
       request?.plainCookie('app_theme', {
@@ -32,8 +32,8 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
       user: ctx.inertia.always(auth?.user ? UserTransformer.transform(auth.user) : undefined),
 
       /**
-       * Console context for the layout: the organization, its environments
-       * for the switcher, and the environment the current page belongs to.
+       * Console context: the organization, and its environments in order
+       * (development, staging, production)
        */
       organization: ctx.inertia.always(
         organization ? OrganizationTransformer.transform(organization) : undefined
@@ -41,7 +41,6 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
       environments: ctx.inertia.always(
         organization ? EnvironmentTransformer.transform(organization.environments) : undefined
       ),
-      currentEnvironment: ctx.inertia.always(environment?.slug),
       preferences: ctx.inertia.always({ theme }),
     }
   }
@@ -58,8 +57,8 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
     const error: string | undefined = session?.flashMessages.get('error')
 
     /**
-     * A production client secret, shown once right after the app is
-     * registered or its secret rotated
+     * A production client secret, shown once right after the app is set up
+     * in production or its secret rotated
      */
     const clientSecret: { clientId: string; secret: string } | undefined =
       session?.flashMessages.get('clientSecret')

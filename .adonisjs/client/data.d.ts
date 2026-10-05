@@ -6,17 +6,27 @@
 /// <reference path="./manifest.d.ts" />
 import type { InferData, InferVariants } from '@adonisjs/core/types/transformers'
 import type { InferSharedProps, InferFlashData } from '@adonisjs/inertia/types'
+import type AppEnvironmentTransformer from '#transformers/app_environment_transformer'
+import type AppMemberTransformer from '#transformers/app_member_transformer'
 import type AppTransformer from '#transformers/app_transformer'
 import type EnvironmentTransformer from '#transformers/environment_transformer'
-import type MemberAppTransformer from '#transformers/member_app_transformer'
 import type MemberTransformer from '#transformers/member_transformer'
 import type OidcSessionTransformer from '#transformers/oidc_session_transformer'
 import type OrganizationTransformer from '#transformers/organization_transformer'
+import type PermissionCatalogTransformer from '#transformers/permission_catalog_transformer'
 import type RoleTransformer from '#transformers/role_transformer'
 import type UserTransformer from '#transformers/user_transformer'
 import type InertiaMiddleware from '#middleware/inertia_middleware'
 
 export namespace Data {
+  export type AppEnvironment = InferData<AppEnvironmentTransformer>
+  export namespace AppEnvironment {
+    export type Variants = InferVariants<AppEnvironmentTransformer>
+  }
+  export type AppMember = InferData<AppMemberTransformer>
+  export namespace AppMember {
+    export type Variants = InferVariants<AppMemberTransformer>
+  }
   export type App = InferData<AppTransformer>
   export namespace App {
     export type Variants = InferVariants<AppTransformer>
@@ -24,10 +34,6 @@ export namespace Data {
   export type Environment = InferData<EnvironmentTransformer>
   export namespace Environment {
     export type Variants = InferVariants<EnvironmentTransformer>
-  }
-  export type MemberApp = InferData<MemberAppTransformer>
-  export namespace MemberApp {
-    export type Variants = InferVariants<MemberAppTransformer>
   }
   export type Member = InferData<MemberTransformer>
   export namespace Member {
@@ -40,6 +46,10 @@ export namespace Data {
   export type Organization = InferData<OrganizationTransformer>
   export namespace Organization {
     export type Variants = InferVariants<OrganizationTransformer>
+  }
+  export type PermissionCatalog = InferData<PermissionCatalogTransformer>
+  export namespace PermissionCatalog {
+    export type Variants = InferVariants<PermissionCatalogTransformer>
   }
   export type Role = InferData<RoleTransformer>
   export namespace Role {

@@ -56,10 +56,11 @@ export type CreateProviderInput = {
   findAccount: FindAccount
 
   /**
-   * Notes that an account signed in to the app of a client, on every visit
-   * to the issuer
+   * Lets an account into the app of a client, on every visit to the
+   * issuer: notes the sign-in and resolves to true when the account has
+   * access to the app, or resolves to false when it has none
    */
-  recordSignIn: (accountId: string, clientId: string) => Promise<void>
+  admit: (accountId: string, clientId: string) => Promise<boolean>
 }
 
 /**
@@ -200,9 +201,17 @@ export function createProvider(input: CreateProviderInput) {
      * The previous grant of this browser's session for the app is revoked
      * first. A session remembers one grant per app, the one sign-out
      * revokes, so it must be the only one alive.
+     *
+     * A member without access to the app gets no grant. oidc-provider then
+     * asks for consent, an interaction the sign-in page answers with "You
+     * don't have access" (`SignInController.show`).
      */
     async loadExistingGrant(ctx: KoaContextWithOIDC) {
       const { session, client, params } = ctx.oidc
+      if (!(await input.admit(session!.accountId!, client!.clientId))) {
+        return undefined
+      }
+
       const previousId = session!.grantIdFor(client!.clientId)
       if (previousId) {
         const previous = await ctx.oidc.provider.Grant.find(previousId)
@@ -216,7 +225,6 @@ export function createProvider(input: CreateProviderInput) {
 
       grant.addOIDCScope(String(params!.scope))
       await grant.save()
-      await input.recordSignIn(session!.accountId!, client!.clientId)
       return grant
     },
 
