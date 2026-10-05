@@ -1,6 +1,7 @@
 import Environment from '#models/environment'
 import env from '#start/env'
 import Member from '#models/member'
+import MemberApp from '#models/member_app'
 import OidcStorageAdapter from '#oidc/storage_adapter'
 import { createProvider } from '#oidc/create_provider'
 import { errorPage } from '#oidc/error_pages'
@@ -79,6 +80,8 @@ export default class OidcIssuerMiddleware {
           }),
         }
       },
+      recordSignIn: (accountId, clientId) =>
+        MemberApp.recordSignIn(environment, accountId, clientId),
     })
 
     /**

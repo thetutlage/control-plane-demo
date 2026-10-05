@@ -37,7 +37,21 @@ const member = await environment.createMember({
 
 ## In the console
 
-`/w/:org/members` lists the members of the environment picked in its switcher.
+`/w/:org/members` lists the members of the environment picked in its switcher, with how many **active sessions** each has: browsers signed in at the issuer right now.
+
+**The member page** (`/w/:org/members/:member`) shows the member's environment as a badge, and:
+
+- **Active sessions:** one row per browser, with when they signed in and when the session expires.
+- **Apps used:** every app the member has ever signed in to, with the first and last sign-in.
+- **Sign out everywhere:** asks first, then `member.signOutEverywhere()` deletes the member's sessions and grants in the environment (their codes and refresh tokens go with the grants). Every app on every browser fails its next refresh, within 5 minutes, and the next visit to the issuer asks for the password.
+
+### Apps used
+
+Grants are temporary: they expire after 14 days, and sign-out deletes them. So `member_apps` keeps the lasting record, one row per member (`actor_id`) and app, with `first_signed_in_at` and `last_signed_in_at`. It points to the app rather than its client, so the history survives removing a client.
+
+A row is written on every visit to the issuer, including silent SSO ones: `createProvider()` calls its `recordSignIn` input when it creates a grant, and both issuer middleware pass `MemberApp.recordSignIn()`.
+
+There's no "active apps": a member is signed in on browsers (sessions), and has used apps.
 
 **Add member** (`/members/create`) adds an **active** member with a password the admin chooses (8 to 32 characters). They can sign in right away. Emails are unique within the environment (`app/validators/member.ts`).
 

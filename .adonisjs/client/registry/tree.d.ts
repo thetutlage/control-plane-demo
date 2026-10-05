@@ -37,6 +37,8 @@ export interface ApiDefinition {
     index: typeof routes['members.index']
     create: typeof routes['members.create']
     store: typeof routes['members.store']
+    show: typeof routes['members.show']
+    signOutEverywhere: typeof routes['members.sign_out_everywhere']
   }
   roles: {
     index: typeof routes['roles.index']

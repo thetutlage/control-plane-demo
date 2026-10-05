@@ -90,6 +90,25 @@ export class EnvironmentSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class MemberAppSchema extends BaseModel {
+  static $columns = ['actorId', 'appId', 'environmentId', 'firstSignedInAt', 'id', 'lastSignedInAt', 'organizationId'] as const
+  $columns = MemberAppSchema.$columns
+  @column()
+  declare actorId: number
+  @column()
+  declare appId: number
+  @column()
+  declare environmentId: number
+  @column.dateTime()
+  declare firstSignedInAt: DateTime
+  @column()
+  declare id: number
+  @column.dateTime()
+  declare lastSignedInAt: DateTime
+  @column()
+  declare organizationId: number
+}
+
 export class MemberSchema extends BaseModel {
   static $columns = ['actorId', 'createdAt', 'email', 'environmentId', 'fullName', 'id', 'organizationId', 'password', 'status', 'updatedAt'] as const
   $columns = MemberSchema.$columns
@@ -196,7 +215,7 @@ export class OidcRefreshTokenSchema extends BaseModel {
 }
 
 export class OidcSessionSchema extends BaseModel {
-  static $columns = ['actorId', 'createdAt', 'environmentId', 'expiresAt', 'id', 'organizationId', 'payload', 'uid'] as const
+  static $columns = ['actorId', 'createdAt', 'environmentId', 'expiresAt', 'id', 'organizationId', 'payload', 'signedInAt', 'uid'] as const
   $columns = OidcSessionSchema.$columns
   @column()
   declare actorId: number | null
@@ -212,6 +231,8 @@ export class OidcSessionSchema extends BaseModel {
   declare organizationId: number
   @column()
   declare payload: any
+  @column.dateTime()
+  declare signedInAt: DateTime | null
   @column()
   declare uid: string
 }

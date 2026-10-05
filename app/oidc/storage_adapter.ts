@@ -25,6 +25,7 @@ const TABLES: Record<
     columns: (payload) => ({
       uid: payload.uid,
       actor_id: payload.accountId ? Number(payload.accountId) : null,
+      signed_in_at: payload.loginTs ? new Date(payload.loginTs * 1000) : null,
     }),
   },
   Grant: {

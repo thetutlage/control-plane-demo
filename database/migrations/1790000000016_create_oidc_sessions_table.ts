@@ -3,8 +3,8 @@ import { BaseSchema } from '@adonisjs/lucid/schema'
 /**
  * A member's sign-in to the environment's login page, held in a browser
  * cookie. It is what lets other apps skip the login page (single sign-on).
- * `payload` is the record as oidc-provider stores it; `uid` and
- * `actor_id` are copied out of it for lookups.
+ * `payload` is the record as oidc-provider stores it; `uid`, `actor_id`
+ * and `signed_in_at` are copied out of it for lookups and the console.
  */
 export default class extends BaseSchema {
   protected tableName = 'oidc_sessions'
@@ -16,6 +16,7 @@ export default class extends BaseSchema {
       table.integer('environment_id').unsigned().notNullable()
       table.string('uid', 128).notNullable()
       table.integer('actor_id').unsigned().nullable()
+      table.timestamp('signed_in_at', { useTz: true }).nullable()
       table.jsonb('payload').notNullable()
       table.timestamp('expires_at', { useTz: true }).notNullable()
       table.timestamp('created_at', { useTz: true }).notNullable()

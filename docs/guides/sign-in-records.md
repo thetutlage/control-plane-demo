@@ -27,22 +27,23 @@ oidc_grants            actor_id → actors, client_id → app_clients
 
 ## Columns
 
-Each row stores the full record in `payload` (JSONB), in the shape `oidc-provider` defines. Don't read or change it outside the adapter. The other columns are copies of payload fields we query on:
+Each row stores the full record in `payload` (JSONB), in the shape `oidc-provider` defines. Don't read or change it outside the adapter. The other columns are copies of payload fields we query on, and the console may read them (the `OidcSession` model) or delete rows by them (`member.signOutEverywhere()`):
 
-| Column        | On                    | Used for                                                 |
-| ------------- | --------------------- | -------------------------------------------------------- |
-| `uid`         | sessions              | `oidc-provider` looks sessions up by it                  |
-| `actor_id`    | sessions, grants      | finding a member's sign-ins, for example to suspend them |
-| `client_id`   | grants                | which app a grant is for                                 |
-| `grant_id`    | codes, refresh tokens | revoking everything under a grant                        |
-| `consumed_at` | codes, refresh tokens | marking a code or refresh token as used                  |
-| `expires_at`  | all                   | expired rows are ignored when read                       |
+| Column         | On                    | Used for                                                 |
+| -------------- | --------------------- | -------------------------------------------------------- |
+| `uid`          | sessions              | `oidc-provider` looks sessions up by it                  |
+| `actor_id`     | sessions, grants      | finding a member's sign-ins, for example to suspend them |
+| `signed_in_at` | sessions              | when the browser signed in, for the member's page        |
+| `client_id`    | grants                | which app a grant is for                                 |
+| `grant_id`     | codes, refresh tokens | revoking everything under a grant                        |
+| `consumed_at`  | codes, refresh tokens | marking a code or refresh token as used                  |
+| `expires_at`   | all                   | expired rows are ignored when read                       |
 
 `oidc-provider` calls a member's ID an "account". In our tables that's the member's actor ID.
 
 ## The storage adapter
 
-`app/oidc/storage_adapter.ts` is the only code that reads or writes these tables. The issuer middleware creates one adapter per record type for each request:
+`app/oidc/storage_adapter.ts` is the only code that writes these tables, apart from the console deleting a member's sessions and grants. The issuer middleware creates one adapter per record type for each request:
 
 ```ts
 adapter: (model) => new OidcStorageAdapter(model, environment)

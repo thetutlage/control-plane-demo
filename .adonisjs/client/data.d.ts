@@ -9,7 +9,9 @@ import type { InferSharedProps, InferFlashData } from '@adonisjs/inertia/types'
 import type AppClientTransformer from '#transformers/app_client_transformer'
 import type AppTransformer from '#transformers/app_transformer'
 import type EnvironmentTransformer from '#transformers/environment_transformer'
+import type MemberAppTransformer from '#transformers/member_app_transformer'
 import type MemberTransformer from '#transformers/member_transformer'
+import type OidcSessionTransformer from '#transformers/oidc_session_transformer'
 import type OrganizationTransformer from '#transformers/organization_transformer'
 import type RoleTransformer from '#transformers/role_transformer'
 import type UserTransformer from '#transformers/user_transformer'
@@ -28,9 +30,17 @@ export namespace Data {
   export namespace Environment {
     export type Variants = InferVariants<EnvironmentTransformer>
   }
+  export type MemberApp = InferData<MemberAppTransformer>
+  export namespace MemberApp {
+    export type Variants = InferVariants<MemberAppTransformer>
+  }
   export type Member = InferData<MemberTransformer>
   export namespace Member {
     export type Variants = InferVariants<MemberTransformer>
+  }
+  export type OidcSession = InferData<OidcSessionTransformer>
+  export namespace OidcSession {
+    export type Variants = InferVariants<OidcSessionTransformer>
   }
   export type Organization = InferData<OrganizationTransformer>
   export namespace Organization {

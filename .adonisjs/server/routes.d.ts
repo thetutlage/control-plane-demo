@@ -27,6 +27,8 @@ export type ScannedRoutes = {
     'apps.clients.update': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'client': ParamValue} }
     'apps.clients.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'client': ParamValue} }
     'apps.clients.rotate_secret': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'client': ParamValue} }
+    'members.show': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'member': ParamValue} }
+    'members.sign_out_everywhere': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'member': ParamValue} }
     'sign_in.show': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
     'sign_in.store': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
   }
@@ -45,6 +47,7 @@ export type ScannedRoutes = {
     'members.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'roles.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'apps.clients.edit': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'client': ParamValue} }
+    'members.show': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'member': ParamValue} }
     'sign_in.show': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
   }
   HEAD: {
@@ -62,6 +65,7 @@ export type ScannedRoutes = {
     'members.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'roles.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'apps.clients.edit': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'client': ParamValue} }
+    'members.show': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'member': ParamValue} }
     'sign_in.show': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
   }
   POST: {
@@ -72,6 +76,7 @@ export type ScannedRoutes = {
     'apps.clients.store': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue} }
     'members.store': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'apps.clients.rotate_secret': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'client': ParamValue} }
+    'members.sign_out_everywhere': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'member': ParamValue} }
     'sign_in.store': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
   }
   PUT: {

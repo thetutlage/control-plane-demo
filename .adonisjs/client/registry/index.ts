@@ -144,6 +144,18 @@ const routes = {
     tokens: [{"old":"/w/:org/clients/:client/secret","type":0,"val":"w","end":""},{"old":"/w/:org/clients/:client/secret","type":1,"val":"org","end":""},{"old":"/w/:org/clients/:client/secret","type":0,"val":"clients","end":""},{"old":"/w/:org/clients/:client/secret","type":1,"val":"client","end":""},{"old":"/w/:org/clients/:client/secret","type":0,"val":"secret","end":""}],
     types: placeholder as Registry['apps.clients.rotate_secret']['types'],
   },
+  'members.show': {
+    methods: ["GET","HEAD"],
+    pattern: '/w/:org/members/:member',
+    tokens: [{"old":"/w/:org/members/:member","type":0,"val":"w","end":""},{"old":"/w/:org/members/:member","type":1,"val":"org","end":""},{"old":"/w/:org/members/:member","type":0,"val":"members","end":""},{"old":"/w/:org/members/:member","type":1,"val":"member","end":""}],
+    types: placeholder as Registry['members.show']['types'],
+  },
+  'members.sign_out_everywhere': {
+    methods: ["POST"],
+    pattern: '/w/:org/members/:member/sign-out',
+    tokens: [{"old":"/w/:org/members/:member/sign-out","type":0,"val":"w","end":""},{"old":"/w/:org/members/:member/sign-out","type":1,"val":"org","end":""},{"old":"/w/:org/members/:member/sign-out","type":0,"val":"members","end":""},{"old":"/w/:org/members/:member/sign-out","type":1,"val":"member","end":""},{"old":"/w/:org/members/:member/sign-out","type":0,"val":"sign-out","end":""}],
+    types: placeholder as Registry['members.sign_out_everywhere']['types'],
+  },
   'sign_in.show': {
     methods: ["GET","HEAD"],
     pattern: '/sign-in/:signInId',

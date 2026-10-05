@@ -3,6 +3,7 @@ import { errors } from '@adonisjs/lucid'
 import Environment from '#models/environment'
 import env from '#start/env'
 import Member from '#models/member'
+import MemberApp from '#models/member_app'
 import OidcStorageAdapter from '#oidc/storage_adapter'
 import { createProvider } from '#oidc/create_provider'
 import type { HttpContext } from '@adonisjs/core/http'
@@ -50,6 +51,8 @@ export default class IssuerMiddleware {
           }),
         }
       },
+      recordSignIn: (accountId, clientId) =>
+        MemberApp.recordSignIn(environment, accountId, clientId),
     })
 
     ctx.issuer = { environment, provider }

@@ -69,6 +69,15 @@ router
       .post('clients/:client/secret', [controllers.AppClients, 'rotateSecret'])
       .as('apps.clients.rotate_secret')
       .where('client', router.matchers.number())
+
+    router
+      .group(() => {
+        router.get('members/:member', [controllers.Members, 'show']).as('members.show')
+        router
+          .post('members/:member/sign-out', [controllers.Members, 'signOutEverywhere'])
+          .as('members.sign_out_everywhere')
+      })
+      .where('member', router.matchers.number())
   })
   .prefix('w/:org')
   .where('org', router.matchers.slug())

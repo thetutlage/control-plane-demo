@@ -179,10 +179,10 @@ export interface Registry {
     methods: ["POST"]
     pattern: '/w/:org/apps/:app/clients'
     types: {
-      body: ExtractBody<InferInput<(typeof import('#validators/app_client').createAppClientValidator)>>
+      body: ExtractBody<InferInput<(typeof import('#validators/app_client').appClientValidator)>>
       paramsTuple: [ParamValue, ParamValue]
       params: { org: ParamValue; app: ParamValue }
-      query: ExtractQuery<InferInput<(typeof import('#validators/app_client').createAppClientValidator)>>
+      query: ExtractQuery<InferInput<(typeof import('#validators/app_client').appClientValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_clients_controller').default['store']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_clients_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
@@ -251,10 +251,10 @@ export interface Registry {
     methods: ["PUT","PATCH"]
     pattern: '/w/:org/clients/:client'
     types: {
-      body: ExtractBody<InferInput<(typeof import('#validators/app_client').updateAppClientValidator)>>
+      body: ExtractBody<InferInput<(typeof import('#validators/app_client').appClientValidator)>>
       paramsTuple: [ParamValue, ParamValue]
       params: { org: ParamValue; client: ParamValue }
-      query: ExtractQuery<InferInput<(typeof import('#validators/app_client').updateAppClientValidator)>>
+      query: ExtractQuery<InferInput<(typeof import('#validators/app_client').appClientValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_clients_controller').default['update']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_clients_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
@@ -281,6 +281,30 @@ export interface Registry {
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/app_clients_controller').default['rotateSecret']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/app_clients_controller').default['rotateSecret']>>>
+    }
+  }
+  'members.show': {
+    methods: ["GET","HEAD"]
+    pattern: '/w/:org/members/:member'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue]
+      params: { org: ParamValue; member: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/members_controller').default['show']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/members_controller').default['show']>>>
+    }
+  }
+  'members.sign_out_everywhere': {
+    methods: ["POST"]
+    pattern: '/w/:org/members/:member/sign-out'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue]
+      params: { org: ParamValue; member: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/members_controller').default['signOutEverywhere']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/members_controller').default['signOutEverywhere']>>>
     }
   }
   'sign_in.show': {

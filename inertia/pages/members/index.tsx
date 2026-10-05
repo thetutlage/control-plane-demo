@@ -7,7 +7,7 @@ import EmptyState from '~/components/empty_state'
 import EnvironmentSwitcher from '~/components/environment_switcher'
 import { Link } from '@adonisjs/inertia/react'
 
-type PageProps = InertiaProps<{ members: Data.Member[] }>
+type PageProps = InertiaProps<{ members: Data.Member.Variants['forList'][] }>
 
 export default function MembersIndex({ members, organization, currentEnvironment }: PageProps) {
   return (
@@ -38,17 +38,26 @@ export default function MembersIndex({ members, organization, currentEnvironment
                 <th>Email</th>
                 <th>Name</th>
                 <th>Status</th>
+                <th>Active sessions</th>
                 <th>Added</th>
               </tr>
             </thead>
             <tbody>
               {members.map((member) => (
                 <tr key={member.id}>
-                  <td>{member.email}</td>
+                  <td>
+                    <Link
+                      route="members.show"
+                      routeParams={{ org: organization?.slug ?? '', member: member.id }}
+                    >
+                      {member.email}
+                    </Link>
+                  </td>
                   <td>{member.fullName ?? '—'}</td>
                   <td>
                     <span className="badge">{member.status.formatted}</span>
                   </td>
+                  <td>{member.activeSessionsCount}</td>
                   <td>{member.createdAt}</td>
                 </tr>
               ))}

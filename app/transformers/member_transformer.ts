@@ -16,4 +16,14 @@ export default class MemberTransformer extends BaseTransformer<Member> {
       createdAt: this.resource.createdAt.toFormat('d LLL yyyy'),
     }
   }
+
+  /**
+   * Expects the query to load `withCount('sessions')`, counting live ones
+   */
+  forList() {
+    return {
+      ...this.toObject(),
+      activeSessionsCount: Number(this.resource.$extras.sessions_count ?? 0),
+    }
+  }
 }

@@ -54,6 +54,12 @@ export type CreateProviderInput = {
    * undefined when it can no longer sign in
    */
   findAccount: FindAccount
+
+  /**
+   * Notes that an account signed in to the app of a client, on every visit
+   * to the issuer
+   */
+  recordSignIn: (accountId: string, clientId: string) => Promise<void>
 }
 
 /**
@@ -210,6 +216,7 @@ export function createProvider(input: CreateProviderInput) {
 
       grant.addOIDCScope(String(params!.scope))
       await grant.save()
+      await input.recordSignIn(session!.accountId!, client!.clientId)
       return grant
     },
 

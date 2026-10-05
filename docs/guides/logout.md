@@ -48,8 +48,7 @@ Both sign-out pages always sign out of every app. `oidc-provider`'s option to si
 
 ## Not built yet
 
-- Signing out of every device, and a list of the member's sessions.
-- Admins signing a member out from the console.
+- Members signing themselves out of every device. Admins can, from the member's page ([Members](members-and-actors.md#in-the-console)).
 - Telling apps right away (back-channel logout), instead of at their next refresh.
 
 ## Tests
