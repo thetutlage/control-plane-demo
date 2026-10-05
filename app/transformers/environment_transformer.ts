@@ -16,14 +16,4 @@ export default class EnvironmentTransformer extends BaseTransformer<Environment>
       isProduction: this.resource.kind === EnvironmentKind.PRODUCTION,
     }
   }
-
-  /**
-   * Expects the query to load `withCount('members')`
-   */
-  forOverview() {
-    return {
-      ...this.toObject(),
-      membersCount: Number(this.resource.$extras.members_count ?? 0),
-    }
-  }
 }

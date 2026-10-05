@@ -1,22 +1,42 @@
 import { test } from '@japa/runner'
 import db from '@adonisjs/lucid/services/db'
 import testUtils from '@adonisjs/core/services/test_utils'
-import App from '#models/app'
+import type { Page } from 'playwright'
 import {
   authorizeUrl,
   exchangeCode,
   refresh,
-  setupAppClient,
+  setupApp,
   setupMember,
   tokenRequest,
   visitIssuer,
 } from '#tests/helpers/oidc'
 import { setupOnboardedOrganization } from '#tests/helpers/organizations'
 
+/**
+ * Fills the register form with a name, a slug and the given URLs
+ */
+async function fillRegisterForm(
+  page: Page,
+  values: { slug: string; appUrl: string; redirectUris: string; postLogoutRedirectUris?: string }
+) {
+  const form = page.locator('form')
+  await form.getByLabel('Name', { exact: true }).fill('Invoices')
+  await form.getByLabel('Slug', { exact: true }).fill(values.slug)
+  await form.getByLabel('App URL', { exact: true }).fill(values.appUrl)
+  await form.getByLabel('Redirect URIs', { exact: true }).fill(values.redirectUris)
+  if (values.postLogoutRedirectUris) {
+    await form
+      .getByLabel('Sign-out redirect URIs', { exact: true })
+      .fill(values.postLogoutRedirectUris)
+  }
+  await form.getByRole('button', { name: 'Register app', exact: true }).click()
+}
+
 test.group('Console apps', (group) => {
   group.each.setup(() => testUtils.db().truncate())
 
-  test('registering an app leads to its page, with no clients yet', async ({
+  test('registering a development app shows its credentials, with the secret revealable', async ({
     visit,
     route,
     browserContext,
@@ -24,94 +44,58 @@ test.group('Console apps', (group) => {
     const acme = await setupOnboardedOrganization({ slug: 'acme' })
 
     await browserContext.loginAs(acme.user)
-    const page = await visit(route('apps.index', { org: 'acme' }))
+    const page = await visit(route('apps.index', { org: 'acme', environment: 'development' }))
     await page.getByRole('link', { name: 'Register app', exact: true }).click()
-    await page.getByLabel('Name', { exact: true }).fill('Invoices')
-    await page.getByLabel('Slug', { exact: true }).fill('invoices')
-    await page.getByRole('button', { name: 'Register app', exact: true }).click()
-
-    await page.assertPath(route('apps.show', { org: 'acme', app: 'invoices' }))
-    await page.assertVisible(page.getByRole('heading', { name: 'Invoices', exact: true }))
-    await page.assertVisible(page.getByText(/can't sign members in here yet/))
-  })
-
-  test('a development client shows its credentials, with the secret revealable', async ({
-    visit,
-    route,
-    browserContext,
-  }) => {
-    const acme = await setupOnboardedOrganization({ slug: 'acme' })
-    await App.create({ organizationId: acme.organization.id, name: 'Invoices', slug: 'invoices' })
-
-    await browserContext.loginAs(acme.user)
-    const page = await visit(route('apps.show', { org: 'acme', app: 'invoices' }))
-    await page
-      .getByRole('combobox', { name: 'Environment', exact: true })
-      .selectOption('development')
-    await page.getByRole('link', { name: 'Settings', exact: true }).click()
-    const development = page.getByRole('region', { name: 'Client', exact: true })
-    await development.getByRole('link', { name: 'Configure', exact: true }).click()
-
-    const form = page.locator('form')
-    await page.assertNotExists(page.getByRole('combobox', { name: 'Environment' }))
     await page.assertVisible(page.locator('.env-badge', { hasText: 'Development' }))
-    await form.getByLabel('App URL', { exact: true }).fill('http://localhost:3000')
-    await form.getByLabel('Redirect URIs', { exact: true }).fill('http://localhost:3000/callback')
-    await form
-      .getByLabel('Sign-out redirect URIs', { exact: true })
-      .fill('http://localhost:3000/signed-out')
-    await form.getByRole('button', { name: 'Create client', exact: true }).click()
+    await fillRegisterForm(page, {
+      slug: 'invoices',
+      appUrl: 'http://localhost:3000',
+      redirectUris: 'http://localhost:3000/callback',
+      postLogoutRedirectUris: 'http://localhost:3000/signed-out',
+    })
 
-    await page.assertPath(route('apps.settings', { org: 'acme', app: 'invoices' }))
-    const [client] = await acme.development.related('appClients').query()
-    await page.assertVisible(development.getByText(client.clientId, { exact: true }))
-    await page.assertVisible(
-      development.getByText('http://localhost:3000/signed-out', { exact: true })
+    await page.assertPath(
+      route('app_settings.show', { org: 'acme', environment: 'development', app: 'invoices' })
     )
-    await page.assertVisible(
-      development.getByText(acme.development.issuerUrl('acme'), { exact: true })
-    )
-    await page.assertNotExists(development.getByText(client.secret, { exact: true }))
+    const [app] = await acme.development.related('apps').query()
+    const client = page.getByRole('region', { name: 'Client', exact: true })
+    await page.assertVisible(client.getByText(app.clientId, { exact: true }))
+    await page.assertVisible(client.getByText('http://localhost:3000/signed-out', { exact: true }))
+    await page.assertVisible(client.getByText(acme.development.issuerUrl('acme'), { exact: true }))
+    await page.assertNotExists(client.getByText(app.secret, { exact: true }))
 
-    await development.getByRole('button', { name: 'Show', exact: true }).click()
-    await page.assertVisible(development.getByText(client.secret, { exact: true }))
-    await page.assertNotExists(development.getByRole('link', { name: 'Configure' }))
+    await client.getByRole('button', { name: 'Show', exact: true }).click()
+    await page.assertVisible(client.getByText(app.secret, { exact: true }))
   })
 
-  test('a production secret is shown once, right after the client is created', async ({
+  test('a production secret is shown once, right after the app is registered', async ({
     visit,
     route,
     browserContext,
   }) => {
     const acme = await setupOnboardedOrganization({ slug: 'acme' })
-    await App.create({ organizationId: acme.organization.id, name: 'Invoices', slug: 'invoices' })
 
     await browserContext.loginAs(acme.user)
-    const page = await visit(
-      route(
-        'apps.clients.create',
-        { org: 'acme', app: 'invoices' },
-        { qs: { environment: 'production' } }
-      )
+    const page = await visit(route('apps.create', { org: 'acme', environment: 'production' }))
+    await fillRegisterForm(page, {
+      slug: 'invoices',
+      appUrl: 'https://invoices.acme.test',
+      redirectUris: 'https://invoices.acme.test/callback',
+    })
+    await page.assertPath(
+      route('app_settings.show', { org: 'acme', environment: 'production', app: 'invoices' })
     )
-    const form = page.locator('form')
-    await form.getByLabel('App URL', { exact: true }).fill('https://invoices.acme.test')
-    await form
-      .getByLabel('Redirect URIs', { exact: true })
-      .fill('https://invoices.acme.test/callback')
-    await form.getByRole('button', { name: 'Create client', exact: true }).click()
-    await page.assertPath(route('apps.settings', { org: 'acme', app: 'invoices' }))
 
-    const [client] = await acme.production.related('appClients').query()
-    const production = page.getByRole('region', { name: 'Client', exact: true })
-    await page.assertVisible(production.getByRole('alert'))
-    await page.assertVisible(production.getByText(client.secret, { exact: true }))
+    const [app] = await acme.production.related('apps').query()
+    const client = page.getByRole('region', { name: 'Client', exact: true })
+    await page.assertVisible(client.getByRole('alert'))
+    await page.assertVisible(client.getByText(app.secret, { exact: true }))
 
     await page.reload()
-    await page.assertNotExists(production.getByRole('alert'))
-    await page.assertNotExists(production.getByText(client.secret, { exact: true }))
-    await page.assertNotExists(production.getByRole('button', { name: 'Show' }))
-    await page.assertVisible(production.getByText(`••••••••${client.clientSecretHint}`))
+    await page.assertNotExists(client.getByRole('alert'))
+    await page.assertNotExists(client.getByText(app.secret, { exact: true }))
+    await page.assertNotExists(client.getByRole('button', { name: 'Show' }))
+    await page.assertVisible(client.getByText(`••••••••${app.clientSecretHint}`))
   })
 
   test('production rejects redirect and sign-out URIs without https', async ({
@@ -120,76 +104,88 @@ test.group('Console apps', (group) => {
     browserContext,
   }) => {
     const acme = await setupOnboardedOrganization({ slug: 'acme' })
-    await App.create({ organizationId: acme.organization.id, name: 'Invoices', slug: 'invoices' })
 
     await browserContext.loginAs(acme.user)
-    const page = await visit(
-      route(
-        'apps.clients.create',
-        { org: 'acme', app: 'invoices' },
-        { qs: { environment: 'production' } }
-      )
-    )
-    const form = page.locator('form')
-    await form.getByLabel('App URL', { exact: true }).fill('https://invoices.acme.test')
-    await form
-      .getByLabel('Redirect URIs', { exact: true })
-      .fill('https://invoices.acme.test/callback\nhttp://localhost:3000/callback')
-    await form.getByLabel('Sign-out redirect URIs', { exact: true }).fill('http://localhost:3000')
-    await form.getByRole('button', { name: 'Create client', exact: true }).click()
+    const page = await visit(route('apps.create', { org: 'acme', environment: 'production' }))
+    await fillRegisterForm(page, {
+      slug: 'invoices',
+      appUrl: 'https://invoices.acme.test',
+      redirectUris: 'https://invoices.acme.test/callback\nhttp://localhost:3000/callback',
+      postLogoutRedirectUris: 'http://localhost:3000',
+    })
 
     await page.assertVisible(page.getByText('Line 2 must use https in production', { exact: true }))
     await page.assertVisible(page.getByText('Line 1 must use https in production', { exact: true }))
-    await page.assertPath(route('apps.clients.create', { org: 'acme', app: 'invoices' }))
+    await page.assertPath(route('apps.create', { org: 'acme', environment: 'production' }))
   })
 
-  test('an app of another organization is not found', async ({
-    visit,
-    route,
-    browserContext,
-    assert,
-  }) => {
+  test('a slug is taken once per environment', async ({ visit, route, browserContext, assert }) => {
     const acme = await setupOnboardedOrganization({ slug: 'acme' })
-    const globex = await setupOnboardedOrganization({ slug: 'globex' })
-    await App.create({ organizationId: globex.organization.id, name: 'Billing', slug: 'billing' })
+    await setupApp(acme.staging)
 
     await browserContext.loginAs(acme.user)
-    const page = await visit(route('apps.index', { org: 'acme' }))
-    const response = await page.request.get(route('apps.show', { org: 'acme', app: 'billing' }))
+    const page = await visit(route('apps.create', { org: 'acme', environment: 'staging' }))
+    await fillRegisterForm(page, {
+      slug: 'invoices',
+      appUrl: 'https://invoices.acme.test',
+      redirectUris: 'https://invoices.acme.test/callback',
+    })
+    await page.assertVisible(page.getByText('The slug has already been taken'))
 
-    assert.equal(response.status(), 404)
-  })
-
-  test('editing a client saves its URLs, and the issuer uses them right away', async ({
-    visit,
-    route,
-    browserContext,
-    assert,
-  }) => {
-    const acme = await setupOnboardedOrganization({ slug: 'acme' })
-    const client = await setupAppClient(acme.organization, acme.development)
-
-    await browserContext.loginAs(acme.user)
-    const page = await visit(
-      route(
-        'apps.settings',
-        { org: 'acme', app: 'invoices' },
-        { qs: { environment: 'development' } }
-      )
+    await page.goto(route('apps.create', { org: 'acme', environment: 'production' }))
+    await fillRegisterForm(page, {
+      slug: 'invoices',
+      appUrl: 'https://invoices.acme.test',
+      redirectUris: 'https://invoices.acme.test/callback',
+    })
+    await page.assertPath(
+      route('app_settings.show', { org: 'acme', environment: 'production', app: 'invoices' })
     )
+    const [staging] = await acme.staging.related('apps').query()
+    const [production] = await acme.production.related('apps').query()
+    assert.notEqual(staging.clientId, production.clientId)
+  })
+
+  test('an app lists only in its own environment', async ({ visit, route, browserContext }) => {
+    const acme = await setupOnboardedOrganization({ slug: 'acme' })
+    await setupApp(acme.staging, 'invoices')
+    await setupApp(acme.production, 'payroll')
+
+    await browserContext.loginAs(acme.user)
+    const page = await visit(route('apps.index', { org: 'acme', environment: 'production' }))
+
+    await page.assertVisible(page.getByRole('link', { name: 'Payroll', exact: true }))
+    await page.assertNotExists(page.getByRole('link', { name: 'Invoices', exact: true }))
+  })
+
+  test('editing an app saves its URLs, and the issuer uses them right away', async ({
+    visit,
+    route,
+    browserContext,
+    assert,
+  }) => {
+    const acme = await setupOnboardedOrganization({ slug: 'acme' })
+    const client = await setupApp(acme.development)
+    const settings = route('app_settings.show', {
+      org: 'acme',
+      environment: 'development',
+      app: 'invoices',
+    })
+
+    await browserContext.loginAs(acme.user)
+    const page = await visit(settings)
     const development = page.getByRole('region', { name: 'Client', exact: true })
     await development.getByRole('link', { name: 'Edit', exact: true }).click()
 
     const form = page.locator('form')
     await page.assertInputValue(form.getByLabel('App URL', { exact: true }), client.appUrl)
-    await page.assertNotExists(page.getByRole('combobox', { name: 'Environment' }))
     await page.assertVisible(page.locator('.env-badge', { hasText: 'Development' }))
     await form
       .getByLabel('Redirect URIs', { exact: true })
       .fill('https://invoices.acme.test/auth/callback')
     await form.getByRole('button', { name: 'Save', exact: true }).click()
 
-    await page.assertPath(route('apps.settings', { org: 'acme', app: 'invoices' }))
+    await page.assertPath(settings)
     await page.assertVisible(
       development.getByText('https://invoices.acme.test/auth/callback', { exact: true })
     )
@@ -201,16 +197,18 @@ test.group('Console apps', (group) => {
     assert.include(await oldRedirect.text(), 'invalid_redirect_uri')
   })
 
-  test('editing checks the URLs against the client environment', async ({
+  test('editing checks the URLs against the app environment', async ({
     visit,
     route,
     browserContext,
   }) => {
     const acme = await setupOnboardedOrganization({ slug: 'acme' })
-    const client = await setupAppClient(acme.organization, acme.production)
+    await setupApp(acme.production)
 
     await browserContext.loginAs(acme.user)
-    const page = await visit(route('apps.clients.edit', { org: 'acme', client: client.id }))
+    const page = await visit(
+      route('app_settings.edit', { org: 'acme', environment: 'production', app: 'invoices' })
+    )
     await page
       .locator('form')
       .getByLabel('Redirect URIs', { exact: true })
@@ -227,16 +225,12 @@ test.group('Console apps', (group) => {
     assert,
   }) => {
     const acme = await setupOnboardedOrganization({ slug: 'acme' })
-    const client = await setupAppClient(acme.organization, acme.production)
+    const client = await setupApp(acme.production)
     const oldSecret = client.secret
 
     await browserContext.loginAs(acme.user)
     const page = await visit(
-      route(
-        'apps.settings',
-        { org: 'acme', app: 'invoices' },
-        { qs: { environment: 'production' } }
-      )
+      route('app_settings.show', { org: 'acme', environment: 'production', app: 'invoices' })
     )
     const production = page.getByRole('region', { name: 'Client', exact: true })
 
@@ -268,14 +262,14 @@ test.group('Console apps', (group) => {
     assert.equal(withNewSecret.body.error, 'invalid_grant', 'authenticated, then refused the code')
   })
 
-  test('removing a client signs members out of the app right away', async ({
+  test('removing an app signs members out of it right away', async ({
     visit,
     route,
     browserContext,
     assert,
   }) => {
     const acme = await setupOnboardedOrganization({ slug: 'acme' })
-    const client = await setupAppClient(acme.organization, acme.production)
+    const client = await setupApp(acme.production)
     await setupMember(acme.production)
     const memberBrowser = await browserContext.browser()!.newContext()
     const code = await visitIssuer(memberBrowser, acme.organization, acme.production, client)
@@ -284,19 +278,17 @@ test.group('Console apps', (group) => {
 
     await browserContext.loginAs(acme.user)
     const page = await visit(
-      route(
-        'apps.settings',
-        { org: 'acme', app: 'invoices' },
-        { qs: { environment: 'production' } }
-      )
+      route('app_settings.show', { org: 'acme', environment: 'production', app: 'invoices' })
     )
     const production = page.getByRole('region', { name: 'Client', exact: true })
     await production.getByRole('button', { name: 'Remove', exact: true }).click()
     await page.assertVisible(production.getByText(/signed out of it within 5 minutes/))
     await production.getByRole('button', { name: 'Yes, remove', exact: true }).click()
 
-    await page.assertVisible(production.getByRole('link', { name: 'Configure', exact: true }))
+    await page.assertPath(route('apps.index', { org: 'acme', environment: 'production' }))
+    await page.assertVisible(page.getByText('No apps yet'))
     assert.lengthOf(await db.from('oidc_grants'), 0)
+    assert.lengthOf(await db.from('member_apps'), 0)
 
     const refreshed = await refresh(
       acme.organization,
@@ -307,7 +299,7 @@ test.group('Console apps', (group) => {
     assert.equal(refreshed.body.error, 'invalid_client')
   })
 
-  test("another organization's client is not found", async ({
+  test('an app of another environment or organization is not found', async ({
     visit,
     route,
     browserContext,
@@ -315,22 +307,26 @@ test.group('Console apps', (group) => {
   }) => {
     const acme = await setupOnboardedOrganization({ slug: 'acme' })
     const globex = await setupOnboardedOrganization({ slug: 'globex' })
-    const globexClient = await setupAppClient(globex.organization, globex.production)
+    await setupApp(acme.staging, 'invoices')
+    await setupApp(globex.production, 'billing')
 
     await browserContext.loginAs(acme.user)
-    const page = await visit(route('apps.index', { org: 'acme' }))
-    const clientUrl = `/w/acme/clients/${globexClient.id}`
-
+    const page = await visit(route('apps.index', { org: 'acme', environment: 'production' }))
     const cookies = await browserContext.cookies()
     const xsrf = cookies.find(({ name }) => name === 'XSRF-TOKEN')!
     const headers = { 'x-xsrf-token': decodeURIComponent(xsrf.value) }
 
-    const edit = await page.request.get(`${clientUrl}/edit`)
-    const rotate = await page.request.post(`${clientUrl}/secret`, { headers })
-    const remove = await page.request.delete(clientUrl, { headers })
+    for (const slug of ['invoices', 'billing']) {
+      const appUrl = `/w/acme/production/apps/${slug}`
+      const show = await page.request.get(appUrl)
+      const edit = await page.request.get(`${appUrl}/settings/edit`)
+      const rotate = await page.request.post(`${appUrl}/secret`, { headers })
+      const remove = await page.request.delete(appUrl, { headers })
 
-    assert.equal(edit.status(), 404)
-    assert.equal(rotate.status(), 404)
-    assert.equal(remove.status(), 404)
+      assert.equal(show.status(), 404, slug)
+      assert.equal(edit.status(), 404, slug)
+      assert.equal(rotate.status(), 404, slug)
+      assert.equal(remove.status(), 404, slug)
+    }
   })
 })

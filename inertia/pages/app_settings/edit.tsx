@@ -5,43 +5,38 @@ import ConsoleLayout from '~/layouts/console'
 import { Form, Link } from '@adonisjs/inertia/react'
 import ClientUrlFields from '~/components/client_url_fields'
 import EnvironmentBadge from '~/components/environment_badge'
-import { useCurrentEnvironment } from '~/components/environment_switcher'
+import { useConsoleParams, useCurrentEnvironment } from '~/components/environment_switcher'
 
-type PageProps = InertiaProps<{ app: Data.App }>
+type PageProps = InertiaProps<{ app: Data.App.Variants['forSettings'] }>
 
-export default function AppClientsCreate({ app, organization }: PageProps) {
-  const org = organization?.slug ?? ''
+export default function AppSettingsEdit({ app }: PageProps) {
+  const routeParams = { ...useConsoleParams(), app: app.slug }
   const environment = useCurrentEnvironment()!
 
   return (
     <Page
-      title={`Configure ${app.name}`}
+      title={`Edit ${app.name}`}
       description={
         <>
-          <EnvironmentBadge environment={environment} /> Create the client this app signs in with.
-          You get its client ID and secret next.
+          <EnvironmentBadge environment={environment} /> Members already signed in stay signed in.
+          The client ID and secret don&apos;t change.
         </>
       }
     >
       <Form
-        route="apps.clients.store"
-        routeParams={{ org, app: app.slug }}
-        qs={{ environment: environment.slug }}
+        route="app_settings.update"
+        routeParams={routeParams}
         options={{ preserveScroll: true }}
       >
         {({ errors, processing }) => (
           <div className="panel form">
-            <ClientUrlFields errors={errors} />
+            <ClientUrlFields errors={errors} values={app} />
 
             <div className="form__actions">
               <button type="submit" className="btn btn--primary" disabled={processing}>
-                Create client
+                Save
               </button>
-              <Link
-                route="apps.settings"
-                routeParams={{ org, app: app.slug }}
-                className="btn btn--ghost"
-              >
+              <Link route="app_settings.show" routeParams={routeParams} className="btn btn--ghost">
                 Cancel
               </Link>
             </div>
@@ -52,4 +47,4 @@ export default function AppClientsCreate({ app, organization }: PageProps) {
   )
 }
 
-AppClientsCreate.layout = [ConsoleLayout]
+AppSettingsEdit.layout = [ConsoleLayout]

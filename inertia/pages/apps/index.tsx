@@ -5,18 +5,19 @@ import type { InertiaProps } from '~/types'
 import { Link } from '@adonisjs/inertia/react'
 import ConsoleLayout from '~/layouts/console'
 import EmptyState from '~/components/empty_state'
+import { useConsoleParams } from '~/components/environment_switcher'
 
 type PageProps = InertiaProps<{ apps: Data.App[] }>
 
-export default function AppsIndex({ apps, organization }: PageProps) {
-  const org = organization?.slug ?? ''
+export default function AppsIndex({ apps }: PageProps) {
+  const routeParams = useConsoleParams()
 
   return (
     <Page
       title="Apps"
       description="Internal apps that sign their users in through this console."
       actions={
-        <Link route="apps.create" routeParams={{ org }} className="btn btn--primary btn--sm">
+        <Link route="apps.create" routeParams={routeParams} className="btn btn--primary btn--sm">
           Register app
         </Link>
       }
@@ -24,7 +25,7 @@ export default function AppsIndex({ apps, organization }: PageProps) {
       <div className="table-wrap">
         {apps.length === 0 ? (
           <EmptyState icon={AppWindow} title="No apps yet">
-            Register an app, then configure a client for each environment it signs in to.
+            Register an app to let it sign members in to this environment.
           </EmptyState>
         ) : (
           <table className="table">
@@ -39,7 +40,7 @@ export default function AppsIndex({ apps, organization }: PageProps) {
               {apps.map((app) => (
                 <tr key={app.id}>
                   <td>
-                    <Link route="apps.show" routeParams={{ org, app: app.slug }}>
+                    <Link route="apps.show" routeParams={{ ...routeParams, app: app.slug }}>
                       {app.name}
                     </Link>
                   </td>

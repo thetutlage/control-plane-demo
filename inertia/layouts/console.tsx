@@ -5,11 +5,12 @@ import { Form } from '@adonisjs/inertia/react'
 import FlashToasts from '~/components/flash_toasts'
 import ThemeToggle from '~/components/theme_toggle'
 import NavLink, { type NavItem } from '~/components/nav_link'
+import EnvironmentSwitcher, { useConsoleParams } from '~/components/environment_switcher'
 import { AppWindow, House, KeyRound, LogOut, Users } from 'lucide-react'
 
 /**
- * Every console page. Pages that show one environment's data have their
- * own environment switcher.
+ * Every console page belongs to the environment picked in the switcher
+ * above the nav
  */
 const nav: NavItem[] = [
   { label: 'Overview', route: 'overview.show', icon: House },
@@ -20,7 +21,7 @@ const nav: NavItem[] = [
 
 export default function ConsoleLayout({ children }: { children: ReactNode }) {
   const { props } = usePage()
-  const org = props.organization?.slug ?? ''
+  const routeParams = useConsoleParams()
 
   return (
     <>
@@ -43,12 +44,13 @@ export default function ConsoleLayout({ children }: { children: ReactNode }) {
 
       <div className="console">
         <aside className="console__sidebar">
+          <EnvironmentSwitcher />
           <nav className="console__group" aria-label="Console">
             {nav.map(({ label, route, icon: Icon }) => (
               <NavLink
                 key={label}
                 route={route}
-                routeParams={{ org }}
+                routeParams={routeParams}
                 className="sidebar-layout__item"
               >
                 {Icon && <Icon size={16} />}

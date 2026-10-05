@@ -17,7 +17,7 @@ This means a row can't name an environment from a different organization.
 
 Links between environment rows include `environment_id` in the foreign key too. For example, `role_assignments` references `roles(environment_id, id)` and `actors(environment_id, id)`. A production role can't be assigned to a staging actor: the insert fails.
 
-`app_clients` is the one link to an organization-level table. It references `apps(organization_id, id)`, so an app can only get clients in its own organization's environments.
+Sign-in records and history point to apps the same way: `oidc_grants` references `apps(environment_id, client_id)` and `member_apps` references `apps(environment_id, id)`.
 
 ## 2. The console
 

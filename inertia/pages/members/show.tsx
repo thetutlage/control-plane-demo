@@ -5,10 +5,10 @@ import type { InertiaProps } from '~/types'
 import ConsoleLayout from '~/layouts/console'
 import { Form, Link } from '@adonisjs/inertia/react'
 import EnvironmentBadge from '~/components/environment_badge'
+import { useConsoleParams, useCurrentEnvironment } from '~/components/environment_switcher'
 
 type PageProps = InertiaProps<{
   member: Data.Member
-  environment: Data.Environment
   sessions: Data.OidcSession[]
   apps: Data.MemberApp[]
 }>
@@ -18,15 +18,14 @@ type PageProps = InertiaProps<{
  * browser, so it asks first and says what happens
  */
 function SignOutEverywhere({
-  org,
   member,
   environment,
 }: {
-  org: string
   member: Data.Member
   environment: Data.Environment
 }) {
   const [confirming, setConfirming] = useState(false)
+  const routeParams = useConsoleParams()
 
   if (!confirming) {
     return (
@@ -42,8 +41,8 @@ function SignOutEverywhere({
 
   return (
     <Form
-      route="members.sign_out_everywhere"
-      routeParams={{ org, member: member.id }}
+      route="member_sessions.destroy"
+      routeParams={{ ...routeParams, member: member.id }}
       className="client__confirm"
       onSuccess={() => setConfirming(false)}
     >
@@ -71,14 +70,9 @@ function SignOutEverywhere({
   )
 }
 
-export default function MembersShow({
-  member,
-  environment,
-  sessions,
-  apps,
-  organization,
-}: PageProps) {
-  const org = organization?.slug ?? ''
+export default function MembersShow({ member, sessions, apps }: PageProps) {
+  const routeParams = useConsoleParams()
+  const environment = useCurrentEnvironment()!
 
   return (
     <Page
@@ -89,7 +83,7 @@ export default function MembersShow({
           · Added {member.createdAt}
         </>
       }
-      actions={<SignOutEverywhere org={org} member={member} environment={environment} />}
+      actions={<SignOutEverywhere member={member} environment={environment} />}
     >
       <div className="panel">
         <section className="section" aria-label="Active sessions">
@@ -140,11 +134,7 @@ export default function MembersShow({
                   {apps.map(({ app, firstSignedInAt, lastSignedInAt }) => (
                     <tr key={app.id}>
                       <td>
-                        <Link
-                          route="apps.show"
-                          routeParams={{ org, app: app.slug }}
-                          qs={{ environment: environment.slug }}
-                        >
+                        <Link route="apps.show" routeParams={{ ...routeParams, app: app.slug }}>
                           {app.name}
                         </Link>
                       </td>

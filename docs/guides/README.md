@@ -9,7 +9,7 @@ Short guides to how the control plane works, and where each part lives in the co
 5. [Members and actors](members-and-actors.md): the people who sign in to internal apps.
 6. [Roles and permissions](roles-and-permissions.md): the catalogue, roles and role assignments.
 7. [Issuers and signing keys](issuers.md): each environment's OpenID issuer.
-8. [Apps and clients](apps-and-clients.md): registering apps and configuring their clients per environment.
+8. [Apps](apps.md): registering apps in an environment, and their client credentials.
 9. [Member login](member-login.md): the sign-in page members see, single sign-on, and every error page on an issuer host.
 10. [Sign-in records](sign-in-records.md): what `oidc-provider` stores while members sign in, and where.
 11. [Tokens](tokens.md): swapping the code for tokens, what's inside them, refreshing, and how long everything lasts.

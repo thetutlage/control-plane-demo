@@ -7,7 +7,7 @@ import {
   authorizeUrl,
   exchangeCode,
   refresh,
-  setupAppClient,
+  setupApp,
   setupMember,
   visitIssuer,
 } from '#tests/helpers/oidc'
@@ -44,8 +44,8 @@ test.group('Logout', (group) => {
     assert,
   }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
-    const invoices = await setupAppClient(organization, production, 'invoices')
-    const payroll = await setupAppClient(organization, production, 'payroll')
+    const invoices = await setupApp(production, 'invoices')
+    const payroll = await setupApp(production, 'payroll')
     await setupMember(production)
 
     const invoicesCode = await visitIssuer(browserContext, organization, production, invoices)
@@ -87,7 +87,7 @@ test.group('Logout', (group) => {
     assert,
   }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
-    const invoices = await setupAppClient(organization, production)
+    const invoices = await setupApp(production)
     await setupMember(production)
 
     const code = await visitIssuer(browserContext, organization, production, invoices)
@@ -108,7 +108,7 @@ test.group('Logout', (group) => {
     assert,
   }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
-    const invoices = await setupAppClient(organization, production)
+    const invoices = await setupApp(production)
     await setupMember(production)
 
     const code = await visitIssuer(browserContext, organization, production, invoices)

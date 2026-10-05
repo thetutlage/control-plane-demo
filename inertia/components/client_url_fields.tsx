@@ -2,12 +2,15 @@ import type { Data } from '@generated/data'
 
 type Props = {
   errors: Record<string, string | undefined>
-  values?: Pick<Data.AppClient, 'appUrl' | 'redirectUris' | 'postLogoutRedirectUris'>
+  values?: Pick<
+    Data.App.Variants['forSettings'],
+    'appUrl' | 'redirectUris' | 'postLogoutRedirectUris'
+  >
 }
 
 /**
- * The app URL, redirect URIs and sign-out redirect URIs of a client, for
- * the create and edit forms. `values` prefills them when editing.
+ * The app URL, redirect URIs and sign-out redirect URIs of an app, for the
+ * register and edit forms. `values` prefills them when editing.
  */
 export default function ClientUrlFields({ errors, values }: Props) {
   return (

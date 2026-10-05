@@ -30,9 +30,7 @@ test.group('Console roles', (group) => {
     })
 
     await browserContext.loginAs(acme.user)
-    const page = await visit(
-      route('roles.index', { org: 'acme' }, { qs: { environment: 'staging' } })
-    )
+    const page = await visit(route('roles.index', { org: 'acme', environment: 'staging' }))
 
     await page.assertVisible(page.getByRole('cell', { name: 'Finance', exact: true }))
     await page.assertVisible(page.getByText('1 missing from catalogue', { exact: true }))
@@ -54,9 +52,7 @@ test.group('Console roles', (group) => {
     })
 
     await browserContext.loginAs(acme.user)
-    const page = await visit(
-      route('roles.index', { org: 'acme' }, { qs: { environment: 'production' } })
-    )
+    const page = await visit(route('roles.index', { org: 'acme', environment: 'production' }))
 
     await page.assertVisible(
       page.getByText('No catalogue synced for this environment yet.', { exact: true })

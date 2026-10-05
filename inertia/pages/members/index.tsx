@@ -4,28 +4,24 @@ import type { Data } from '@generated/data'
 import type { InertiaProps } from '~/types'
 import ConsoleLayout from '~/layouts/console'
 import EmptyState from '~/components/empty_state'
-import EnvironmentSwitcher from '~/components/environment_switcher'
+import { useConsoleParams } from '~/components/environment_switcher'
 import { Link } from '@adonisjs/inertia/react'
 
 type PageProps = InertiaProps<{ members: Data.Member.Variants['forList'][] }>
 
-export default function MembersIndex({ members, organization, currentEnvironment }: PageProps) {
+export default function MembersIndex({ members }: PageProps) {
+  const routeParams = useConsoleParams()
+
   return (
     <Page
       title="Members"
       description="People who sign in to the apps, in one environment at a time."
       actions={
-        <Link
-          route="members.create"
-          routeParams={{ org: organization?.slug ?? '' }}
-          qs={{ environment: currentEnvironment ?? '' }}
-          className="btn btn--primary btn--sm"
-        >
+        <Link route="members.create" routeParams={routeParams} className="btn btn--primary btn--sm">
           Add member
         </Link>
       }
     >
-      <EnvironmentSwitcher />
       <div className="table-wrap">
         {members.length === 0 ? (
           <EmptyState icon={Users} title="No members yet">
@@ -46,10 +42,7 @@ export default function MembersIndex({ members, organization, currentEnvironment
               {members.map((member) => (
                 <tr key={member.id}>
                   <td>
-                    <Link
-                      route="members.show"
-                      routeParams={{ org: organization?.slug ?? '', member: member.id }}
-                    >
+                    <Link route="members.show" routeParams={{ ...routeParams, member: member.id }}>
                       {member.email}
                     </Link>
                   </td>

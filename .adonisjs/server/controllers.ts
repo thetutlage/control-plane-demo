@@ -4,8 +4,10 @@
  */
 
 export const controllers = {
-  AppClients: () => import('#controllers/app_clients_controller'),
+  AppSecrets: () => import('#controllers/app_secrets_controller'),
+  AppSettings: () => import('#controllers/app_settings_controller'),
   Apps: () => import('#controllers/apps_controller'),
+  MemberSessions: () => import('#controllers/member_sessions_controller'),
   Members: () => import('#controllers/members_controller'),
   NewAccount: () => import('#controllers/new_account_controller'),
   Organizations: () => import('#controllers/organizations_controller'),

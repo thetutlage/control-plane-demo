@@ -8,8 +8,7 @@ import { EnvironmentKind } from '#values/environment_kind'
 import Organization from '#models/organization'
 import Actor from '#models/actor'
 import Member from '#models/member'
-import AppClient from '#models/app_client'
-import type App from '#models/app'
+import App from '#models/app'
 import PermissionCatalog from '#models/permission_catalog'
 import Role from '#models/role'
 import RoleAssignment from '#models/role_assignment'
@@ -27,8 +26,8 @@ export default class Environment extends EnvironmentSchema {
   @hasMany(() => Member)
   declare members: HasMany<typeof Member>
 
-  @hasMany(() => AppClient)
-  declare appClients: HasMany<typeof AppClient>
+  @hasMany(() => App)
+  declare apps: HasMany<typeof App>
 
   @hasOne(() => PermissionCatalog)
   declare permissionCatalog: HasOne<typeof PermissionCatalog>
@@ -116,21 +115,18 @@ export default class Environment extends EnvironmentSchema {
   }
 
   /**
-   * Configures an app in this environment: creates its client, with a new
-   * client ID and secret.
+   * Registers an app in this environment, with a new client ID and secret
    */
-  async createAppClient(
-    app: App,
-    values: Pick<AppClient, 'appUrl' | 'redirectUris'> &
-      Partial<Pick<AppClient, 'postLogoutRedirectUris'>>
+  async createApp(
+    values: Pick<App, 'name' | 'slug' | 'appUrl' | 'redirectUris'> &
+      Partial<Pick<App, 'postLogoutRedirectUris'>>
   ) {
-    return AppClient.create(
+    return App.create(
       {
         ...values,
         organizationId: this.organizationId,
         environmentId: this.id,
-        appId: app.id,
-        ...AppClient.generateCredentials(this.kind),
+        ...App.generateCredentials(this.kind),
       },
       { client: this.$trx }
     )

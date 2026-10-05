@@ -1,13 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import type Environment from '#models/environment'
-import type Organization from '#models/organization'
-import { createAppValidator } from '#validators/app'
 import AppTransformer from '#transformers/app_transformer'
-import AppClientTransformer from '#transformers/app_client_transformer'
+import { EnvironmentKind } from '#values/environment_kind'
+import { createAppValidator } from '#validators/app'
 
 export default class AppsController {
-  async index({ inertia, organization }: HttpContext) {
-    const apps = await organization.related('apps').query().orderBy('name', 'asc')
+  async index({ inertia, environment }: HttpContext) {
+    const apps = await environment.related('apps').query().orderBy('name', 'asc')
 
     return inertia.render('apps/index', {
       apps: AppTransformer.transform(apps),
@@ -19,55 +17,55 @@ export default class AppsController {
   }
 
   /**
-   * Registers the app only. Its clients are configured afterwards, one
-   * environment at a time.
+   * Registers the app with a new client ID and secret, so it can sign in
+   * right away. A production secret is flashed so the settings tab can
+   * show it this once.
    */
-  async store({ request, response, session, organization }: HttpContext) {
+  async store({ request, response, session, organization, environment }: HttpContext) {
+    const isProduction = environment.kind === EnvironmentKind.PRODUCTION
     const payload = await request.validateUsing(createAppValidator, {
-      meta: { organizationId: organization.id },
+      meta: { environmentId: environment.id, isProduction },
     })
-    const app = await organization.related('apps').create(payload)
+    const app = await environment.createApp({
+      ...payload,
+      postLogoutRedirectUris: payload.postLogoutRedirectUris ?? [],
+    })
 
-    session.flash('success', `${app.name} is registered. Configure a client to let it sign in.`)
-    return response.redirect().toRoute('apps.show', { org: organization.slug, app: app.slug })
+    if (isProduction) {
+      session.flash('clientSecret', { clientId: app.clientId, secret: app.secret })
+    }
+    session.flash('success', `${app.name} is registered and can sign members in.`)
+    return response.redirect().toRoute('app_settings.show', {
+      org: organization.slug,
+      environment: environment.slug,
+      app: app.slug,
+    })
   }
 
   /**
-   * The app's overview tab, for the current environment
+   * The app's overview tab
    */
   async show({ inertia, params, organization, environment }: HttpContext) {
-    const { app, client } = await this.#findApp(organization, environment, params.app)
+    const app = await environment.related('apps').query().where('slug', params.app).firstOrFail()
 
     return inertia.render('apps/show', {
       app: AppTransformer.transform(app),
-      client: client ? AppClientTransformer.transform(client, organization) : null,
+      issuerUrl: environment.issuerUrl(organization.slug),
     })
   }
 
   /**
-   * The app's settings tab: its client in the current environment
+   * Removes the app right away. Its grants and sign-in history go with it,
+   * through the foreign keys, so members are signed out of it at their
+   * next refresh.
    */
-  async settings({ inertia, params, organization, environment }: HttpContext) {
-    const { app, client } = await this.#findApp(organization, environment, params.app)
+  async destroy({ response, session, params, organization, environment }: HttpContext) {
+    const app = await environment.related('apps').query().where('slug', params.app).firstOrFail()
+    await app.delete()
 
-    return inertia.render('apps/settings', {
-      app: AppTransformer.transform(app),
-      client: client ? AppClientTransformer.transform(client, organization) : null,
-    })
-  }
-
-  /**
-   * An app of the organization, and its client in the environment if it
-   * has one
-   */
-  async #findApp(organization: Organization, environment: Environment, slug: string) {
-    const app = await organization
-      .related('apps')
-      .query()
-      .where('slug', slug)
-      .preload('clients', (query) => query.where('environment_id', environment.id))
-      .firstOrFail()
-
-    return { app, client: app.clients[0] ?? null }
+    session.flash('success', `Removed ${app.name}. Members were signed out of it.`)
+    return response
+      .redirect()
+      .toRoute('apps.index', { org: organization.slug, environment: environment.slug })
   }
 }

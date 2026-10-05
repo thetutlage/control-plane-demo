@@ -1,7 +1,6 @@
 import { createHash, createPublicKey, verify } from 'node:crypto'
 import type { BrowserContext, Page } from 'playwright'
-import App from '#models/app'
-import type AppClient from '#models/app_client'
+import type App from '#models/app'
 import type Environment from '#models/environment'
 import type Organization from '#models/organization'
 import { MemberStatus } from '#values/member_status'
@@ -23,22 +22,15 @@ export function setupMember(environment: Environment) {
 }
 
 /**
- * Registers an app and configures its client in one environment, with a
- * single redirect URI and a single sign-out redirect URI on the app's own
- * (fake) host
+ * Registers an app in one environment, with a single redirect URI and a
+ * single sign-out redirect URI on the app's own (fake) host
  */
-export async function setupAppClient(
-  organization: Organization,
-  environment: Environment,
-  slug = 'invoices'
-) {
-  const app = await App.firstOrCreate(
-    { organizationId: organization.id, slug },
-    { name: slug.charAt(0).toUpperCase() + slug.slice(1) }
-  )
+export function setupApp(environment: Environment, slug = 'invoices') {
   const appUrl = `https://${slug}.acme.test`
 
-  return environment.createAppClient(app, {
+  return environment.createApp({
+    name: slug.charAt(0).toUpperCase() + slug.slice(1),
+    slug,
     appUrl,
     redirectUris: [`${appUrl}/callback`],
     postLogoutRedirectUris: [`${appUrl}/signed-out`],
@@ -92,7 +84,7 @@ export async function visitIssuer(
   browserContext: BrowserContext,
   organization: Organization,
   environment: Environment,
-  client: AppClient,
+  client: App,
   scope = 'openid profile email'
 ) {
   const page = await browserContext.newPage()
@@ -118,7 +110,7 @@ export async function visitIssuer(
 export function exchangeCode(
   organization: Organization,
   environment: Environment,
-  client: AppClient,
+  client: App,
   code: string,
   overrides: { secret?: string; codeVerifier?: string } = {}
 ) {
@@ -138,7 +130,7 @@ export function exchangeCode(
 export function refresh(
   organization: Organization,
   environment: Environment,
-  client: AppClient,
+  client: App,
   refreshToken: string
 ) {
   return tokenRequest(organization, environment, client, {

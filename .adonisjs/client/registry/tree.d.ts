@@ -14,6 +14,7 @@ export interface ApiDefinition {
   }
   organizations: {
     index: typeof routes['organizations.index']
+    show: typeof routes['organizations.show']
   }
   overview: {
     show: typeof routes['overview.show']
@@ -23,22 +24,24 @@ export interface ApiDefinition {
     create: typeof routes['apps.create']
     store: typeof routes['apps.store']
     show: typeof routes['apps.show']
-    settings: typeof routes['apps.settings']
-    clients: {
-      create: typeof routes['apps.clients.create']
-      store: typeof routes['apps.clients.store']
-      edit: typeof routes['apps.clients.edit']
-      update: typeof routes['apps.clients.update']
-      destroy: typeof routes['apps.clients.destroy']
-      rotateSecret: typeof routes['apps.clients.rotate_secret']
-    }
+    destroy: typeof routes['apps.destroy']
+  }
+  appSettings: {
+    show: typeof routes['app_settings.show']
+    edit: typeof routes['app_settings.edit']
+    update: typeof routes['app_settings.update']
+  }
+  appSecrets: {
+    store: typeof routes['app_secrets.store']
   }
   members: {
     index: typeof routes['members.index']
     create: typeof routes['members.create']
     store: typeof routes['members.store']
     show: typeof routes['members.show']
-    signOutEverywhere: typeof routes['members.sign_out_everywhere']
+  }
+  memberSessions: {
+    destroy: typeof routes['member_sessions.destroy']
   }
   roles: {
     index: typeof routes['roles.index']

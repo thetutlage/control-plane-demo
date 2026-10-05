@@ -3,8 +3,7 @@ import { BaseSchema } from '@adonisjs/lucid/schema'
 /**
  * The apps each member has ever signed in to, with their first and last
  * sign-in. Grants are temporary (they expire and sign-out deletes them), so
- * this is the lasting record. It points to the app, not its client, so the
- * history survives removing and recreating a client.
+ * this is the lasting record. Removing the app removes it too.
  */
 export default class extends BaseSchema {
   protected tableName = 'member_apps'
@@ -32,8 +31,8 @@ export default class extends BaseSchema {
         .inTable('actors')
         .onDelete('CASCADE')
       table
-        .foreign(['organization_id', 'app_id'])
-        .references(['organization_id', 'id'])
+        .foreign(['environment_id', 'app_id'])
+        .references(['environment_id', 'id'])
         .inTable('apps')
         .onDelete('CASCADE')
     })

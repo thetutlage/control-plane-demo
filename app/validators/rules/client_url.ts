@@ -2,14 +2,14 @@ import vine from '@vinejs/vine'
 import type { FieldContext } from '@vinejs/vine/types'
 
 /**
- * Metadata the rules read: whether the client's environment is production
+ * Metadata the rules read: whether the app's environment is production
  */
 export type ClientUrlMetaData = { isProduction: boolean }
 
 const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '[::1]']
 
 /**
- * Why a URL cannot be used for a client, or null when it can. Production
+ * Why a URL cannot be used for an app, or null when it can. Production
  * requires https. Other environments also accept http on the local machine,
  * for apps running on a developer's laptop.
  */
@@ -35,14 +35,14 @@ export function clientUrlProblem(value: string, isProduction: boolean) {
 }
 
 /**
- * Whether the client's environment is production
+ * Whether the app's environment is production
  */
 export function isProductionField(field: FieldContext) {
   return (field.meta as ClientUrlMetaData).isProduction
 }
 
 /**
- * A URL an app client runs at, checked against the chosen environment
+ * A URL an app runs at, checked against the chosen environment
  */
 export const clientUrl = vine.createRule((value, _, field) => {
   const problem = clientUrlProblem(String(value), isProductionField(field))

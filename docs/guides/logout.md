@@ -15,7 +15,7 @@ https://acme.<domain>/oauth/session/end
 
 The issuer ends the member's session, revokes what was issued in it, and redirects to `post_logout_redirect_uri` with `state`. The member sees no prompt.
 
-`post_logout_redirect_uri` must exactly match one of the client's **Sign-out redirect URIs** ([Apps and clients](apps-and-clients.md)). To land on a page that isn't registered, the app can pass its own `state`, or keep the page in its own cookie, and redirect after it lands.
+`post_logout_redirect_uri` must exactly match one of the app's **Sign-out redirect URIs** ([Apps](apps.md)). To land on a page that isn't registered, the app can pass its own `state`, or keep the page in its own cookie, and redirect after it lands.
 
 ## What gets revoked
 
@@ -44,7 +44,7 @@ Both sign-out pages always sign out of every app. `oidc-provider`'s option to si
 | File                          | Does                                                                                                                                          |
 | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | `app/oidc/create_provider.ts` | `rpInitiatedLogout` (our pages), `expiresWithSession: true` (tokens belong to the session), `loadExistingGrant` (revoking the previous grant) |
-| `app/oidc/storage_adapter.ts` | `post_logout_redirect_uris` from the client                                                                                                   |
+| `app/oidc/storage_adapter.ts` | `post_logout_redirect_uris` from the app                                                                                                      |
 
 ## Not built yet
 

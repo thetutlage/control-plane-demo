@@ -12,11 +12,10 @@ type ExtractProps<T> =
 
 declare module '@adonisjs/inertia/types' {
   export interface InertiaPages {
-    'app_clients/create': ExtractProps<(typeof import('../../inertia/pages/app_clients/create.tsx'))['default']>
-    'app_clients/edit': ExtractProps<(typeof import('../../inertia/pages/app_clients/edit.tsx'))['default']>
+    'app_settings/edit': ExtractProps<(typeof import('../../inertia/pages/app_settings/edit.tsx'))['default']>
+    'app_settings/show': ExtractProps<(typeof import('../../inertia/pages/app_settings/show.tsx'))['default']>
     'apps/create': ExtractProps<(typeof import('../../inertia/pages/apps/create.tsx'))['default']>
     'apps/index': ExtractProps<(typeof import('../../inertia/pages/apps/index.tsx'))['default']>
-    'apps/settings': ExtractProps<(typeof import('../../inertia/pages/apps/settings.tsx'))['default']>
     'apps/show': ExtractProps<(typeof import('../../inertia/pages/apps/show.tsx'))['default']>
     'auth/login': ExtractProps<(typeof import('../../inertia/pages/auth/login.tsx'))['default']>
     'auth/signup': ExtractProps<(typeof import('../../inertia/pages/auth/signup.tsx'))['default']>

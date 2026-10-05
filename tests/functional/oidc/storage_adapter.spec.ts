@@ -2,7 +2,6 @@ import { test } from '@japa/runner'
 import { errors } from 'oidc-provider'
 import db from '@adonisjs/lucid/services/db'
 import testUtils from '@adonisjs/core/services/test_utils'
-import App from '#models/app'
 import type Environment from '#models/environment'
 import { MemberStatus } from '#values/member_status'
 import OidcStorageAdapter from '#oidc/storage_adapter'
@@ -21,11 +20,9 @@ async function setupSignIn(environment: Environment) {
     fullName: 'Sara',
     status: MemberStatus.ACTIVE,
   })
-  const app = await App.firstOrCreate(
-    { organizationId: environment.organizationId, slug: 'invoices' },
-    { name: 'Invoices' }
-  )
-  const client = await environment.createAppClient(app, {
+  const client = await environment.createApp({
+    name: 'Invoices',
+    slug: 'invoices',
     appUrl: 'https://invoices.acme.test',
     redirectUris: ['https://invoices.acme.test/callback'],
   })

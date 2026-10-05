@@ -58,8 +58,8 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
     const error: string | undefined = session?.flashMessages.get('error')
 
     /**
-     * A production client secret, shown once right after the client is
-     * created
+     * A production client secret, shown once right after the app is
+     * registered or its secret rotated
      */
     const clientSecret: { clientId: string; secret: string } | undefined =
       session?.flashMessages.get('clientSecret')

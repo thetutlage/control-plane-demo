@@ -1,5 +1,4 @@
 import { errors } from 'oidc-provider'
-import AppClient from '#models/app_client'
 import hash from '@adonisjs/core/services/hash'
 import { MemberStatus } from '#values/member_status'
 import type { HttpContext } from '@adonisjs/core/http'
@@ -17,10 +16,10 @@ export default class SignInController {
     const signIn = await this.#pendingSignIn(ctx)
     const { issuer, inertia } = ctx
 
-    const client = await AppClient.query()
-      .where('environment_id', issuer.environment.id)
+    const app = await issuer.environment
+      .related('apps')
+      .query()
       .where('client_id', String(signIn.params.client_id))
-      .preload('app')
       .firstOrFail()
 
     return inertia.render('sign_in/show', {
@@ -28,7 +27,7 @@ export default class SignInController {
       organizationName: issuer.environment.organization.name,
       environmentName: issuer.environment.name,
       isProduction: issuer.environment.kind === EnvironmentKind.PRODUCTION,
-      appName: client.app.name,
+      appName: app.name,
     })
   }
 

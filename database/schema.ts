@@ -25,11 +25,9 @@ export class ActorSchema extends BaseModel {
   declare type: ActorType
 }
 
-export class AppClientSchema extends BaseModel {
-  static $columns = ['appId', 'appUrl', 'clientId', 'clientSecret', 'clientSecretHint', 'createdAt', 'environmentId', 'id', 'organizationId', 'postLogoutRedirectUris', 'redirectUris', 'updatedAt'] as const
-  $columns = AppClientSchema.$columns
-  @column()
-  declare appId: number
+export class AppSchema extends BaseModel {
+  static $columns = ['appUrl', 'clientId', 'clientSecret', 'clientSecretHint', 'createdAt', 'environmentId', 'id', 'name', 'organizationId', 'postLogoutRedirectUris', 'redirectUris', 'slug', 'updatedAt'] as const
+  $columns = AppSchema.$columns
   @column()
   declare appUrl: string
   @column()
@@ -45,26 +43,13 @@ export class AppClientSchema extends BaseModel {
   @column()
   declare id: number
   @column()
-  declare organizationId: number
-  @column()
-  declare postLogoutRedirectUris: any
-  @column()
-  declare redirectUris: string[]
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
-}
-
-export class AppSchema extends BaseModel {
-  static $columns = ['createdAt', 'id', 'name', 'organizationId', 'slug', 'updatedAt'] as const
-  $columns = AppSchema.$columns
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
-  @column()
-  declare id: number
-  @column()
   declare name: string
   @column()
   declare organizationId: number
+  @column()
+  declare postLogoutRedirectUris: string[]
+  @column()
+  declare redirectUris: string[]
   @column()
   declare slug: string
   @column.dateTime({ autoCreate: true, autoUpdate: true })

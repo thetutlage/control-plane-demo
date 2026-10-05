@@ -41,7 +41,7 @@ export default class extends BaseSchema {
       table
         .foreign(['environment_id', 'client_id'])
         .references(['environment_id', 'client_id'])
-        .inTable('app_clients')
+        .inTable('apps')
         .onDelete('CASCADE')
     })
   }

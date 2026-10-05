@@ -3,30 +3,28 @@
 ```
 Organization ── Acme
 ├── Users ............ people who run the console (user_orgs links them)
-├── Apps ............. internal apps, registered once
 └── Environments ..... development, staging, production
     ├── Members ...... people who sign in to Acme's apps
     ├── Actors ....... anything that can hold roles: members, later apps and agents
-    ├── App clients .. each app's credentials in this environment
+    ├── Apps ......... internal apps, with their credentials
     ├── Permission catalogue
     ├── Roles and role assignments
     └── Signing keys . for this environment's issuer
 ```
 
-| Concept              | Table                 | In one line                                                                                              |
-| -------------------- | --------------------- | -------------------------------------------------------------------------------------------------------- |
-| Organization         | `organizations`       | A company using the control plane. Its `slug` appears in console URLs and issuer URLs.                   |
-| User                 | `users`               | A control plane account. An email can sign up only once.                                                 |
-| User ↔ organization  | `user_orgs`           | Which organizations a user can open. Signup creates one.                                                 |
-| Environment          | `environments`        | A fully separate sign-in realm. Every organization starts with development, staging and production.      |
-| App                  | `apps`                | An internal app. It belongs to the organization, not to one environment.                                 |
-| App client           | `app_clients`         | The app in one environment: its credentials, URL and redirect URIs. Configured by hand, per environment. |
-| Actor                | `actors`              | An identity in one environment. Role assignments and audit events point to it.                           |
-| Member               | `members`             | A person who signs in to the organization's apps. An email is unique within an environment.              |
-| Permission catalogue | `permission_catalogs` | The company's list of permission keys for one environment.                                               |
-| Role                 | `roles`               | A named list of permission keys, defined in each environment.                                            |
-| Role assignment      | `role_assignments`    | Gives an actor a role, optionally until `expires_at`.                                                    |
-| Signing key          | `signing_keys`        | The key an environment's issuer signs tokens with.                                                       |
+| Concept              | Table                 | In one line                                                                                         |
+| -------------------- | --------------------- | --------------------------------------------------------------------------------------------------- |
+| Organization         | `organizations`       | A company using the control plane. Its `slug` appears in console URLs and issuer URLs.              |
+| User                 | `users`               | A control plane account. An email can sign up only once.                                            |
+| User ↔ organization  | `user_orgs`           | Which organizations a user can open. Signup creates one.                                            |
+| Environment          | `environments`        | A fully separate sign-in realm. Every organization starts with development, staging and production. |
+| App                  | `apps`                | An internal app in one environment, with its credentials, URL and redirect URIs.                    |
+| Actor                | `actors`              | An identity in one environment. Role assignments and audit events point to it.                      |
+| Member               | `members`             | A person who signs in to the organization's apps. An email is unique within an environment.         |
+| Permission catalogue | `permission_catalogs` | The company's list of permission keys for one environment.                                          |
+| Role                 | `roles`               | A named list of permission keys, defined in each environment.                                       |
+| Role assignment      | `role_assignments`    | Gives an actor a role, optionally until `expires_at`.                                               |
+| Signing key          | `signing_keys`        | The key an environment's issuer signs tokens with.                                                  |
 
 ## Users are not members
 

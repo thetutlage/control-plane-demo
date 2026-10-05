@@ -19,10 +19,11 @@ test.group('Signup', (group) => {
     await page.getByLabel('Confirm password', { exact: true }).fill('secret1234')
     await page.getByRole('button', { name: 'Create organization', exact: true }).click()
 
-    await page.assertPath(route('overview.show', { org: 'acme' }))
-    for (const name of ['Development', 'Staging', 'Production']) {
-      await page.assertVisible(page.getByRole('link', { name: `${name} 0 members`, exact: true }))
-    }
+    await page.assertPath(route('overview.show', { org: 'acme', environment: 'production' }))
+    await page.assertElementsCount(
+      page.getByRole('combobox', { name: 'Environment', exact: true }).locator('option'),
+      3
+    )
 
     await db.assertHas('users', { email: 'ada@acme.test' })
     await db.assertHas('organizations', { slug: 'acme', name: 'Acme Inc.' })

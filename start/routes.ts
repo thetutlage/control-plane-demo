@@ -32,56 +32,45 @@ router
   .use(middleware.auth())
 
 /**
- * Console pages of one organization, under `/w/:org`. Pages that show one
- * environment's data use the environment middleware, which resolves it
- * from `?environment=` or the last one picked; they only ever read data
- * through that environment.
+ * The console of one organization opens on the environment last picked
+ */
+router
+  .get('w/:org', [controllers.Organizations, 'show'])
+  .where('org', router.matchers.slug())
+  .use([middleware.auth(), middleware.organization()])
+
+/**
+ * Console pages of one environment, under `/w/:org/:environment`. Every
+ * page reads its data through that environment, so nothing on it belongs
+ * to another one.
  */
 router
   .group(() => {
     router.get('overview', [controllers.Overview, 'show'])
+
     router
       .resource('apps', controllers.Apps)
-      .only(['index', 'create', 'store'])
+      .only(['index', 'create', 'store', 'show', 'destroy'])
       .params({ apps: 'app' })
-      .where('app', router.matchers.slug())
+    router.get('apps/:app/settings', [controllers.AppSettings, 'show'])
+    router.get('apps/:app/settings/edit', [controllers.AppSettings, 'edit'])
+    router.put('apps/:app/settings', [controllers.AppSettings, 'update'])
+    router.post('apps/:app/secret', [controllers.AppSecrets, 'store'])
 
     router
-      .group(() => {
-        router.get('apps/:app', [controllers.Apps, 'show']).as('apps.show')
-        router.get('apps/:app/settings', [controllers.Apps, 'settings']).as('apps.settings')
-        router
-          .shallowResource('apps.clients', controllers.AppClients)
-          .only(['create', 'store'])
-          .params({ apps: 'app' })
-        router.resource('members', controllers.Members).only(['index', 'create', 'store'])
-        router.get('roles', [controllers.Roles, 'index'])
-      })
-      .where('app', router.matchers.slug())
-      .use(middleware.environment())
+      .resource('members', controllers.Members)
+      .only(['index', 'create', 'store', 'show'])
+      .params({ members: 'member' })
+    router.delete('members/:member/sessions', [controllers.MemberSessions, 'destroy'])
 
-    router
-      .shallowResource('apps.clients', controllers.AppClients)
-      .only(['edit', 'update', 'destroy'])
-      .params({ clients: 'client' })
-      .where('client', router.matchers.number())
-    router
-      .post('clients/:client/secret', [controllers.AppClients, 'rotateSecret'])
-      .as('apps.clients.rotate_secret')
-      .where('client', router.matchers.number())
-
-    router
-      .group(() => {
-        router.get('members/:member', [controllers.Members, 'show']).as('members.show')
-        router
-          .post('members/:member/sign-out', [controllers.Members, 'signOutEverywhere'])
-          .as('members.sign_out_everywhere')
-      })
-      .where('member', router.matchers.number())
+    router.get('roles', [controllers.Roles, 'index'])
   })
-  .prefix('w/:org')
+  .prefix('w/:org/:environment')
   .where('org', router.matchers.slug())
-  .use([middleware.auth(), middleware.organization()])
+  .where('environment', router.matchers.slug())
+  .where('app', router.matchers.slug())
+  .where('member', router.matchers.number())
+  .use([middleware.auth(), middleware.organization(), middleware.environment()])
 
 /**
  * The sign-in page of an environment's issuer, on the issuer's own host

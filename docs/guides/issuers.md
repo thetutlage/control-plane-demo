@@ -73,7 +73,7 @@ When TLS ends at a proxy (`portless` locally, a load balancer in production), `o
 
 - Key rotation.
 
-Which apps can sign in is covered in [Apps and clients](apps-and-clients.md), and what they get back in [Tokens](tokens.md). What `oidc-provider` stores is covered in [Sign-in records](sign-in-records.md).
+Which apps can sign in is covered in [Apps](apps.md), and what they get back in [Tokens](tokens.md). What `oidc-provider` stores is covered in [Sign-in records](sign-in-records.md).
 
 ## Tests
 

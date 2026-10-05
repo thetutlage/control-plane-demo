@@ -1,35 +1,29 @@
 import Page from '~/components/page'
 import { Link } from '@adonisjs/inertia/react'
-import type { Data } from '@generated/data'
 import type { InertiaProps } from '~/types'
 import ConsoleLayout from '~/layouts/console'
+import { useConsoleParams } from '~/components/environment_switcher'
 
-type PageProps = InertiaProps<{
-  environmentSummaries: Data.Environment.Variants['forOverview'][]
-  appsCount: number
-}>
+type PageProps = InertiaProps<{ appsCount: number; membersCount: number }>
 
-export default function OverviewShow({ environmentSummaries, appsCount, organization }: PageProps) {
+export default function OverviewShow({ appsCount, membersCount, organization }: PageProps) {
+  const routeParams = useConsoleParams()
+
   return (
-    <Page
-      title="Overview"
-      description={`${organization?.name} has ${appsCount} ${appsCount === 1 ? 'app' : 'apps'} and ${environmentSummaries.length} environments. Each environment is fully isolated.`}
-    >
+    <Page title="Overview" description={organization?.name}>
       <div className="cards">
-        {environmentSummaries.map((environment) => (
-          <Link
-            key={environment.id}
-            route="members.index"
-            routeParams={{ org: organization?.slug ?? '' }}
-            qs={{ environment: environment.slug }}
-            className="card"
-          >
-            <span className="card__title">{environment.name}</span>
-            <span className="card__meta">
-              {environment.membersCount} {environment.membersCount === 1 ? 'member' : 'members'}
-            </span>
-          </Link>
-        ))}
+        <Link route="apps.index" routeParams={routeParams} className="card">
+          <span className="card__title">Apps</span>
+          <span className="card__meta">
+            {appsCount} {appsCount === 1 ? 'app' : 'apps'}
+          </span>
+        </Link>
+        <Link route="members.index" routeParams={routeParams} className="card">
+          <span className="card__title">Members</span>
+          <span className="card__meta">
+            {membersCount} {membersCount === 1 ? 'member' : 'members'}
+          </span>
+        </Link>
       </div>
     </Page>
   )

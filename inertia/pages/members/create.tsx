@@ -3,10 +3,10 @@ import type { InertiaProps } from '~/types'
 import ConsoleLayout from '~/layouts/console'
 import { Form, Link } from '@adonisjs/inertia/react'
 import EnvironmentBadge from '~/components/environment_badge'
-import { useCurrentEnvironment } from '~/components/environment_switcher'
+import { useConsoleParams, useCurrentEnvironment } from '~/components/environment_switcher'
 
-export default function MembersCreate({ organization }: InertiaProps) {
-  const routeParams = { org: organization?.slug ?? '' }
+export default function MembersCreate(_props: InertiaProps) {
+  const routeParams = useConsoleParams()
   const environment = useCurrentEnvironment()!
 
   return (
@@ -19,12 +19,7 @@ export default function MembersCreate({ organization }: InertiaProps) {
         </>
       }
     >
-      <Form
-        route="members.store"
-        routeParams={routeParams}
-        qs={{ environment: environment.slug }}
-        options={{ preserveScroll: true }}
-      >
+      <Form route="members.store" routeParams={routeParams} options={{ preserveScroll: true }}>
         {({ errors, processing }) => (
           <div className="panel form">
             <div className="field">
@@ -82,12 +77,7 @@ export default function MembersCreate({ organization }: InertiaProps) {
               <button type="submit" className="btn btn--primary" disabled={processing}>
                 Add member
               </button>
-              <Link
-                route="members.index"
-                routeParams={routeParams}
-                qs={{ environment: environment.slug }}
-                className="btn btn--ghost"
-              >
+              <Link route="members.index" routeParams={routeParams} className="btn btn--ghost">
                 Cancel
               </Link>
             </div>

@@ -3,7 +3,7 @@ import env from '#start/env'
 import db from '@adonisjs/lucid/services/db'
 import testUtils from '@adonisjs/core/services/test_utils'
 import { MemberStatus } from '#values/member_status'
-import { appCallback, authorizeUrl, setupAppClient, signIn } from '#tests/helpers/oidc'
+import { appCallback, authorizeUrl, setupApp, signIn } from '#tests/helpers/oidc'
 import { setupOnboardedOrganization } from '#tests/helpers/organizations'
 
 const PASSWORD = 'correct-horse'
@@ -16,7 +16,7 @@ test.group('Member login', (group) => {
     assert,
   }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
-    const client = await setupAppClient(organization, production)
+    const client = await setupApp(production)
     await production.createMember({
       email: 'sara@acme.test',
       fullName: 'Sara',
@@ -44,8 +44,8 @@ test.group('Member login', (group) => {
     assert,
   }) => {
     const { organization, staging } = await setupOnboardedOrganization({ slug: 'acme' })
-    const invoices = await setupAppClient(organization, staging, 'invoices')
-    const payroll = await setupAppClient(organization, staging, 'payroll')
+    const invoices = await setupApp(staging, 'invoices')
+    const payroll = await setupApp(staging, 'payroll')
     await staging.createMember({
       email: 'sara@acme.test',
       fullName: 'Sara',
@@ -79,7 +79,7 @@ test.group('Member login', (group) => {
     const { organization, production, staging } = await setupOnboardedOrganization({
       slug: 'acme',
     })
-    const client = await setupAppClient(organization, production)
+    const client = await setupApp(production)
     await production.createMember({
       email: 'sara@acme.test',
       fullName: 'Sara',
@@ -157,7 +157,7 @@ test.group('Member login', (group) => {
     browserContext,
   }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
-    const client = await setupAppClient(organization, production)
+    const client = await setupApp(production)
     await production.createMember({
       email: 'sara@acme.test',
       fullName: 'Sara',

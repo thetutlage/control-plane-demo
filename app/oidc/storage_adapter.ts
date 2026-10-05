@@ -1,14 +1,13 @@
 import db from '@adonisjs/lucid/services/db'
 import { errors } from 'oidc-provider'
 import type { Adapter, AdapterPayload } from 'oidc-provider'
-import AppClient from '#models/app_client'
 import type Environment from '#models/environment'
 
 /**
  * Where each oidc-provider record type is stored, and which payload fields
  * are copied into their own columns. Record types without a table are not
  * stored: reads find nothing and saving fails loudly. Clients are the one
- * exception, read from `app_clients`.
+ * exception, read from `apps`.
  */
 const TABLES: Record<
   string,
@@ -147,23 +146,20 @@ export default class OidcStorageAdapter implements Adapter {
 
   /**
    * Clients are not stored by oidc-provider: they are the environment's
-   * app clients, and every client gets the same settings.
+   * apps, and every app gets the same settings.
    */
   async #findClient(clientId: string): Promise<AdapterPayload | undefined> {
-    const client = await AppClient.query()
-      .where('environment_id', this.#environment.id)
-      .where('client_id', clientId)
-      .first()
+    const app = await this.#environment.related('apps').query().where('client_id', clientId).first()
 
-    if (!client) {
+    if (!app) {
       return undefined
     }
 
     return {
-      client_id: client.clientId,
-      client_secret: client.secret,
-      redirect_uris: client.redirectUris,
-      post_logout_redirect_uris: client.postLogoutRedirectUris,
+      client_id: app.clientId,
+      client_secret: app.secret,
+      redirect_uris: app.redirectUris,
+      post_logout_redirect_uris: app.postLogoutRedirectUris,
       grant_types: ['authorization_code', 'refresh_token'],
       response_types: ['code'],
       token_endpoint_auth_method: 'client_secret_basic',

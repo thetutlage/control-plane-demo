@@ -1,8 +1,7 @@
 import { router, usePage } from '@inertiajs/react'
 
 /**
- * The environment the current page shows: from `?environment=`, or the
- * one last picked, or production (see the environment middleware)
+ * The environment the current console page belongs to
  */
 export function useCurrentEnvironment() {
   const { props } = usePage()
@@ -10,8 +9,18 @@ export function useCurrentEnvironment() {
 }
 
 /**
- * Picks the environment a page shows. It reloads the same page with
- * `?environment=`, and the choice carries over to other pages.
+ * The route params every console page's links need: the organization and
+ * the current environment
+ */
+export function useConsoleParams() {
+  const { props } = usePage()
+  return { org: props.organization?.slug ?? '', environment: props.currentEnvironment ?? '' }
+}
+
+/**
+ * Picks the environment the whole console shows. It keeps the current
+ * section (`/w/acme/staging/apps/invoices` becomes `/w/acme/production/apps`),
+ * since a record of one environment never exists in another.
  */
 export default function EnvironmentSwitcher() {
   const { props, url } = usePage()
@@ -22,14 +31,13 @@ export default function EnvironmentSwitcher() {
   }
 
   const switchTo = (slug: string) => {
-    const next = new URL(url, window.location.origin)
-    next.searchParams.set('environment', slug)
-    router.visit(`${next.pathname}${next.search}`)
+    const [, w, org, , section] = url.split('?')[0].split('/')
+    router.visit(`/${w}/${org}/${slug}/${section}`)
   }
 
   return (
     <div className="envbar">
-      <label htmlFor="environment" className="envbar__label">
+      <label htmlFor="environment" className="console__label">
         Environment
       </label>
       <select

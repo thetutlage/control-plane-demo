@@ -53,4 +53,4 @@ A role assignment gives an actor a role in the same environment, optionally unti
 
 ## JSONB arrays
 
-`Role.permissions` and `AppClient.redirectUris` are JSON arrays. Their model columns use `prepare: JSON.stringify`. Without it, the `pg` driver sends a JavaScript array as a PostgreSQL array and stores `[]` as `{}`. Do the same for any new JSONB array column.
+`Role.permissions` and `App.redirectUris` are JSON arrays. Their model columns use `prepare: JSON.stringify`. Without it, the `pg` driver sends a JavaScript array as a PostgreSQL array and stores `[]` as `{}`. Do the same for any new JSONB array column.

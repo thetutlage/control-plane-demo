@@ -6,7 +6,7 @@ import {
   CODE_VERIFIER,
   exchangeCode,
   refresh,
-  setupAppClient,
+  setupApp,
   setupMember,
   verifyJwt,
   visitIssuer,
@@ -23,7 +23,7 @@ test.group('Tokens', (group) => {
     assert,
   }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
-    const client = await setupAppClient(organization, production)
+    const client = await setupApp(production)
     const member = await setupMember(production)
     const issuer = production.issuerUrl(organization.slug)
 
@@ -59,7 +59,7 @@ test.group('Tokens', (group) => {
     assert,
   }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
-    const client = await setupAppClient(organization, production)
+    const client = await setupApp(production)
     await setupMember(production)
 
     const code = await visitIssuer(browserContext, organization, production, client, 'openid')
@@ -76,7 +76,7 @@ test.group('Tokens', (group) => {
     assert,
   }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
-    const client = await setupAppClient(organization, production)
+    const client = await setupApp(production)
     await setupMember(production)
 
     const code = await visitIssuer(browserContext, organization, production, client)
@@ -106,7 +106,7 @@ test.group('Tokens', (group) => {
 
   test('refresh tokens work until the grant expires', async ({ browserContext, assert }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
-    const client = await setupAppClient(organization, production)
+    const client = await setupApp(production)
     await setupMember(production)
 
     const code = await visitIssuer(browserContext, organization, production, client)
@@ -126,7 +126,7 @@ test.group('Tokens', (group) => {
 
   test('refresh tokens stop working when the session ends', async ({ browserContext, assert }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
-    const client = await setupAppClient(organization, production)
+    const client = await setupApp(production)
     await setupMember(production)
 
     const code = await visitIssuer(browserContext, organization, production, client)
@@ -143,7 +143,7 @@ test.group('Tokens', (group) => {
     assert,
   }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
-    const client = await setupAppClient(organization, production)
+    const client = await setupApp(production)
     await setupMember(production)
 
     const code = await visitIssuer(browserContext, organization, production, client)
@@ -163,7 +163,7 @@ test.group('Tokens', (group) => {
     assert,
   }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
-    const client = await setupAppClient(organization, production)
+    const client = await setupApp(production)
     await setupMember(production)
 
     const otherBrowser = await browserContext.browser()!.newContext()
@@ -203,7 +203,7 @@ test.group('Tokens', (group) => {
 
   test('a suspended member cannot refresh', async ({ browserContext, assert }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
-    const client = await setupAppClient(organization, production)
+    const client = await setupApp(production)
     const member = await setupMember(production)
 
     const code = await visitIssuer(browserContext, organization, production, client)
@@ -223,7 +223,7 @@ test.group('Tokens', (group) => {
     const { organization, production, staging } = await setupOnboardedOrganization({
       slug: 'acme',
     })
-    const client = await setupAppClient(organization, staging)
+    const client = await setupApp(staging)
     await setupMember(staging)
 
     const code = await visitIssuer(browserContext, organization, staging, client)

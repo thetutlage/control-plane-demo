@@ -6,7 +6,7 @@ import {
   exchangeCode,
   MEMBER,
   refresh,
-  setupAppClient,
+  setupApp,
   setupMember,
   visitIssuer,
 } from '#tests/helpers/oidc'
@@ -25,16 +25,14 @@ test.group('Console members', (group) => {
     const acme = await setupOnboardedOrganization({ slug: 'acme' })
 
     await browserContext.loginAs(acme.user)
-    const page = await visit(
-      route('members.index', { org: 'acme' }, { qs: { environment: 'staging' } })
-    )
+    const page = await visit(route('members.index', { org: 'acme', environment: 'staging' }))
     await page.getByRole('link', { name: 'Add member', exact: true }).click()
     await page.getByLabel('Full name', { exact: true }).fill('Sara Lee')
     await page.getByLabel('Email', { exact: true }).fill('sara@acme.test')
     await page.getByLabel('Password', { exact: true }).fill('correct-horse')
     await page.getByRole('button', { name: 'Add member', exact: true }).click()
 
-    await page.assertPath(route('members.index', { org: 'acme' }))
+    await page.assertPath(route('members.index', { org: 'acme', environment: 'staging' }))
     await page.assertVisible(page.getByRole('cell', { name: 'sara@acme.test', exact: true }))
 
     const member = await acme.staging.related('members').query().firstOrFail()
@@ -52,9 +50,7 @@ test.group('Console members', (group) => {
     })
 
     await browserContext.loginAs(acme.user)
-    const page = await visit(
-      route('members.create', { org: 'acme' }, { qs: { environment: 'staging' } })
-    )
+    const page = await visit(route('members.create', { org: 'acme', environment: 'staging' }))
     await page.getByLabel('Email', { exact: true }).fill('sara@acme.test')
     await page.getByLabel('Password', { exact: true }).fill('correct-horse')
     await page.getByRole('button', { name: 'Add member', exact: true }).click()
@@ -62,7 +58,7 @@ test.group('Console members', (group) => {
     await page.assertVisible(page.getByText('The email has already been taken'))
   })
 
-  test('a form adds to the environment it showed, even after switching elsewhere', async ({
+  test('a form adds to the environment in its URL, even after switching elsewhere', async ({
     visit,
     route,
     browserContext,
@@ -70,11 +66,9 @@ test.group('Console members', (group) => {
     const acme = await setupOnboardedOrganization({ slug: 'acme' })
 
     await browserContext.loginAs(acme.user)
-    const form = await visit(
-      route('members.create', { org: 'acme' }, { qs: { environment: 'staging' } })
-    )
+    const form = await visit(route('members.create', { org: 'acme', environment: 'staging' }))
     const elsewhere = await visit(
-      route('members.index', { org: 'acme' }, { qs: { environment: 'production' } })
+      route('members.index', { org: 'acme', environment: 'production' })
     )
     await elsewhere.close()
 
@@ -83,10 +77,7 @@ test.group('Console members', (group) => {
     await form.getByRole('button', { name: 'Add member', exact: true }).click()
 
     await form.assertVisible(form.getByRole('cell', { name: 'sara@acme.test', exact: true }))
-    await form.assertInputValue(
-      form.getByRole('combobox', { name: 'Environment', exact: true }),
-      'staging'
-    )
+    await form.assertPath(route('members.index', { org: 'acme', environment: 'staging' }))
   })
 
   test('a member page shows their active sessions and the apps they have used', async ({
@@ -96,7 +87,7 @@ test.group('Console members', (group) => {
     assert,
   }) => {
     const acme = await setupOnboardedOrganization({ slug: 'acme' })
-    const invoices = await setupAppClient(acme.organization, acme.production)
+    const invoices = await setupApp(acme.production)
     const member = await setupMember(acme.production)
 
     const memberBrowser = await browserContext.browser()!.newContext()
@@ -105,14 +96,14 @@ test.group('Console members', (group) => {
     await memberBrowser.close()
 
     await browserContext.loginAs(acme.user)
-    const page = await visit(
-      route('members.index', { org: 'acme' }, { qs: { environment: 'production' } })
-    )
+    const page = await visit(route('members.index', { org: 'acme', environment: 'production' }))
     const row = page.getByRole('row', { name: new RegExp(MEMBER.email) })
     await page.assertVisible(row.getByRole('cell', { name: '1', exact: true }))
 
     await row.getByRole('link', { name: MEMBER.email, exact: true }).click()
-    await page.assertPath(route('members.show', { org: 'acme', member: member.id }))
+    await page.assertPath(
+      route('members.show', { org: 'acme', environment: 'production', member: member.id })
+    )
     const sessions = page.getByRole('region', { name: 'Active sessions', exact: true })
     const apps = page.getByRole('region', { name: 'Apps used', exact: true })
     await page.assertElementsCount(sessions.locator('tbody tr'), 1)
@@ -128,8 +119,8 @@ test.group('Console members', (group) => {
     assert,
   }) => {
     const acme = await setupOnboardedOrganization({ slug: 'acme' })
-    const invoices = await setupAppClient(acme.organization, acme.production, 'invoices')
-    const payroll = await setupAppClient(acme.organization, acme.production, 'payroll')
+    const invoices = await setupApp(acme.production, 'invoices')
+    const payroll = await setupApp(acme.production, 'payroll')
     const member = await setupMember(acme.production)
     const other = await acme.production.createMember({
       email: 'other@acme.test',
@@ -166,7 +157,9 @@ test.group('Console members', (group) => {
     })
 
     await browserContext.loginAs(acme.user)
-    const page = await visit(route('members.show', { org: 'acme', member: member.id }))
+    const page = await visit(
+      route('members.show', { org: 'acme', environment: 'production', member: member.id })
+    )
     await page.getByRole('button', { name: 'Sign out everywhere', exact: true }).click()
     await page.assertVisible(page.getByText(/signed out of every app, on every browser/))
     await page.getByRole('button', { name: 'Yes, sign out', exact: true }).click()
@@ -194,7 +187,7 @@ test.group('Console members', (group) => {
     await phone.close()
   })
 
-  test("another organization's member is not found", async ({
+  test('a member of another environment or organization is not found', async ({
     visit,
     route,
     browserContext,
@@ -202,20 +195,22 @@ test.group('Console members', (group) => {
   }) => {
     const acme = await setupOnboardedOrganization({ slug: 'acme' })
     const globex = await setupOnboardedOrganization({ slug: 'globex' })
+    const stagingMember = await setupMember(acme.staging)
     const globexMember = await setupMember(globex.production)
 
     await browserContext.loginAs(acme.user)
-    const page = await visit(route('overview.show', { org: 'acme' }))
+    const page = await visit(route('overview.show', { org: 'acme', environment: 'production' }))
     const cookies = await browserContext.cookies()
     const xsrf = cookies.find(({ name }) => name === 'XSRF-TOKEN')!
     const headers = { 'x-xsrf-token': decodeURIComponent(xsrf.value) }
 
-    const show = await page.request.get(`/w/acme/members/${globexMember.id}`)
-    const signOut = await page.request.post(`/w/acme/members/${globexMember.id}/sign-out`, {
-      headers,
-    })
+    for (const member of [stagingMember, globexMember]) {
+      const memberUrl = `/w/acme/production/members/${member.id}`
+      const show = await page.request.get(memberUrl)
+      const signOut = await page.request.delete(`${memberUrl}/sessions`, { headers })
 
-    assert.equal(show.status(), 404)
-    assert.equal(signOut.status(), 404)
+      assert.equal(show.status(), 404)
+      assert.equal(signOut.status(), 404)
+    }
   })
 })

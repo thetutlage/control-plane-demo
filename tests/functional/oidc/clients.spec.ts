@@ -2,7 +2,6 @@ import { test } from '@japa/runner'
 import { createHash } from 'node:crypto'
 import db from '@adonisjs/lucid/services/db'
 import testUtils from '@adonisjs/core/services/test_utils'
-import App from '#models/app'
 import type Environment from '#models/environment'
 import type Organization from '#models/organization'
 import { setupOnboardedOrganization } from '#tests/helpers/organizations'
@@ -11,13 +10,10 @@ const REDIRECT_URI = 'https://invoices.acme.test/callback'
 const CODE_VERIFIER = 'a-code-verifier-that-is-at-least-forty-three-characters-long'
 const CODE_CHALLENGE = createHash('sha256').update(CODE_VERIFIER).digest('base64url')
 
-async function setupClient(organization: Organization, environment: Environment) {
-  const app = await App.create({
-    organizationId: organization.id,
+function setupClient(environment: Environment) {
+  return environment.createApp({
     name: 'Invoices',
     slug: 'invoices',
-  })
-  return environment.createAppClient(app, {
     appUrl: 'https://invoices.acme.test',
     redirectUris: [REDIRECT_URI],
   })
@@ -73,35 +69,24 @@ async function exchangeCode(
 test.group('OIDC clients', (group) => {
   group.each.setup(() => testUtils.db().truncate())
 
-  test('a client gets credentials whose prefix shows its environment', async ({ assert }) => {
-    const { organization, production, staging } = await setupOnboardedOrganization()
-    const app = await App.create({
-      organizationId: organization.id,
-      name: 'Invoices',
-      slug: 'invoices',
-    })
+  test('an app gets credentials whose prefix shows its environment', async ({ assert }) => {
+    const { production, staging } = await setupOnboardedOrganization()
 
-    const live = await production.createAppClient(app, {
-      appUrl: 'https://a.test',
-      redirectUris: [],
-    })
-    const nonProduction = await staging.createAppClient(app, {
-      appUrl: 'https://a.test',
-      redirectUris: [],
-    })
+    const live = await setupClient(production)
+    const nonProduction = await setupClient(staging)
 
     assert.match(live.clientId, /^app_.{24}$/)
     assert.match(live.secret, /^cp_live_.{40}$/)
     assert.match(nonProduction.secret, /^cp_test_.{40}$/)
     assert.equal(live.clientSecretHint, live.secret.slice(-4))
 
-    const stored = await db.from('app_clients').where('id', live.id).firstOrFail()
+    const stored = await db.from('apps').where('id', live.id).firstOrFail()
     assert.notInclude(stored.client_secret, live.secret, 'the secret must be encrypted at rest')
   })
 
   test('a registered client can start a sign-in', async ({ assert }) => {
     const { organization, production } = await setupOnboardedOrganization()
-    const client = await setupClient(organization, production)
+    const client = await setupClient(production)
 
     const response = await authorize(organization, production, { client_id: client.clientId })
 
@@ -113,7 +98,7 @@ test.group('OIDC clients', (group) => {
     assert,
   }) => {
     const { organization, production, staging } = await setupOnboardedOrganization()
-    const stagingClient = await setupClient(organization, staging)
+    const stagingClient = await setupClient(staging)
 
     for (const clientId of ['app_unknown', stagingClient.clientId]) {
       const response = await authorize(organization, production, { client_id: clientId })
@@ -124,7 +109,7 @@ test.group('OIDC clients', (group) => {
 
   test('a redirect URI that is not registered is rejected', async ({ assert }) => {
     const { organization, production } = await setupOnboardedOrganization()
-    const client = await setupClient(organization, production)
+    const client = await setupClient(production)
 
     const response = await authorize(organization, production, {
       client_id: client.clientId,
@@ -137,7 +122,7 @@ test.group('OIDC clients', (group) => {
 
   test('a sign-in without PKCE is rejected', async ({ assert }) => {
     const { organization, production } = await setupOnboardedOrganization()
-    const client = await setupClient(organization, production)
+    const client = await setupClient(production)
 
     const url = new URL(`${production.issuerUrl(organization.slug)}/auth`)
     url.search = new URLSearchParams({
@@ -156,7 +141,7 @@ test.group('OIDC clients', (group) => {
 
   test('the token endpoint authenticates clients with their secret', async ({ assert }) => {
     const { organization, production } = await setupOnboardedOrganization()
-    const client = await setupClient(organization, production)
+    const client = await setupClient(production)
 
     const valid = await exchangeCode(organization, production, client)
     const invalid = await exchangeCode(organization, production, {
@@ -172,8 +157,8 @@ test.group('OIDC clients', (group) => {
 
   test('an unexpected failure is answered as a server error', async ({ assert }) => {
     const { organization, production } = await setupOnboardedOrganization()
-    const client = await setupClient(organization, production)
-    await db.from('app_clients').where('id', client.id).update({ client_secret: 'not-ciphertext' })
+    const client = await setupClient(production)
+    await db.from('apps').where('id', client.id).update({ client_secret: 'not-ciphertext' })
 
     const result = await exchangeCode(organization, production, client)
 
