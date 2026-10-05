@@ -20,7 +20,8 @@ export default function OverviewShow({ environmentSummaries, appsCount, organiza
           <Link
             key={environment.id}
             route="members.index"
-            routeParams={{ org: organization?.slug ?? '', environment: environment.slug }}
+            routeParams={{ org: organization?.slug ?? '' }}
+            qs={{ environment: environment.slug }}
             className="card"
           >
             <span className="card__title">{environment.name}</span>

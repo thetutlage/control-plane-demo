@@ -37,7 +37,7 @@ const member = await environment.createMember({
 
 ## In the console
 
-`/w/:org/environments/:environment/members` lists the environment's members.
+`/w/:org/members` lists the members of the environment picked in its switcher.
 
 **Add member** (`/members/create`) adds an **active** member with a password the admin chooses (8 to 32 characters). They can sign in right away. Emails are unique within the environment (`app/validators/member.ts`).
 

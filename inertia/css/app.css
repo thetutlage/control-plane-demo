@@ -865,24 +865,76 @@ input {
   flex-direction: column;
   background: var(--paper);
 }
-.console__sep {
-  color: var(--subtle);
-  font-size: 16px;
+.envbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.envbar__label {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
 }
 .envswitch {
   width: auto;
-  height: 32px;
-  padding: 0 10px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
   font-size: 13.5px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
 }
-.env-banner {
-  padding: 8px 30px;
-  border-bottom: 1px solid var(--line);
+.envswitch--production,
+.env-badge--production {
+  border-color: color-mix(in oklab, #c0392b 45%, var(--line-2));
+  background: color-mix(in oklab, #c0392b 10%, var(--card));
+  color: #a93226;
+}
+.envswitch--staging,
+.env-badge--staging {
+  border-color: color-mix(in oklab, #d97706 45%, var(--line-2));
   background: color-mix(in oklab, #d97706 10%, var(--card));
-  color: var(--ink-2);
-  font-size: 13px;
+  color: #b45309;
+}
+.envswitch--development,
+.env-badge--development {
+  border-color: color-mix(in oklab, #2563eb 40%, var(--line-2));
+  background: color-mix(in oklab, #2563eb 8%, var(--card));
+  color: #1d4ed8;
+}
+:root[data-theme='dark'] .envswitch--production,
+:root[data-theme='dark'] .env-badge--production {
+  color: #f08a7e;
+}
+:root[data-theme='dark'] .envswitch--staging,
+:root[data-theme='dark'] .env-badge--staging {
+  color: #f0b45b;
+}
+:root[data-theme='dark'] .envswitch--development,
+:root[data-theme='dark'] .env-badge--development {
+  color: #8db4ff;
+}
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.tabs__item {
+  margin-bottom: -1px;
+  padding: 8px 12px;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+.tabs__item:hover {
+  color: var(--ink);
+}
+.tabs__item[aria-current='page'] {
+  border-bottom-color: var(--ink);
+  color: var(--ink);
 }
 
 /* --- data display --- */
@@ -1060,9 +1112,6 @@ input {
   .console__sidebar {
     border-right: none;
     border-bottom: 1px solid var(--line);
-  }
-  .env-banner {
-    padding: 8px 16px;
   }
   .page {
     padding: 28px 16px 48px;

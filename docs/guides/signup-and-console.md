@@ -30,22 +30,24 @@ Slugs can't be renamed.
 ## Console URLs
 
 ```
-/w/:org/overview                              organization pages
+/w/:org/overview
 /w/:org/apps
-/w/:org/environments/:environment/members     environment pages
-/w/:org/environments/:environment/roles
+/w/:org/apps/:app                    tabs: Overview, Settings
+/w/:org/apps/:app/settings
+/w/:org/members
+/w/:org/roles
 ```
 
-The organization and environment always come from the URL, never from the session.
+The organization always comes from the URL. Pages that show one environment's data (an app's tabs, Members, Roles) take it from `?environment=staging`. Without one, they use the environment last picked in that organization (remembered in the session), and otherwise production.
 
 ## How a console page finds its data
 
 Two named middleware run before every console controller (`start/routes.ts`):
 
-| Middleware     | Sets               | Rule                                                                                                                                                      |
-| -------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `organization` | `ctx.organization` | Finds `:org` among the **signed-in user's** organizations only, with its environments preloaded. Anything else is a 404, even if the organization exists. |
-| `environment`  | `ctx.environment`  | Finds `:environment` among `ctx.organization.environments`. Anything else is a 404.                                                                       |
+| Middleware     | Sets               | Rule                                                                                                                                                                                          |
+| -------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `organization` | `ctx.organization` | Finds `:org` among the **signed-in user's** organizations only, with its environments preloaded. Anything else is a 404, even if the organization exists.                                     |
+| `environment`  | `ctx.environment`  | Finds the `environment` input among `ctx.organization.environments` (anything else is a 404), or falls back to the last one picked, then production. A GET with `?environment=` remembers it. |
 
 Controllers then read only through these two objects:
 
@@ -58,11 +60,14 @@ Never query a model directly by an id from the request (`Member.find(params.id)`
 
 ## Layout
 
-`inertia/layouts/console.tsx` holds the top bar, with the organization name and the environment switcher, and the sidebar.
+`inertia/layouts/console.tsx` holds the top bar, with the organization name, and the sidebar: Overview, Apps, Members, Roles.
 
-- **Organization pages:** Overview and Apps.
-- **Environment pages:** Members and Roles, under a heading with the current environment's name.
-- **Switching environment** keeps you on the same page in the other environment.
-- **Non-production environments** show a banner.
+There's no environment switcher in the layout. Each page that shows one environment has its own (`inertia/components/environment_switcher.tsx`):
 
-The layout gets its data from shared props (`app/middleware/inertia_middleware.ts`): `organization`, `environments` and `currentEnvironment`.
+- **Switching** reloads the same page with `?environment=`, and the choice carries over to other pages.
+- **The switcher is colored by kind,** production in red. Everywhere else an environment appears, it's an `EnvironmentBadge` (`inertia/components/environment_badge.tsx`), never a sentence like "in Production".
+- **Forms always send their environment** (`qs={{ environment }}`), so a form opened before switching environments in another tab still writes to the environment it showed.
+
+An app's pages (`inertia/components/app_screen.tsx`) are laid out as: the app's name and details, the environment switcher, then the tabs. Every tab shows the chosen environment.
+
+The layout and switcher get their data from shared props (`app/middleware/inertia_middleware.ts`): `organization`, `environments` and `currentEnvironment`.

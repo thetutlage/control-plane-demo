@@ -1,4 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import type Environment from '#models/environment'
+import type Organization from '#models/organization'
 import { createAppValidator } from '#validators/app'
 import AppTransformer from '#transformers/app_transformer'
 import AppClientTransformer from '#transformers/app_client_transformer'
@@ -30,17 +32,42 @@ export default class AppsController {
     return response.redirect().toRoute('apps.show', { org: organization.slug, app: app.slug })
   }
 
-  async show({ inertia, params, organization }: HttpContext) {
-    const app = await organization
-      .related('apps')
-      .query()
-      .where('slug', params.app)
-      .preload('clients')
-      .firstOrFail()
+  /**
+   * The app's overview tab, for the current environment
+   */
+  async show({ inertia, params, organization, environment }: HttpContext) {
+    const { app, client } = await this.#findApp(organization, environment, params.app)
 
     return inertia.render('apps/show', {
       app: AppTransformer.transform(app),
-      clients: AppClientTransformer.transform(app.clients, organization),
+      client: client ? AppClientTransformer.transform(client, organization) : null,
     })
+  }
+
+  /**
+   * The app's settings tab: its client in the current environment
+   */
+  async settings({ inertia, params, organization, environment }: HttpContext) {
+    const { app, client } = await this.#findApp(organization, environment, params.app)
+
+    return inertia.render('apps/settings', {
+      app: AppTransformer.transform(app),
+      client: client ? AppClientTransformer.transform(client, organization) : null,
+    })
+  }
+
+  /**
+   * An app of the organization, and its client in the environment if it
+   * has one
+   */
+  async #findApp(organization: Organization, environment: Environment, slug: string) {
+    const app = await organization
+      .related('apps')
+      .query()
+      .where('slug', slug)
+      .preload('clients', (query) => query.where('environment_id', environment.id))
+      .firstOrFail()
+
+    return { app, client: app.clients[0] ?? null }
   }
 }

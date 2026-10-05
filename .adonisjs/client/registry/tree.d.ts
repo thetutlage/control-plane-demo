@@ -23,6 +23,7 @@ export interface ApiDefinition {
     create: typeof routes['apps.create']
     store: typeof routes['apps.store']
     show: typeof routes['apps.show']
+    settings: typeof routes['apps.settings']
     clients: {
       create: typeof routes['apps.clients.create']
       store: typeof routes['apps.clients.store']

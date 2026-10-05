@@ -32,7 +32,7 @@ test.group('Console apps', (group) => {
 
     await page.assertPath(route('apps.show', { org: 'acme', app: 'invoices' }))
     await page.assertVisible(page.getByRole('heading', { name: 'Invoices', exact: true }))
-    await page.assertElementsCount(page.getByText('No client yet.'), 3)
+    await page.assertVisible(page.getByText(/can't sign members in here yet/))
   })
 
   test('a development client shows its credentials, with the secret revealable', async ({
@@ -45,11 +45,16 @@ test.group('Console apps', (group) => {
 
     await browserContext.loginAs(acme.user)
     const page = await visit(route('apps.show', { org: 'acme', app: 'invoices' }))
-    const development = page.getByRole('region', { name: 'Development', exact: true })
+    await page
+      .getByRole('combobox', { name: 'Environment', exact: true })
+      .selectOption('development')
+    await page.getByRole('link', { name: 'Settings', exact: true }).click()
+    const development = page.getByRole('region', { name: 'Client', exact: true })
     await development.getByRole('link', { name: 'Configure', exact: true }).click()
 
     const form = page.locator('form')
-    await page.assertInputValue(form.getByLabel('Environment', { exact: true }), 'development')
+    await page.assertNotExists(page.getByRole('combobox', { name: 'Environment' }))
+    await page.assertVisible(page.locator('.env-badge', { hasText: 'Development' }))
     await form.getByLabel('App URL', { exact: true }).fill('http://localhost:3000')
     await form.getByLabel('Redirect URIs', { exact: true }).fill('http://localhost:3000/callback')
     await form
@@ -57,7 +62,7 @@ test.group('Console apps', (group) => {
       .fill('http://localhost:3000/signed-out')
     await form.getByRole('button', { name: 'Create client', exact: true }).click()
 
-    await page.assertPath(route('apps.show', { org: 'acme', app: 'invoices' }))
+    await page.assertPath(route('apps.settings', { org: 'acme', app: 'invoices' }))
     const [client] = await acme.development.related('appClients').query()
     await page.assertVisible(development.getByText(client.clientId, { exact: true }))
     await page.assertVisible(
@@ -95,10 +100,10 @@ test.group('Console apps', (group) => {
       .getByLabel('Redirect URIs', { exact: true })
       .fill('https://invoices.acme.test/callback')
     await form.getByRole('button', { name: 'Create client', exact: true }).click()
-    await page.assertPath(route('apps.show', { org: 'acme', app: 'invoices' }))
+    await page.assertPath(route('apps.settings', { org: 'acme', app: 'invoices' }))
 
     const [client] = await acme.production.related('appClients').query()
-    const production = page.getByRole('region', { name: 'Production', exact: true })
+    const production = page.getByRole('region', { name: 'Client', exact: true })
     await page.assertVisible(production.getByRole('alert'))
     await page.assertVisible(production.getByText(client.secret, { exact: true }))
 
@@ -165,19 +170,26 @@ test.group('Console apps', (group) => {
     const client = await setupAppClient(acme.organization, acme.development)
 
     await browserContext.loginAs(acme.user)
-    const page = await visit(route('apps.show', { org: 'acme', app: 'invoices' }))
-    const development = page.getByRole('region', { name: 'Development', exact: true })
+    const page = await visit(
+      route(
+        'apps.settings',
+        { org: 'acme', app: 'invoices' },
+        { qs: { environment: 'development' } }
+      )
+    )
+    const development = page.getByRole('region', { name: 'Client', exact: true })
     await development.getByRole('link', { name: 'Edit', exact: true }).click()
 
     const form = page.locator('form')
     await page.assertInputValue(form.getByLabel('App URL', { exact: true }), client.appUrl)
-    await page.assertNotExists(form.getByLabel('Environment'))
+    await page.assertNotExists(page.getByRole('combobox', { name: 'Environment' }))
+    await page.assertVisible(page.locator('.env-badge', { hasText: 'Development' }))
     await form
       .getByLabel('Redirect URIs', { exact: true })
       .fill('https://invoices.acme.test/auth/callback')
     await form.getByRole('button', { name: 'Save', exact: true }).click()
 
-    await page.assertPath(route('apps.show', { org: 'acme', app: 'invoices' }))
+    await page.assertPath(route('apps.settings', { org: 'acme', app: 'invoices' }))
     await page.assertVisible(
       development.getByText('https://invoices.acme.test/auth/callback', { exact: true })
     )
@@ -219,8 +231,14 @@ test.group('Console apps', (group) => {
     const oldSecret = client.secret
 
     await browserContext.loginAs(acme.user)
-    const page = await visit(route('apps.show', { org: 'acme', app: 'invoices' }))
-    const production = page.getByRole('region', { name: 'Production', exact: true })
+    const page = await visit(
+      route(
+        'apps.settings',
+        { org: 'acme', app: 'invoices' },
+        { qs: { environment: 'production' } }
+      )
+    )
+    const production = page.getByRole('region', { name: 'Client', exact: true })
 
     await production.getByRole('button', { name: 'Rotate secret', exact: true }).click()
     await production.getByRole('button', { name: 'Cancel', exact: true }).click()
@@ -265,8 +283,14 @@ test.group('Console apps', (group) => {
     await memberBrowser.close()
 
     await browserContext.loginAs(acme.user)
-    const page = await visit(route('apps.show', { org: 'acme', app: 'invoices' }))
-    const production = page.getByRole('region', { name: 'Production', exact: true })
+    const page = await visit(
+      route(
+        'apps.settings',
+        { org: 'acme', app: 'invoices' },
+        { qs: { environment: 'production' } }
+      )
+    )
+    const production = page.getByRole('region', { name: 'Client', exact: true })
     await production.getByRole('button', { name: 'Remove', exact: true }).click()
     await page.assertVisible(production.getByText(/signed out of it within 5 minutes/))
     await production.getByRole('button', { name: 'Yes, remove', exact: true }).click()

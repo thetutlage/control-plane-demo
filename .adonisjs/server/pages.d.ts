@@ -16,6 +16,7 @@ declare module '@adonisjs/inertia/types' {
     'app_clients/edit': ExtractProps<(typeof import('../../inertia/pages/app_clients/edit.tsx'))['default']>
     'apps/create': ExtractProps<(typeof import('../../inertia/pages/apps/create.tsx'))['default']>
     'apps/index': ExtractProps<(typeof import('../../inertia/pages/apps/index.tsx'))['default']>
+    'apps/settings': ExtractProps<(typeof import('../../inertia/pages/apps/settings.tsx'))['default']>
     'apps/show': ExtractProps<(typeof import('../../inertia/pages/apps/show.tsx'))['default']>
     'auth/login': ExtractProps<(typeof import('../../inertia/pages/auth/login.tsx'))['default']>
     'auth/signup': ExtractProps<(typeof import('../../inertia/pages/auth/signup.tsx'))['default']>

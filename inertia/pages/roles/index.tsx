@@ -4,6 +4,7 @@ import type { Data } from '@generated/data'
 import type { InertiaProps } from '~/types'
 import ConsoleLayout from '~/layouts/console'
 import EmptyState from '~/components/empty_state'
+import EnvironmentSwitcher from '~/components/environment_switcher'
 
 type PageProps = InertiaProps<{ roles: Data.Role[]; catalogSynced: boolean }>
 
@@ -11,8 +12,9 @@ export default function RolesIndex({ roles, catalogSynced }: PageProps) {
   return (
     <Page
       title="Roles"
-      description="Named sets of permission keys from this environment's catalogue."
+      description="Named sets of permission keys from an environment's catalogue."
     >
+      <EnvironmentSwitcher />
       {!catalogSynced && (
         <p className="notice" role="status">
           No catalogue synced for this environment yet.

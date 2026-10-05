@@ -32,38 +32,43 @@ router
   .use(middleware.auth())
 
 /**
- * Console pages of one organization, under `/w/:org`. Organization pages
- * are shared by every environment. Environment pages sit under
- * `environments/:environment` and only ever read data through the resolved
- * environment.
+ * Console pages of one organization, under `/w/:org`. Pages that show one
+ * environment's data use the environment middleware, which resolves it
+ * from `?environment=` or the last one picked; they only ever read data
+ * through that environment.
  */
 router
   .group(() => {
     router.get('overview', [controllers.Overview, 'show'])
     router
       .resource('apps', controllers.Apps)
-      .only(['index', 'create', 'store', 'show'])
+      .only(['index', 'create', 'store'])
       .params({ apps: 'app' })
       .where('app', router.matchers.slug())
+
+    router
+      .group(() => {
+        router.get('apps/:app', [controllers.Apps, 'show']).as('apps.show')
+        router.get('apps/:app/settings', [controllers.Apps, 'settings']).as('apps.settings')
+        router
+          .shallowResource('apps.clients', controllers.AppClients)
+          .only(['create', 'store'])
+          .params({ apps: 'app' })
+        router.resource('members', controllers.Members).only(['index', 'create', 'store'])
+        router.get('roles', [controllers.Roles, 'index'])
+      })
+      .where('app', router.matchers.slug())
+      .use(middleware.environment())
+
     router
       .shallowResource('apps.clients', controllers.AppClients)
-      .only(['create', 'store', 'edit', 'update', 'destroy'])
-      .params({ apps: 'app', clients: 'client' })
-      .where('app', router.matchers.slug())
+      .only(['edit', 'update', 'destroy'])
+      .params({ clients: 'client' })
       .where('client', router.matchers.number())
     router
       .post('clients/:client/secret', [controllers.AppClients, 'rotateSecret'])
       .as('apps.clients.rotate_secret')
       .where('client', router.matchers.number())
-
-    router
-      .group(() => {
-        router.resource('members', controllers.Members).only(['index', 'create', 'store'])
-        router.get('roles', [controllers.Roles, 'index'])
-      })
-      .prefix('environments/:environment')
-      .where('environment', router.matchers.slug())
-      .use(middleware.environment())
   })
   .prefix('w/:org')
   .where('org', router.matchers.slug())

@@ -20,17 +20,36 @@ test.group('Console isolation', (group) => {
     await globex.production.createMember({ ...active, email: 'prod@globex.test' })
 
     await browserContext.loginAs(acme.user)
-    const page = await visit(route('members.index', { org: 'acme', environment: 'production' }))
+    const page = await visit(
+      route('members.index', { org: 'acme' }, { qs: { environment: 'production' } })
+    )
 
     await page.assertVisible(page.getByRole('cell', { name: 'prod@acme.test', exact: true }))
     await page.assertNotExists(page.getByRole('cell', { name: 'staging@acme.test', exact: true }))
     await page.assertNotExists(page.getByRole('cell', { name: 'prod@globex.test', exact: true }))
   })
 
-  test('the environment switcher keeps the current page', async ({
+  test('pages show production until another environment is picked', async ({
     visit,
     route,
     browserContext,
+  }) => {
+    const acme = await setupOnboardedOrganization({ slug: 'acme' })
+
+    await browserContext.loginAs(acme.user)
+    const page = await visit(route('members.index', { org: 'acme' }))
+
+    await page.assertInputValue(
+      page.getByRole('combobox', { name: 'Environment', exact: true }),
+      'production'
+    )
+  })
+
+  test('the environment switcher keeps the current page, and the choice carries over', async ({
+    visit,
+    route,
+    browserContext,
+    assert,
   }) => {
     const acme = await setupOnboardedOrganization({ slug: 'acme' })
     await acme.staging.createMember({
@@ -40,12 +59,19 @@ test.group('Console isolation', (group) => {
     })
 
     await browserContext.loginAs(acme.user)
-    const page = await visit(route('members.index', { org: 'acme', environment: 'production' }))
+    const page = await visit(route('members.index', { org: 'acme' }))
     await page.getByRole('combobox', { name: 'Environment', exact: true }).selectOption('staging')
 
-    await page.assertPath(route('members.index', { org: 'acme', environment: 'staging' }))
     await page.assertVisible(page.getByRole('cell', { name: 'staging@acme.test', exact: true }))
-    await page.assertVisible(page.getByRole('note'))
+    await page.assertPath(route('members.index', { org: 'acme' }))
+    assert.include(page.url(), 'environment=staging')
+
+    await page.getByRole('link', { name: 'Roles', exact: true }).click()
+    await page.assertPath(route('roles.index', { org: 'acme' }))
+    await page.assertInputValue(
+      page.getByRole('combobox', { name: 'Environment', exact: true }),
+      'staging'
+    )
   })
 
   test('an organization the user does not belong to is not found', async ({
@@ -80,14 +106,14 @@ test.group('Console isolation', (group) => {
     await browserContext.loginAs(acme.user)
     const page = await visit(route('overview.show', { org: 'acme' }))
     const response = await page.request.get(
-      route('members.index', { org: 'acme', environment: 'qa' })
+      route('members.index', { org: 'acme' }, { qs: { environment: 'qa' } })
     )
 
     assert.equal(response.status(), 404)
   })
 
   test('console pages require a signed-in user', async ({ visit, route }) => {
-    const page = await visit(route('members.index', { org: 'acme', environment: 'production' }))
+    const page = await visit(route('members.index', { org: 'acme' }))
 
     await page.assertPath(route('session.create'))
   })

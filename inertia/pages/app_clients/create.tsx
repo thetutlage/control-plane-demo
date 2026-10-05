@@ -4,56 +4,33 @@ import type { InertiaProps } from '~/types'
 import ConsoleLayout from '~/layouts/console'
 import { Form, Link } from '@adonisjs/inertia/react'
 import ClientUrlFields from '~/components/client_url_fields'
+import EnvironmentBadge from '~/components/environment_badge'
+import { useCurrentEnvironment } from '~/components/environment_switcher'
 
-type PageProps = InertiaProps<{
-  app: Data.App
-  availableEnvironments: Data.Environment[]
-  selectedEnvironment: string | null
-}>
+type PageProps = InertiaProps<{ app: Data.App }>
 
-export default function AppClientsCreate({
-  app,
-  availableEnvironments,
-  selectedEnvironment,
-  organization,
-}: PageProps) {
+export default function AppClientsCreate({ app, organization }: PageProps) {
   const org = organization?.slug ?? ''
-  const defaultEnvironment = availableEnvironments.some(({ slug }) => slug === selectedEnvironment)
-    ? selectedEnvironment!
-    : availableEnvironments[0].slug
+  const environment = useCurrentEnvironment()!
 
   return (
     <Page
       title={`Configure ${app.name}`}
-      description="Create the client this app signs in with, in one environment. You get its client ID and secret next."
+      description={
+        <>
+          <EnvironmentBadge environment={environment} /> Create the client this app signs in with.
+          You get its client ID and secret next.
+        </>
+      }
     >
       <Form
         route="apps.clients.store"
         routeParams={{ org, app: app.slug }}
+        qs={{ environment: environment.slug }}
         options={{ preserveScroll: true }}
       >
         {({ errors, processing }) => (
           <div className="panel form">
-            <div className="field">
-              <label className="field__label" htmlFor="environment">
-                Environment
-              </label>
-              <select
-                id="environment"
-                name="environment"
-                className="field__input"
-                defaultValue={defaultEnvironment}
-                aria-invalid={errors.environment ? 'true' : 'false'}
-              >
-                {availableEnvironments.map((environment) => (
-                  <option key={environment.id} value={environment.slug}>
-                    {environment.name}
-                  </option>
-                ))}
-              </select>
-              {errors.environment && <span className="field__error">{errors.environment}</span>}
-            </div>
-
             <ClientUrlFields errors={errors} />
 
             <div className="form__actions">
@@ -61,7 +38,7 @@ export default function AppClientsCreate({
                 Create client
               </button>
               <Link
-                route="apps.show"
+                route="apps.settings"
                 routeParams={{ org, app: app.slug }}
                 className="btn btn--ghost"
               >

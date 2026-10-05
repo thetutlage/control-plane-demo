@@ -78,6 +78,12 @@ const routes = {
     tokens: [{"old":"/w/:org/apps/:app","type":0,"val":"w","end":""},{"old":"/w/:org/apps/:app","type":1,"val":"org","end":""},{"old":"/w/:org/apps/:app","type":0,"val":"apps","end":""},{"old":"/w/:org/apps/:app","type":1,"val":"app","end":""}],
     types: placeholder as Registry['apps.show']['types'],
   },
+  'apps.settings': {
+    methods: ["GET","HEAD"],
+    pattern: '/w/:org/apps/:app/settings',
+    tokens: [{"old":"/w/:org/apps/:app/settings","type":0,"val":"w","end":""},{"old":"/w/:org/apps/:app/settings","type":1,"val":"org","end":""},{"old":"/w/:org/apps/:app/settings","type":0,"val":"apps","end":""},{"old":"/w/:org/apps/:app/settings","type":1,"val":"app","end":""},{"old":"/w/:org/apps/:app/settings","type":0,"val":"settings","end":""}],
+    types: placeholder as Registry['apps.settings']['types'],
+  },
   'apps.clients.create': {
     methods: ["GET","HEAD"],
     pattern: '/w/:org/apps/:app/clients/create',
@@ -89,6 +95,30 @@ const routes = {
     pattern: '/w/:org/apps/:app/clients',
     tokens: [{"old":"/w/:org/apps/:app/clients","type":0,"val":"w","end":""},{"old":"/w/:org/apps/:app/clients","type":1,"val":"org","end":""},{"old":"/w/:org/apps/:app/clients","type":0,"val":"apps","end":""},{"old":"/w/:org/apps/:app/clients","type":1,"val":"app","end":""},{"old":"/w/:org/apps/:app/clients","type":0,"val":"clients","end":""}],
     types: placeholder as Registry['apps.clients.store']['types'],
+  },
+  'members.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/w/:org/members',
+    tokens: [{"old":"/w/:org/members","type":0,"val":"w","end":""},{"old":"/w/:org/members","type":1,"val":"org","end":""},{"old":"/w/:org/members","type":0,"val":"members","end":""}],
+    types: placeholder as Registry['members.index']['types'],
+  },
+  'members.create': {
+    methods: ["GET","HEAD"],
+    pattern: '/w/:org/members/create',
+    tokens: [{"old":"/w/:org/members/create","type":0,"val":"w","end":""},{"old":"/w/:org/members/create","type":1,"val":"org","end":""},{"old":"/w/:org/members/create","type":0,"val":"members","end":""},{"old":"/w/:org/members/create","type":0,"val":"create","end":""}],
+    types: placeholder as Registry['members.create']['types'],
+  },
+  'members.store': {
+    methods: ["POST"],
+    pattern: '/w/:org/members',
+    tokens: [{"old":"/w/:org/members","type":0,"val":"w","end":""},{"old":"/w/:org/members","type":1,"val":"org","end":""},{"old":"/w/:org/members","type":0,"val":"members","end":""}],
+    types: placeholder as Registry['members.store']['types'],
+  },
+  'roles.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/w/:org/roles',
+    tokens: [{"old":"/w/:org/roles","type":0,"val":"w","end":""},{"old":"/w/:org/roles","type":1,"val":"org","end":""},{"old":"/w/:org/roles","type":0,"val":"roles","end":""}],
+    types: placeholder as Registry['roles.index']['types'],
   },
   'apps.clients.edit': {
     methods: ["GET","HEAD"],
@@ -113,30 +143,6 @@ const routes = {
     pattern: '/w/:org/clients/:client/secret',
     tokens: [{"old":"/w/:org/clients/:client/secret","type":0,"val":"w","end":""},{"old":"/w/:org/clients/:client/secret","type":1,"val":"org","end":""},{"old":"/w/:org/clients/:client/secret","type":0,"val":"clients","end":""},{"old":"/w/:org/clients/:client/secret","type":1,"val":"client","end":""},{"old":"/w/:org/clients/:client/secret","type":0,"val":"secret","end":""}],
     types: placeholder as Registry['apps.clients.rotate_secret']['types'],
-  },
-  'members.index': {
-    methods: ["GET","HEAD"],
-    pattern: '/w/:org/environments/:environment/members',
-    tokens: [{"old":"/w/:org/environments/:environment/members","type":0,"val":"w","end":""},{"old":"/w/:org/environments/:environment/members","type":1,"val":"org","end":""},{"old":"/w/:org/environments/:environment/members","type":0,"val":"environments","end":""},{"old":"/w/:org/environments/:environment/members","type":1,"val":"environment","end":""},{"old":"/w/:org/environments/:environment/members","type":0,"val":"members","end":""}],
-    types: placeholder as Registry['members.index']['types'],
-  },
-  'members.create': {
-    methods: ["GET","HEAD"],
-    pattern: '/w/:org/environments/:environment/members/create',
-    tokens: [{"old":"/w/:org/environments/:environment/members/create","type":0,"val":"w","end":""},{"old":"/w/:org/environments/:environment/members/create","type":1,"val":"org","end":""},{"old":"/w/:org/environments/:environment/members/create","type":0,"val":"environments","end":""},{"old":"/w/:org/environments/:environment/members/create","type":1,"val":"environment","end":""},{"old":"/w/:org/environments/:environment/members/create","type":0,"val":"members","end":""},{"old":"/w/:org/environments/:environment/members/create","type":0,"val":"create","end":""}],
-    types: placeholder as Registry['members.create']['types'],
-  },
-  'members.store': {
-    methods: ["POST"],
-    pattern: '/w/:org/environments/:environment/members',
-    tokens: [{"old":"/w/:org/environments/:environment/members","type":0,"val":"w","end":""},{"old":"/w/:org/environments/:environment/members","type":1,"val":"org","end":""},{"old":"/w/:org/environments/:environment/members","type":0,"val":"environments","end":""},{"old":"/w/:org/environments/:environment/members","type":1,"val":"environment","end":""},{"old":"/w/:org/environments/:environment/members","type":0,"val":"members","end":""}],
-    types: placeholder as Registry['members.store']['types'],
-  },
-  'roles.index': {
-    methods: ["GET","HEAD"],
-    pattern: '/w/:org/environments/:environment/roles',
-    tokens: [{"old":"/w/:org/environments/:environment/roles","type":0,"val":"w","end":""},{"old":"/w/:org/environments/:environment/roles","type":1,"val":"org","end":""},{"old":"/w/:org/environments/:environment/roles","type":0,"val":"environments","end":""},{"old":"/w/:org/environments/:environment/roles","type":1,"val":"environment","end":""},{"old":"/w/:org/environments/:environment/roles","type":0,"val":"roles","end":""}],
-    types: placeholder as Registry['roles.index']['types'],
   },
   'sign_in.show': {
     methods: ["GET","HEAD"],

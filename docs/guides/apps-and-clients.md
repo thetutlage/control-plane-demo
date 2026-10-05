@@ -24,17 +24,19 @@ Secrets start with `cp_live_` in production and `cp_test_` in every other enviro
 
 ## In the console
 
-| URL                                | Page                                                                            |
-| ---------------------------------- | ------------------------------------------------------------------------------- |
-| `/w/:org/apps`                     | Apps list, with **Register app**                                                |
-| `/w/:org/apps/create`              | Register an app: name and slug                                                  |
-| `/w/:org/apps/:app`                | The app, with one panel per environment                                         |
-| `/w/:org/apps/:app/clients/create` | Configure a client: environment, app URL, redirect URIs, sign-out redirect URIs |
-| `/w/:org/clients/:client/edit`     | Edit a client's URLs. Its environment can't change                              |
+| URL                                | Page                                                               |
+| ---------------------------------- | ------------------------------------------------------------------ |
+| `/w/:org/apps`                     | Apps list, with **Register app**                                   |
+| `/w/:org/apps/create`              | Register an app: name and slug                                     |
+| `/w/:org/apps/:app`                | The app's **Overview** tab: issuer URL, client ID and app URL      |
+| `/w/:org/apps/:app/settings`       | The app's **Settings** tab: its client                             |
+| `/w/:org/apps/:app/clients/create` | Configure a client: app URL, redirect URIs, sign-out redirect URIs |
+| `/w/:org/clients/:client/edit`     | Edit a client's URLs. Its environment can't change                 |
 
-- **App page.** Each environment's panel either says "No client yet" with a **Configure** button, or shows the issuer URL, client ID, secret, app URL, redirect URIs and sign-out redirect URIs, with **Edit**, **Rotate secret** and **Remove**.
+- **App pages** show the app's name and details, the environment switcher, then the tabs. Every tab shows the chosen environment ([Console layout](signup-and-console.md#layout)).
+- **Settings tab.** Either "No client yet" with **Configure**, or the issuer URL, client ID, secret, app URL, redirect URIs and sign-out redirect URIs, with **Edit**, **Rotate secret** and **Remove**.
 - **Configure client.**
-  - The environment dropdown lists only environments the app has no client in yet. **Configure** on a panel preselects that environment.
+  - The client is created in the environment chosen on the app's page, shown as a badge. An app has at most one client per environment.
   - Redirect URIs are entered one per line, between 1 and 10.
   - Sign-out redirect URIs are where the app may send members after [logout](logout.md): optional, one per line, up to 10, with the same rules.
   - Production accepts only `https`. Other environments also accept `http` on `localhost`, `127.0.0.1` and `[::1]`.
@@ -51,9 +53,9 @@ Client routes are shallow (`router.shallowResource`): a client ID is unique, so 
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Edit**          | Saves the URLs, with the same rules as creating. The issuer uses them on the next request. Members already signed in stay signed in                                                                               |
 | **Rotate secret** | Replaces the secret right away (`AppClient.rotateSecret()`). The old one stops working, so the app can't sign members in or refresh until it has the new one. The new secret is shown the same way as on creation |
-| **Remove**        | Deletes the client, and with it its grants, codes and refresh tokens (foreign keys). Members are signed out of the app in that environment within 5 minutes. The panel goes back to **Configure**                 |
+| **Remove**        | Deletes the client, and with it its grants, codes and refresh tokens (foreign keys). Members are signed out of the app in that environment within 5 minutes. Settings goes back to **Configure**                  |
 
-**Rotate secret** and **Remove** break a running app, so both ask first, inside the panel, saying what will happen.
+**Rotate secret** and **Remove** break a running app, so both ask first, on the Settings tab, saying what will happen next to the environment's badge.
 
 ## Creating a client in code
 

@@ -3,10 +3,11 @@ import { clientUrl, type ClientUrlMetaData } from '#validators/rules/client_url'
 import { redirectUriLines, redirectUriList } from '#validators/rules/redirect_uri_list'
 
 /**
- * Where a client runs and where members may be sent, checked against the
- * client's environment
+ * Validator to use when creating or editing a client: where it runs and
+ * where members may be sent, checked against the client's environment
+ * (`meta.isProduction`)
  */
-const clientUrls = {
+export const appClientValidator = vine.withMetaData<ClientUrlMetaData>().create({
   appUrl: vine.string().trim().maxLength(2048).use(clientUrl()),
   redirectUris: vine.string().maxLength(20_000).use(redirectUriList()).transform(redirectUriLines),
   postLogoutRedirectUris: vine
@@ -15,26 +16,4 @@ const clientUrls = {
     .use(redirectUriList({ optional: true }))
     .transform(redirectUriLines)
     .optional(),
-}
-
-/**
- * Validator to use when configuring an app's client in one of the
- * environments it has no client in yet. `meta.environments` lists those
- * environments.
- */
-export const createAppClientValidator = vine
-  .withMetaData<{ environments: { slug: string; isProduction: boolean }[] }>()
-  .create({
-    environment: vine.enum((field) =>
-      (field.meta as { environments: { slug: string }[] }).environments.map(({ slug }) => slug)
-    ),
-    ...clientUrls,
-  })
-
-/**
- * Validator to use when editing a client. Its environment can't change;
- * `meta.isProduction` says whether it is production.
- */
-export const updateAppClientValidator = vine
-  .withMetaData<Extract<ClientUrlMetaData, { isProduction: boolean }>>()
-  .create({ ...clientUrls })
+})

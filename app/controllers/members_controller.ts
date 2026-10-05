@@ -26,10 +26,10 @@ export default class MembersController {
     })
     const member = await environment.createMember({ ...payload, status: MemberStatus.ACTIVE })
 
-    session.flash('success', `${member.email} can now sign in to ${environment.name}.`)
-    return response.redirect().toRoute('members.index', {
-      org: organization.slug,
-      environment: environment.slug,
-    })
+    session.flash('success', `${member.email} can now sign in.`)
+    return response
+      .redirect()
+      .withQs({ environment: environment.slug })
+      .toRoute('members.index', { org: organization.slug })
   }
 }

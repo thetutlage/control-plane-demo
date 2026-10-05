@@ -15,14 +15,16 @@ test.group('Console members', (group) => {
     const acme = await setupOnboardedOrganization({ slug: 'acme' })
 
     await browserContext.loginAs(acme.user)
-    const page = await visit(route('members.index', { org: 'acme', environment: 'staging' }))
+    const page = await visit(
+      route('members.index', { org: 'acme' }, { qs: { environment: 'staging' } })
+    )
     await page.getByRole('link', { name: 'Add member', exact: true }).click()
     await page.getByLabel('Full name', { exact: true }).fill('Sara Lee')
     await page.getByLabel('Email', { exact: true }).fill('sara@acme.test')
     await page.getByLabel('Password', { exact: true }).fill('correct-horse')
     await page.getByRole('button', { name: 'Add member', exact: true }).click()
 
-    await page.assertPath(route('members.index', { org: 'acme', environment: 'staging' }))
+    await page.assertPath(route('members.index', { org: 'acme' }))
     await page.assertVisible(page.getByRole('cell', { name: 'sara@acme.test', exact: true }))
 
     const member = await acme.staging.related('members').query().firstOrFail()
@@ -40,11 +42,40 @@ test.group('Console members', (group) => {
     })
 
     await browserContext.loginAs(acme.user)
-    const page = await visit(route('members.create', { org: 'acme', environment: 'staging' }))
+    const page = await visit(
+      route('members.create', { org: 'acme' }, { qs: { environment: 'staging' } })
+    )
     await page.getByLabel('Email', { exact: true }).fill('sara@acme.test')
     await page.getByLabel('Password', { exact: true }).fill('correct-horse')
     await page.getByRole('button', { name: 'Add member', exact: true }).click()
 
     await page.assertVisible(page.getByText('The email has already been taken'))
+  })
+
+  test('a form adds to the environment it showed, even after switching elsewhere', async ({
+    visit,
+    route,
+    browserContext,
+  }) => {
+    const acme = await setupOnboardedOrganization({ slug: 'acme' })
+
+    await browserContext.loginAs(acme.user)
+    const form = await visit(
+      route('members.create', { org: 'acme' }, { qs: { environment: 'staging' } })
+    )
+    const elsewhere = await visit(
+      route('members.index', { org: 'acme' }, { qs: { environment: 'production' } })
+    )
+    await elsewhere.close()
+
+    await form.getByLabel('Email', { exact: true }).fill('sara@acme.test')
+    await form.getByLabel('Password', { exact: true }).fill('correct-horse')
+    await form.getByRole('button', { name: 'Add member', exact: true }).click()
+
+    await form.assertVisible(form.getByRole('cell', { name: 'sara@acme.test', exact: true }))
+    await form.assertInputValue(
+      form.getByRole('combobox', { name: 'Environment', exact: true }),
+      'staging'
+    )
   })
 })

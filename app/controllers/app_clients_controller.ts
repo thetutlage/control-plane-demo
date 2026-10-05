@@ -1,22 +1,42 @@
 import type App from '#models/app'
+import type Environment from '#models/environment'
 import type Organization from '#models/organization'
 import type { HttpContext } from '@adonisjs/core/http'
 import { EnvironmentKind } from '#values/environment_kind'
 import AppTransformer from '#transformers/app_transformer'
 import AppClientTransformer from '#transformers/app_client_transformer'
-import { createAppClientValidator, updateAppClientValidator } from '#validators/app_client'
+import { appClientValidator } from '#validators/app_client'
 import EnvironmentTransformer from '#transformers/environment_transformer'
 
-/**
- * The organization's environments the app has no client in yet
- */
-function unconfiguredEnvironments(organization: Organization, app: App) {
-  return organization.environments.filter(
-    ({ id }) => !app.clients.some(({ environmentId }) => environmentId === id)
-  )
-}
-
 export default class AppClientsController {
+  /**
+   * An app of the organization, with its client in the environment if it
+   * has one
+   */
+  async #findApp(organization: Organization, environment: Environment, slug: string) {
+    return organization
+      .related('apps')
+      .query()
+      .where('slug', slug)
+      .preload('clients', (query) => query.where('environment_id', environment.id))
+      .firstOrFail()
+  }
+
+  /**
+   * Back to the app's settings tab, in the client's environment
+   */
+  #toSettings(
+    response: HttpContext['response'],
+    organization: Organization,
+    app: App,
+    environment: Environment
+  ) {
+    return response
+      .redirect()
+      .withQs({ environment: environment.slug })
+      .toRoute('apps.settings', { org: organization.slug, app: app.slug })
+  }
+
   /**
    * One of the organization's clients, with its app and environment.
    * Another organization's client is a 404.
@@ -33,50 +53,34 @@ export default class AppClientsController {
     return { app: client.app, client }
   }
 
-  async create({ inertia, request, response, session, params, organization }: HttpContext) {
-    const app = await organization
-      .related('apps')
-      .query()
-      .where('slug', params.app)
-      .preload('clients')
-      .firstOrFail()
-
-    const environments = unconfiguredEnvironments(organization, app)
-    if (environments.length === 0) {
-      session.flash('error', `${app.name} already has a client in every environment.`)
-      return response.redirect().toRoute('apps.show', { org: organization.slug, app: app.slug })
+  /**
+   * The form to configure the app in the current environment. An app has
+   * at most one client per environment.
+   */
+  async create({ inertia, response, session, params, organization, environment }: HttpContext) {
+    const app = await this.#findApp(organization, environment, params.app)
+    if (app.clients.length) {
+      session.flash('error', `${app.name} already has a client.`)
+      return this.#toSettings(response, organization, app, environment)
     }
 
-    return inertia.render('app_clients/create', {
-      app: AppTransformer.transform(app),
-      availableEnvironments: EnvironmentTransformer.transform(environments),
-      selectedEnvironment: request.input('environment', null) as string | null,
-    })
+    return inertia.render('app_clients/create', { app: AppTransformer.transform(app) })
   }
 
   /**
-   * Creates the client in the chosen environment. A production secret is
-   * flashed so the app page can show it this once.
+   * Creates the client in the current environment. A production secret is
+   * flashed so the settings tab can show it this once.
    */
-  async store({ request, response, session, params, organization }: HttpContext) {
-    const app = await organization
-      .related('apps')
-      .query()
-      .where('slug', params.app)
-      .preload('clients')
-      .firstOrFail()
+  async store({ request, response, session, params, organization, environment }: HttpContext) {
+    const app = await this.#findApp(organization, environment, params.app)
+    if (app.clients.length) {
+      session.flash('error', `${app.name} already has a client.`)
+      return this.#toSettings(response, organization, app, environment)
+    }
 
-    const environments = unconfiguredEnvironments(organization, app)
-    const payload = await request.validateUsing(createAppClientValidator, {
-      meta: {
-        environments: environments.map(({ slug, kind }) => ({
-          slug,
-          isProduction: kind === EnvironmentKind.PRODUCTION,
-        })),
-      },
+    const payload = await request.validateUsing(appClientValidator, {
+      meta: { isProduction: environment.kind === EnvironmentKind.PRODUCTION },
     })
-
-    const environment = environments.find(({ slug }) => slug === payload.environment)!
     const client = await environment.createAppClient(app, {
       appUrl: payload.appUrl,
       redirectUris: payload.redirectUris,
@@ -86,8 +90,8 @@ export default class AppClientsController {
     if (environment.kind === EnvironmentKind.PRODUCTION) {
       session.flash('clientSecret', { clientId: client.clientId, secret: client.secret })
     }
-    session.flash('success', `${app.name} can now sign in to ${environment.name}.`)
-    return response.redirect().toRoute('apps.show', { org: organization.slug, app: app.slug })
+    session.flash('success', `${app.name} can now sign in.`)
+    return this.#toSettings(response, organization, app, environment)
   }
 
   async edit({ inertia, params, organization }: HttpContext) {
@@ -105,7 +109,7 @@ export default class AppClientsController {
    */
   async update({ request, response, session, params, organization }: HttpContext) {
     const { app, client } = await this.#findClient(organization, params)
-    const payload = await request.validateUsing(updateAppClientValidator, {
+    const payload = await request.validateUsing(appClientValidator, {
       meta: { isProduction: client.environment.kind === EnvironmentKind.PRODUCTION },
     })
 
@@ -117,8 +121,8 @@ export default class AppClientsController {
       })
       .save()
 
-    session.flash('success', `Saved ${app.name}'s client in ${client.environment.name}.`)
-    return response.redirect().toRoute('apps.show', { org: organization.slug, app: app.slug })
+    session.flash('success', `Saved ${app.name}'s client.`)
+    return this.#toSettings(response, organization, app, client.environment)
   }
 
   /**
@@ -133,11 +137,8 @@ export default class AppClientsController {
     if (client.environment.kind === EnvironmentKind.PRODUCTION) {
       session.flash('clientSecret', { clientId: client.clientId, secret: client.secret })
     }
-    session.flash(
-      'success',
-      `Rotated ${app.name}'s secret in ${client.environment.name}. Update the app to use the new one.`
-    )
-    return response.redirect().toRoute('apps.show', { org: organization.slug, app: app.slug })
+    session.flash('success', `Rotated ${app.name}'s secret. Update the app to use the new one.`)
+    return this.#toSettings(response, organization, app, client.environment)
   }
 
   /**
@@ -149,10 +150,7 @@ export default class AppClientsController {
     const { app, client } = await this.#findClient(organization, params)
     await client.delete()
 
-    session.flash(
-      'success',
-      `Removed ${app.name}'s client in ${client.environment.name}. Members were signed out of it.`
-    )
-    return response.redirect().toRoute('apps.show', { org: organization.slug, app: app.slug })
+    session.flash('success', `Removed ${app.name}'s client. Members were signed out of it.`)
+    return this.#toSettings(response, organization, app, client.environment)
   }
 }

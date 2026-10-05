@@ -4,6 +4,7 @@ import type { InertiaProps } from '~/types'
 import ConsoleLayout from '~/layouts/console'
 import { Form, Link } from '@adonisjs/inertia/react'
 import ClientUrlFields from '~/components/client_url_fields'
+import EnvironmentBadge from '~/components/environment_badge'
 
 type PageProps = InertiaProps<{
   app: Data.App
@@ -16,8 +17,13 @@ export default function AppClientsEdit({ app, client, environment, organization 
 
   return (
     <Page
-      title={`Edit ${app.name} in ${environment.name}`}
-      description="Members already signed in stay signed in. The client ID and secret don't change."
+      title={`Edit ${app.name}`}
+      description={
+        <>
+          <EnvironmentBadge environment={environment} /> Members already signed in stay signed in.
+          The client ID and secret don&apos;t change.
+        </>
+      }
     >
       <Form
         route="apps.clients.update"
@@ -33,8 +39,9 @@ export default function AppClientsEdit({ app, client, environment, organization 
                 Save
               </button>
               <Link
-                route="apps.show"
+                route="apps.settings"
                 routeParams={{ org, app: app.slug }}
+                qs={{ environment: environment.slug }}
                 className="btn btn--ghost"
               >
                 Cancel

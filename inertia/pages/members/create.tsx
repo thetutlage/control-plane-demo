@@ -2,21 +2,29 @@ import Page from '~/components/page'
 import type { InertiaProps } from '~/types'
 import ConsoleLayout from '~/layouts/console'
 import { Form, Link } from '@adonisjs/inertia/react'
+import EnvironmentBadge from '~/components/environment_badge'
+import { useCurrentEnvironment } from '~/components/environment_switcher'
 
-export default function MembersCreate({
-  organization,
-  currentEnvironment,
-  environments,
-}: InertiaProps) {
-  const routeParams = { org: organization?.slug ?? '', environment: currentEnvironment ?? '' }
-  const environment = environments?.find(({ slug }) => slug === currentEnvironment)
+export default function MembersCreate({ organization }: InertiaProps) {
+  const routeParams = { org: organization?.slug ?? '' }
+  const environment = useCurrentEnvironment()!
 
   return (
     <Page
       title="Add member"
-      description={`Add someone who signs in to ${environment?.name ?? 'this environment'}'s apps. They can sign in right away with this password.`}
+      description={
+        <>
+          <EnvironmentBadge environment={environment} /> Add someone who signs in to the apps. They
+          can sign in right away with this password.
+        </>
+      }
     >
-      <Form route="members.store" routeParams={routeParams} options={{ preserveScroll: true }}>
+      <Form
+        route="members.store"
+        routeParams={routeParams}
+        qs={{ environment: environment.slug }}
+        options={{ preserveScroll: true }}
+      >
         {({ errors, processing }) => (
           <div className="panel form">
             <div className="field">
@@ -74,7 +82,12 @@ export default function MembersCreate({
               <button type="submit" className="btn btn--primary" disabled={processing}>
                 Add member
               </button>
-              <Link route="members.index" routeParams={routeParams} className="btn btn--ghost">
+              <Link
+                route="members.index"
+                routeParams={routeParams}
+                qs={{ environment: environment.slug }}
+                className="btn btn--ghost"
+              >
                 Cancel
               </Link>
             </div>

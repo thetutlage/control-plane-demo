@@ -96,7 +96,7 @@ Environment ── kind: development | staging | production
 - **No change in one environment ever affects another.** Promoting from staging to prod takes extra steps on purpose. We prefer that to accidental changes.
 - **Staging uses separate staging accounts.** The people testing staging are usually real employees. They get a staging member record, either invited there or later federated in. Prod members are never copied in.
 
-**The console mirrors this split.** Organization pages (Overview, Apps) have no environment switcher. Environment pages (Members, Roles, Audit log) sit under an environment switcher, and the current environment is always visible.
+**In the console, the environment is a filter on each page, not a global switch.** Pages that show one environment's data (an app's tabs, Members, Roles) have their own environment switcher, and the choice carries over between pages (`?environment=`, else the last one picked, else production). Environments are always shown as colored badges. Forms always send their environment, so they can't write to one the page didn't show. _Decided 2026-10-05; replaced a global switcher with the environment in the path._
 
 ### Multi-tenancy rules
 
