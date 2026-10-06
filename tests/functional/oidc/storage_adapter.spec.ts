@@ -26,13 +26,13 @@ async function setupSignIn(environment: Environment) {
   const client = await setupApp(environment)
 
   const adapter = (model: string) => new OidcStorageAdapter(model, environment)
-  const accountId = String(member.actorId)
+  const actorId = String(member.actorId)
   const clientId = client.clientId
-  await adapter('Grant').upsert('g1', { accountId, clientId }, HOUR)
+  await adapter('Grant').upsert('g1', { accountId: actorId, clientId }, HOUR)
   await adapter('AuthorizationCode').upsert('g1-code', { grantId: 'g1' }, 60)
   await adapter('RefreshToken').upsert('g1-refresh', { grantId: 'g1' }, HOUR)
 
-  return { adapter, accountId, clientId }
+  return { adapter, actorId, clientId }
 }
 
 test.group('OIDC storage adapter', (group) => {
@@ -40,13 +40,13 @@ test.group('OIDC storage adapter', (group) => {
 
   test('saves records to their own table and reads them back', async ({ assert }) => {
     const { production } = await setupOnboardedOrganization()
-    const { adapter, accountId, clientId } = await setupSignIn(production)
+    const { adapter, actorId, clientId } = await setupSignIn(production)
 
-    assert.deepEqual(await adapter('Grant').find('g1'), { accountId, clientId })
+    assert.deepEqual(await adapter('Grant').find('g1'), { accountId: actorId, clientId })
     assert.deepEqual(await adapter('RefreshToken').find('g1-refresh'), { grantId: 'g1' })
 
     const grant = await db.from('oidc_grants').where('id', 'g1').firstOrFail()
-    assert.equal(grant.actor_id, Number(accountId))
+    assert.equal(grant.actor_id, Number(actorId))
     assert.equal(grant.client_id, clientId)
   })
 
@@ -145,11 +145,11 @@ test.group('OIDC storage adapter', (group) => {
 
   test('a grant cannot point to an app set up only in another environment', async ({ assert }) => {
     const { production, staging } = await setupOnboardedOrganization()
-    const { accountId, clientId } = await setupSignIn(production)
+    const { actorId, clientId } = await setupSignIn(production)
     const stagingGrants = new OidcStorageAdapter('Grant', staging)
 
     await assert.rejects(
-      () => stagingGrants.upsert('g2', { accountId, clientId }, HOUR),
+      () => stagingGrants.upsert('g2', { accountId: actorId, clientId }, HOUR),
       /oidc_grants_environment_id_client_id_foreign/
     )
   })
@@ -164,10 +164,10 @@ test.group('OIDC storage adapter', (group) => {
       status: MemberStatus.ACTIVE,
     })
     const acmeGrants = new OidcStorageAdapter('Grant', acme.production)
-    const accountId = String(globexMember.actorId)
+    const actorId = String(globexMember.actorId)
 
     await assert.rejects(
-      () => acmeGrants.upsert('g2', { accountId, clientId }, HOUR),
+      () => acmeGrants.upsert('g2', { accountId: actorId, clientId }, HOUR),
       /oidc_grants_organization_id_actor_id_foreign/
     )
   })

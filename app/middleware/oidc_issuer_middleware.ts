@@ -65,26 +65,28 @@ export default class OidcIssuerMiddleware {
       jwks: environment.signingKeys.map((key) => key.toJwk()),
       cookieKeys: [env.get('APP_KEY').release()],
       adapter: (model) => new OidcStorageAdapter(model, environment),
-      findAccount: async (_ctx, accountId) => {
-        const member = await Member.findActive(environment, accountId)
+      findAccount: async (_ctx, actorId) => {
+        const member = await Member.findActive(environment, actorId)
         if (!member) {
           return undefined
         }
 
         return {
-          accountId,
+          accountId: actorId,
           claims: () => ({
-            sub: accountId,
+            sub: actorId,
             name: member.fullName ?? undefined,
             email: member.email,
           }),
         }
       },
-      admit: async (accountId, clientId) => {
-        const appMember = await AppMember.findForSignIn(environment, accountId, clientId)
+      admit: async (actorId, clientId) => {
+        const appMember = await AppMember.findForSignIn(environment, actorId, clientId)
         await appMember?.recordSignIn()
         return appMember !== null
       },
+      permissionsFor: (actorId, clientId) =>
+        AppMember.permissionsFor(environment, actorId, clientId),
     })
 
     /**

@@ -40,12 +40,25 @@ Both are JWTs signed with the environment's ES256 key.
 
 **Access token**: for the app's own backend (header `typ: at+jwt`).
 
-| Claim       | Value                 |
-| ----------- | --------------------- |
-| `iss`       | The issuer            |
-| `aud`       | The app's `client_id` |
-| `sub`       | The member's actor ID |
-| `client_id` | The app's `client_id` |
+| Claim         | Value                                                                |
+| ------------- | -------------------------------------------------------------------- |
+| `iss`         | The issuer                                                           |
+| `aud`         | The app's `client_id`                                                |
+| `sub`         | The member's actor ID                                                |
+| `client_id`   | The app's `client_id`                                                |
+| `permissions` | The member's permission keys on the app, in this environment (below) |
+
+### Permissions
+
+`permissions` is the union of the keys of every role the member holds on the app, in this environment, sorted and without duplicates. It's worked out each time an access token is issued: at the code swap and on every refresh. A change to the member's roles in the console reaches the app at its next refresh, within 5 minutes, without revoking anything.
+
+```json
+{ "sub": "42", "aud": "app_…", "permissions": ["billing:invoice.read", "billing:invoice.refund"] }
+```
+
+- **Only in the access token.** The ID token says who signed in; the app's backend decides with the access token.
+- **Permissions only, never role names.** Admins can rename roles; apps check keys.
+- **Not filtered through the catalogue.** A key the role holds is in the token even after it leaves the catalogue, because production may still run code that checks it ([Roles and permissions](roles-and-permissions.md#keys-missing-from-the-catalogue)).
 
 ## Scopes
 
@@ -55,7 +68,7 @@ Both are JWTs signed with the environment's ES256 key.
 | `profile` | `name` in the ID token  |
 | `email`   | `email` in the ID token |
 
-Every app gets a refresh token; `offline_access` isn't needed. There are no other scopes: what a member can do comes from their roles.
+Every app gets a refresh token; `offline_access` isn't needed. There are no other scopes: what a member can do comes from their roles, as `permissions`.
 
 ## Checking a token
 
@@ -103,16 +116,16 @@ Userinfo is turned off. The ID token already carries the member's details, and `
 
 ## Where the code lives
 
-| File                                                               | Does                                                                                                                           |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| `app/oidc/create_provider.ts`                                      | Lifetimes (`ttl`), claims per scope, refresh tokens for every app, JWT access tokens (`resourceIndicators`), a grant per visit |
-| `app/middleware/oidc_issuer_middleware.ts`, `issuer_middleware.ts` | `findAccount`: the member's `sub`, `name` and `email`                                                                          |
+| File                                                               | Does                                                                                                                                                               |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `app/oidc/create_provider.ts`                                      | Lifetimes (`ttl`), claims per scope, refresh tokens for every app, JWT access tokens (`resourceIndicators`), a grant per visit, `permissions` (`extraTokenClaims`) |
+| `AppMember.permissionsFor()`                                       | The union of the member's role keys on the app                                                                                                                     |
+| `app/middleware/oidc_issuer_middleware.ts`, `issuer_middleware.ts` | `findAccount`: the member's `sub`, `name` and `email`                                                                                                              |
 
 `oidc-provider` only issues JWT access tokens for a "resource". Each client has one of its own, `urn:client:<client_id>`, which apps never send or see.
 
 ## Not built yet
 
-- Permissions in the access token.
 - Key rotation.
 
 ## Tests
@@ -126,4 +139,7 @@ Userinfo is turned off. The ID token already carries the member's details, and `
 - the grant, refresh token and session lifetimes;
 - a new visit replacing the app's grant in that browser, and not in others;
 - a suspended member not being able to refresh;
-- staging tokens failing against production's keys.
+- staging tokens failing against production's keys;
+- the access token carrying the keys of every role the member holds on the app there, and no other app's or environment's;
+- a role change showing at the next refresh;
+- a key missing from the catalogue staying in the token.

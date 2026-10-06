@@ -1,6 +1,12 @@
 import { test } from '@japa/runner'
 import db from '@adonisjs/lucid/services/db'
+import { DateTime } from 'luxon'
 import testUtils from '@adonisjs/core/services/test_utils'
+import type Role from '#models/role'
+import AppMember from '#models/app_member'
+import type Member from '#models/member'
+import PermissionCatalog from '#models/permission_catalog'
+import type AppEnvironment from '#models/app_environment'
 import { MemberStatus } from '#values/member_status'
 import {
   CODE_VERIFIER,
@@ -15,6 +21,21 @@ import {
 import { setupOnboardedOrganization } from '#tests/helpers/organizations'
 
 const DAY = 24 * 60 * 60 * 1000
+
+/**
+ * Gives a member access to an app where it's set up, holding exactly these
+ * roles
+ */
+async function giveRoles(member: Member, setup: AppEnvironment, ...roles: Role[]) {
+  await giveAccess(member, setup)
+  const appMember = await AppMember.query()
+    .where('environment_id', setup.environmentId)
+    .where('app_id', setup.appId)
+    .where('actor_id', member.actorId)
+    .firstOrFail()
+  await appMember.syncRoles(roles.map(({ id }) => id))
+  return appMember
+}
 
 test.group('Tokens', (group) => {
   group.each.setup(() => testUtils.db().truncate())
@@ -236,5 +257,113 @@ test.group('Tokens', (group) => {
     const productionJwks = `${production.issuerUrl('acme')}/jwks`
     assert.isNotNull(await verifyJwt(body.access_token, stagingJwks))
     assert.isNull(await verifyJwt(body.access_token, productionJwks))
+  })
+})
+
+test.group('Tokens | permissions', (group) => {
+  group.each.setup(() => testUtils.db().truncate())
+
+  test('the access token carries the keys of every role the member holds on the app, there', async ({
+    browserContext,
+    assert,
+  }) => {
+    const { organization, production, staging } = await setupOnboardedOrganization({
+      slug: 'acme',
+    })
+    const invoices = await setupApp(production)
+    const stagingInvoices = await setupApp(staging)
+    const payroll = await setupApp(production, 'payroll')
+    const member = await setupMember(organization)
+    const roles = organization.related('roles')
+    const viewer = await roles.create({ name: 'Viewer', permissions: ['billing:invoice.read'] })
+    const finance = await roles.create({
+      name: 'Finance',
+      permissions: ['billing:invoice.refund', 'billing:invoice.read'],
+    })
+    const tester = await roles.create({ name: 'Tester', permissions: ['billing:invoice.void'] })
+    const payrollAdmin = await roles.create({
+      name: 'Payroll admin',
+      permissions: ['payroll:run.approve'],
+    })
+    await giveRoles(member, invoices, viewer, finance)
+    await giveRoles(member, stagingInvoices, tester)
+    await giveRoles(member, payroll, payrollAdmin)
+
+    const code = await visitIssuer(browserContext, organization, production, invoices)
+    const { body } = await exchangeCode(organization, production, invoices, code)
+
+    const jwks = `${production.issuerUrl('acme')}/jwks`
+    const accessToken = await verifyJwt(body.access_token, jwks)
+    const idToken = await verifyJwt(body.id_token, jwks)
+    assert.deepEqual(accessToken!.claims.permissions, [
+      'billing:invoice.read',
+      'billing:invoice.refund',
+    ])
+    assert.notProperty(idToken!.claims, 'permissions')
+  })
+
+  test('a change to the member’s roles reaches the app at its next refresh', async ({
+    browserContext,
+    assert,
+  }) => {
+    const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
+    const client = await setupApp(production)
+    const member = await setupMember(organization)
+    const roles = organization.related('roles')
+    const finance = await roles.create({
+      name: 'Finance',
+      permissions: ['billing:invoice.read', 'billing:invoice.refund'],
+    })
+    const viewer = await roles.create({ name: 'Viewer', permissions: ['billing:invoice.read'] })
+    const appMember = await giveRoles(member, client, finance)
+
+    const code = await visitIssuer(browserContext, organization, production, client)
+    const { body } = await exchangeCode(organization, production, client, code)
+    await appMember.syncRoles([viewer.id])
+    finance.permissions = []
+    await finance.save()
+    const refreshed = await refresh(organization, production, client, body.refresh_token)
+
+    const jwks = `${production.issuerUrl('acme')}/jwks`
+    const before = await verifyJwt(body.access_token, jwks)
+    const after = await verifyJwt(refreshed.body.access_token, jwks)
+    assert.deepEqual(before!.claims.permissions, ['billing:invoice.read', 'billing:invoice.refund'])
+    assert.deepEqual(after!.claims.permissions, ['billing:invoice.read'])
+  })
+
+  /**
+   * Environments run different versions of an app. Production may still
+   * check a key that the catalogue dropped when a newer version stopped
+   * using it; filtering tokens through the catalogue would take it away
+   * from production the moment the catalogue syncs (plan §3).
+   */
+  test('a key missing from the catalogue stays in the token', async ({
+    browserContext,
+    assert,
+  }) => {
+    const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
+    const client = await setupApp(production)
+    const member = await setupMember(organization)
+    await PermissionCatalog.create({
+      organizationId: organization.id,
+      permissions: { 'billing:invoice.read': { description: 'View invoices' } },
+      hash: null,
+      gitSha: null,
+      syncedAt: DateTime.now(),
+    })
+    const finance = await organization.related('roles').create({
+      name: 'Finance',
+      permissions: ['billing:invoice.read', 'billing:invoice.void'],
+    })
+    await giveRoles(member, client, finance)
+
+    const code = await visitIssuer(browserContext, organization, production, client)
+    const { body } = await exchangeCode(organization, production, client, code)
+
+    const accessToken = await verifyJwt(body.access_token, `${production.issuerUrl('acme')}/jwks`)
+    assert.deepEqual(accessToken!.claims.permissions, [
+      'billing:invoice.read',
+      'billing:invoice.void',
+    ])
   })
 })

@@ -28,9 +28,9 @@ export default class AppMember extends AppMemberSchema {
   declare roles: ManyToMany<typeof Role>
 
   /**
-   * The app member for an account signing in to the app with a client ID,
-   * in the environment, or null when they have no access. oidc-provider
-   * calls the member's actor ID an account ID.
+   * The app member for a member's actor signing in to the app with a
+   * client ID, in the environment, or null when they have no access. The
+   * actor ID comes from the issuer, as a string.
    */
   static findForSignIn(environment: Environment, actorId: string, clientId: string) {
     return this.query()
@@ -42,6 +42,27 @@ export default class AppMember extends AppMemberSchema {
         environment.related('appEnvironments').query().where('client_id', clientId).select('app_id')
       )
       .first()
+  }
+
+  /**
+   * The permission keys a member's actor holds on the app with a client ID, in
+   * the environment: every key of every role they hold on it, sorted, for
+   * the app's access tokens. Empty when they have no access.
+   *
+   * Keys are not filtered through the permission catalogue. Environments
+   * run different versions of an app, so production may still check a key
+   * that a newer catalogue has dropped; filtering would take it away the
+   * moment the catalogue syncs, before production's code moves on (plan
+   * §3, "Permission catalogue").
+   */
+  static async permissionsFor(environment: Environment, actorId: string, clientId: string) {
+    const appMember = await this.findForSignIn(environment, actorId, clientId)
+    if (!appMember) {
+      return []
+    }
+
+    await appMember.load('roles')
+    return [...new Set(appMember.roles.flatMap(({ permissions }) => permissions))].sort()
   }
 
   /**

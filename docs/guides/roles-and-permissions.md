@@ -7,7 +7,7 @@ Permission catalogue   which permission keys exist      permission_catalogs
 Roles                  named lists of keys              roles
 ```
 
-Members hold roles **per app, per environment**, as [app members](members-and-actors.md#access-to-apps). A member can hold several roles on one app.
+Members hold roles **per app, per environment**, as [app members](members-and-actors.md#access-to-apps). A member can hold several roles on one app. An app's access tokens carry the union of their keys on it, as [`permissions`](tokens.md#permissions).
 
 ## Permission catalogue
 
@@ -58,6 +58,8 @@ Roles are defined once, and every environment uses the same ones.
 ### Keys missing from the catalogue
 
 A sync never fails because a role uses a key the catalogue doesn't have. Instead, the Roles page flags those keys: `RoleTransformer` compares each role's keys with the catalogue and returns `missingKeys`. If no catalogue has been synced yet, the page says so and flags nothing.
+
+Those keys still go into [access tokens](tokens.md#permissions): tokens are never filtered through the catalogue. Each environment runs its own version of an app, so production may still check a key that a newer version stopped using and the catalogue dropped. Filtering would take it from everyone in production the moment the catalogue syncs. Removing a key is a clean-up; it revokes nothing. Don't change this without reading the plan (§3, "Permission catalogue").
 
 ## JSONB arrays
 

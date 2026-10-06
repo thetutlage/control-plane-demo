@@ -41,8 +41,8 @@ export default class Member extends compose(MemberSchema, withAuthFinder(hash)) 
 
   /**
    * The member who can sign in as this actor at an environment's issuer:
-   * active, and in the environment's organization. oidc-provider calls an
-   * actor ID an account ID, so it arrives as a string.
+   * active, and in the environment's organization. The actor ID comes from
+   * the issuer, as a string.
    */
   static async findActive(environment: Environment, actorId: string) {
     const id = Number(actorId)

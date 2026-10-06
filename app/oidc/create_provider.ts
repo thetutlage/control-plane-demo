@@ -50,17 +50,28 @@ export type CreateProviderInput = {
   adapter: AdapterFactory
 
   /**
-   * Finds a signed-in account (a member's actor) by its ID, or returns
-   * undefined when it can no longer sign in
+   * Finds the member who signed in by their actor ID, or returns undefined
+   * when they can no longer sign in.
+   *
+   * oidc-provider calls a member's actor ID an "account ID"
+   * (`session.accountId`, `token.accountId`). Only oidc-provider's own
+   * objects use that name; everything we write calls it `actorId`, a
+   * string here because oidc-provider passes it as one.
    */
   findAccount: FindAccount
 
   /**
-   * Lets an account into the app of a client, on every visit to the
-   * issuer: notes the sign-in and resolves to true when the account has
-   * access to the app, or resolves to false when it has none
+   * Lets a member into the app of a client, on every visit to the issuer:
+   * notes the sign-in and resolves to true when they have access to the
+   * app, or resolves to false when they have none
    */
-  admit: (accountId: string, clientId: string) => Promise<boolean>
+  admit: (actorId: string, clientId: string) => Promise<boolean>
+
+  /**
+   * The permission keys a member holds on the app of a client, for its
+   * access tokens
+   */
+  permissionsFor: (actorId: string, clientId: string) => Promise<string[]>
 }
 
 /**
@@ -112,6 +123,20 @@ export function createProvider(input: CreateProviderInput) {
      * `prompt=consent`, a consent step our first-party apps don't have.
      */
     issueRefreshToken: async (_ctx, client) => client.grantTypeAllowed('refresh_token'),
+
+    /**
+     * An access token carries the member's permissions on the app, worked
+     * out when it is issued: on the code exchange and on every refresh. A
+     * change to their roles reaches the app within one access token's
+     * lifetime, without revoking anything.
+     */
+    async extraTokenClaims(_ctx, token) {
+      if (token.kind !== 'AccessToken' || !token.accountId || !token.clientId) {
+        return undefined
+      }
+
+      return { permissions: await input.permissionsFor(token.accountId, token.clientId) }
+    },
 
     /**
      * Everything issued belongs to the browser's session: when it ends,

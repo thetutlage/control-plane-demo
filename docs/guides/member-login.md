@@ -47,7 +47,7 @@ Every app is first-party. Our `loadExistingGrant` hook gives a signed-in member 
 
 A member can only sign in to apps they're an [app member](members-and-actors.md#access-to-apps) of, in that environment. The check is in one place, `loadExistingGrant`, so it applies both after the password and on silent single sign-on:
 
-1. `createProvider()` calls its `admit(accountId, clientId)` input. Both issuer middleware pass a function that finds the app member (`AppMember.findForSignIn()`), records the sign-in on it, and says whether there was one.
+1. `createProvider()` calls its `admit(actorId, clientId)` input. Both issuer middleware pass a function that finds the app member (`AppMember.findForSignIn()`), records the sign-in on it, and says whether there was one.
 2. Without access, no grant is created. `oidc-provider` then asks for consent, which sends the browser back to the sign-in page.
 3. `SignInController.show` renders `sign_in/no_access` for a consent prompt: "You don't have access to Invoices", with the environment as a badge outside production.
 4. **Back to Invoices** (`DELETE /sign-in/:signInId`) ends the request with `access_denied`, so `oidc-provider` redirects to the app with `?error=access_denied`, as OAuth expects for a refused sign-in.
