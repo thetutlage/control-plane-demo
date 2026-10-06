@@ -173,25 +173,9 @@ Sources: [WorkOS RBAC](https://workos.com/docs/rbac/integration), [WorkOS permis
 
 ## 4. Agent identity: research notes
 
-Both candidate specs are **drafts**. Neither should shape the core schema beyond the principle that "an agent is an actor".
+The research is in [research/agent-auth.md](research/agent-auth.md) (2026-10-05): how agents reach apps, MCP today, where the industry is going, Agent Auth Protocol and WorkOS Agent Blueprints in practice, auth.md and ID-JAG, and how products model agents.
 
-**Agent Auth Protocol** ([agentauthprotocol.com](https://agentauthprotocol.com/specification), v1.0-draft)
-
-- Two levels of identity. A _host_ is a persistent runtime with its own Ed25519 keypair. An _agent_ is a short-lived actor under one host, with its own keypair.
-- Agents send self-signed JWTs that live for 60 seconds or less. The server stores only public keys, never shared secrets.
-- Permissions are named _capabilities_ with JSON-Schema inputs and constraints such as `max`, `in`, and `not_in`. For example: "transfer at most $500".
-- A member approves an agent through a device-code style flow or CIBA, and can approve some capabilities and deny others.
-- Endpoints: `/.well-known/agent-configuration`, `/agent/register`, `/agent/status`, `/agent/request-capability`, `/agent/revoke`, `/capability/list`, `/capability/execute`, `/agent/introspect`.
-- Agents expire when idle and have a maximum and an absolute lifetime. Revoking a host also revokes all of its agents.
-
-**auth.md** ([workos/auth.md](https://github.com/workos/auth.md))
-
-- An extension of OAuth. The service publishes an `AUTH.md` manifest and an `agent_auth` block in `/.well-known/oauth-authorization-server`.
-- Agents arrive with an **ID-JAG**: an identity assertion from their platform (IETF draft) that is exchanged for a token through the RFC 7523 JWT-bearer grant.
-- Agents can also register anonymously, and a human later "claims" them with a 6-digit code.
-- Security events, such as a revoked assertion, arrive as RFC 8935 SETs.
-
-**Fit for us.** Agent Auth Protocol fits internal governance better. Its capabilities map directly onto app permissions, its constraints add guardrails, and its host and agent split lines up with "staff member's laptop or CI runner → agent". auth.md is aimed at agents signing up to outside SaaS products. The piece worth taking from it is **ID-JAG acceptance**, so that an agent from Claude, ChatGPT, or similar can prove which staff member it acts for. Plan: build Agent Auth Protocol first, and add ID-JAG as another way to sign in.
+**Undecided.** The earlier plan was to build Agent Auth Protocol first and add ID-JAG later. That is reopened: Claude and ChatGPT speak MCP OAuth today, and no major client speaks Agent Auth Protocol yet. The open questions are at the end of the research. The principle stays: an agent is an actor.
 
 ## 5. Decisions needed before building
 
@@ -261,7 +245,7 @@ Each milestone ends with something that can be demonstrated.
 - Load tests against the budgets.
 - Security review.
 
-**M6: Agents**
+**M6: Agents** _(order to be decided; see §4)_
 
 - Agent Auth Protocol host and agent registration.
 - App permissions exposed as capabilities.
