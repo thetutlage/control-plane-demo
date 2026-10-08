@@ -1,3 +1,4 @@
+import env from '#start/env'
 import db from '@adonisjs/lucid/services/db'
 import { hasMany, hasOne, manyToMany } from '@adonisjs/lucid/orm'
 import type { HasMany, HasOne, ManyToMany } from '@adonisjs/lucid/types/relations'
@@ -10,6 +11,7 @@ import App from '#models/app'
 import Member from '#models/member'
 import PermissionCatalog from '#models/permission_catalog'
 import Role from '#models/role'
+import IdentityProvider from '#models/identity_provider'
 
 export default class Organization extends OrganizationSchema {
   @manyToMany(() => User, {
@@ -32,6 +34,23 @@ export default class Organization extends OrganizationSchema {
 
   @hasMany(() => Role)
   declare roles: HasMany<typeof Role>
+
+  /**
+   * The company's own identity provider, which its staff sign in with.
+   * The console connects at most one.
+   */
+  @hasMany(() => IdentityProvider)
+  declare identityProviders: HasMany<typeof IdentityProvider>
+
+  /**
+   * The redirect URI the company registers at its identity provider, on
+   * the console's host. It is the same for every environment, and the
+   * organization's slug in the path makes it different for every
+   * provider (RFC 9700 §4.4.2.2).
+   */
+  signInCallbackUrl() {
+    return new URL(`/sign-in/callback/${this.slug}`, env.get('APP_URL')).href
+  }
 
   /**
    * Adds a member, together with the actor that represents them in role

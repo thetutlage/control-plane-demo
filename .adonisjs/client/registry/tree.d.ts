@@ -63,6 +63,14 @@ export interface ApiDefinition {
   environments: {
     index: typeof routes['environments.index']
   }
+  identityProviders: {
+    index: typeof routes['identity_providers.index']
+    create: typeof routes['identity_providers.create']
+    store: typeof routes['identity_providers.store']
+    edit: typeof routes['identity_providers.edit']
+    update: typeof routes['identity_providers.update']
+    destroy: typeof routes['identity_providers.destroy']
+  }
   signIn: {
     show: typeof routes['sign_in.show']
     store: typeof routes['sign_in.store']

@@ -228,6 +228,42 @@ const routes = {
     tokens: [{"old":"/w/:org/settings/environments","type":0,"val":"w","end":""},{"old":"/w/:org/settings/environments","type":1,"val":"org","end":""},{"old":"/w/:org/settings/environments","type":0,"val":"settings","end":""},{"old":"/w/:org/settings/environments","type":0,"val":"environments","end":""}],
     types: placeholder as Registry['environments.index']['types'],
   },
+  'identity_providers.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/w/:org/settings/identity-providers',
+    tokens: [{"old":"/w/:org/settings/identity-providers","type":0,"val":"w","end":""},{"old":"/w/:org/settings/identity-providers","type":1,"val":"org","end":""},{"old":"/w/:org/settings/identity-providers","type":0,"val":"settings","end":""},{"old":"/w/:org/settings/identity-providers","type":0,"val":"identity-providers","end":""}],
+    types: placeholder as Registry['identity_providers.index']['types'],
+  },
+  'identity_providers.create': {
+    methods: ["GET","HEAD"],
+    pattern: '/w/:org/settings/identity-providers/create',
+    tokens: [{"old":"/w/:org/settings/identity-providers/create","type":0,"val":"w","end":""},{"old":"/w/:org/settings/identity-providers/create","type":1,"val":"org","end":""},{"old":"/w/:org/settings/identity-providers/create","type":0,"val":"settings","end":""},{"old":"/w/:org/settings/identity-providers/create","type":0,"val":"identity-providers","end":""},{"old":"/w/:org/settings/identity-providers/create","type":0,"val":"create","end":""}],
+    types: placeholder as Registry['identity_providers.create']['types'],
+  },
+  'identity_providers.store': {
+    methods: ["POST"],
+    pattern: '/w/:org/settings/identity-providers',
+    tokens: [{"old":"/w/:org/settings/identity-providers","type":0,"val":"w","end":""},{"old":"/w/:org/settings/identity-providers","type":1,"val":"org","end":""},{"old":"/w/:org/settings/identity-providers","type":0,"val":"settings","end":""},{"old":"/w/:org/settings/identity-providers","type":0,"val":"identity-providers","end":""}],
+    types: placeholder as Registry['identity_providers.store']['types'],
+  },
+  'identity_providers.edit': {
+    methods: ["GET","HEAD"],
+    pattern: '/w/:org/settings/identity-providers/:provider/edit',
+    tokens: [{"old":"/w/:org/settings/identity-providers/:provider/edit","type":0,"val":"w","end":""},{"old":"/w/:org/settings/identity-providers/:provider/edit","type":1,"val":"org","end":""},{"old":"/w/:org/settings/identity-providers/:provider/edit","type":0,"val":"settings","end":""},{"old":"/w/:org/settings/identity-providers/:provider/edit","type":0,"val":"identity-providers","end":""},{"old":"/w/:org/settings/identity-providers/:provider/edit","type":1,"val":"provider","end":""},{"old":"/w/:org/settings/identity-providers/:provider/edit","type":0,"val":"edit","end":""}],
+    types: placeholder as Registry['identity_providers.edit']['types'],
+  },
+  'identity_providers.update': {
+    methods: ["PUT","PATCH"],
+    pattern: '/w/:org/settings/identity-providers/:provider',
+    tokens: [{"old":"/w/:org/settings/identity-providers/:provider","type":0,"val":"w","end":""},{"old":"/w/:org/settings/identity-providers/:provider","type":1,"val":"org","end":""},{"old":"/w/:org/settings/identity-providers/:provider","type":0,"val":"settings","end":""},{"old":"/w/:org/settings/identity-providers/:provider","type":0,"val":"identity-providers","end":""},{"old":"/w/:org/settings/identity-providers/:provider","type":1,"val":"provider","end":""}],
+    types: placeholder as Registry['identity_providers.update']['types'],
+  },
+  'identity_providers.destroy': {
+    methods: ["DELETE"],
+    pattern: '/w/:org/settings/identity-providers/:provider',
+    tokens: [{"old":"/w/:org/settings/identity-providers/:provider","type":0,"val":"w","end":""},{"old":"/w/:org/settings/identity-providers/:provider","type":1,"val":"org","end":""},{"old":"/w/:org/settings/identity-providers/:provider","type":0,"val":"settings","end":""},{"old":"/w/:org/settings/identity-providers/:provider","type":0,"val":"identity-providers","end":""},{"old":"/w/:org/settings/identity-providers/:provider","type":1,"val":"provider","end":""}],
+    types: placeholder as Registry['identity_providers.destroy']['types'],
+  },
   'sign_in.show': {
     methods: ["GET","HEAD"],
     pattern: '/sign-in/:signInId',

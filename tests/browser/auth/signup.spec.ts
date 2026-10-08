@@ -83,4 +83,19 @@ test.group('Signup', (group) => {
     await db.assertCount('users', 1)
     await db.assertCount('organizations', 1)
   })
+
+  test('{$self} is kept for the sign-in callback of a shared provider app')
+    .with(['google', 'microsoft'])
+    .run(async ({ visit, route, db }, slug) => {
+      const page = await visit(route('new_account.create'))
+      await page.getByLabel('Company name', { exact: true }).fill('Search Inc.')
+      await page.getByLabel('Login address', { exact: true }).fill(slug)
+      await page.getByLabel('Email', { exact: true }).fill('owner@search.test')
+      await page.getByLabel('Password', { exact: true }).fill('secret1234')
+      await page.getByLabel('Confirm password', { exact: true }).fill('secret1234')
+      await page.getByRole('button', { name: 'Create organization', exact: true }).click()
+
+      await page.assertVisible(page.getByText('The selected organizationSlug is invalid'))
+      await db.assertEmpty('organizations')
+    })
 })

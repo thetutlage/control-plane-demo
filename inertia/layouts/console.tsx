@@ -5,7 +5,7 @@ import { Form } from '@adonisjs/inertia/react'
 import FlashToasts from '~/components/flash_toasts'
 import ThemeToggle from '~/components/theme_toggle'
 import NavLink, { type NavItem } from '~/components/nav_link'
-import { AppWindow, House, KeyRound, LogOut, Settings, Users } from 'lucide-react'
+import { AppWindow, Fingerprint, House, KeyRound, Layers, LogOut, Users } from 'lucide-react'
 
 /**
  * Every console page belongs to the organization. Environments appear on
@@ -18,7 +18,10 @@ const nav: NavItem[] = [
   { label: 'Roles', route: 'roles.index', icon: KeyRound },
 ]
 
-const settingsNav: NavItem[] = [{ label: 'Settings', route: 'environments.index', icon: Settings }]
+const settingsNav: NavItem[] = [
+  { label: 'Environments', route: 'environments.index', icon: Layers },
+  { label: 'Authentication', route: 'identity_providers.index', icon: Fingerprint },
+]
 
 function NavGroup({ label, items, org }: { label: string; items: NavItem[]; org: string }) {
   return (

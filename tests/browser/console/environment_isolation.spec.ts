@@ -36,7 +36,7 @@ test.group('Console isolation', (group) => {
 
     await browserContext.loginAs(acme.user)
     const page = await visit(route('overview.show', { org: 'acme' }))
-    await page.getByRole('link', { name: 'Settings', exact: true }).click()
+    await page.getByRole('link', { name: 'Environments', exact: true }).click()
 
     await page.assertPath(route('environments.index', { org: 'acme' }))
     for (const environment of [acme.development, acme.staging, acme.production]) {

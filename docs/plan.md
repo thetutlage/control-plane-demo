@@ -8,11 +8,11 @@ A **central identity and governance server for a company's internal apps**. A co
 
 In standard terms it is three things:
 
-| Part     | Industry term                           | Answers                               |
-| -------- | --------------------------------------- | ------------------------------------- |
-| Identity | OpenID Connect (OIDC) identity provider | Who is this?                          |
-| Access   | Role-based access control, set per app  | What can they do in this app?         |
-| Audit    | Append-only event log                   | Who did what, when, and in which app? |
+| Part     | Industry term                                                                    | Answers                                                            |
+| -------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Identity | OpenID Connect (OIDC) identity provider                                          | Who is this?                                                       |
+| Access   | Catalogue sync, typed `can()`, roles; invites with roles; a default role per app | Access reviews, expiring grants, a "who has access to what" report |
+| Audit    | Append-only event log                                                            | Who did what, when, and in which app?                              |
 
 The **SDK** is how apps use all three. It is the product surface. The control plane UI is the admin console.
 
@@ -21,7 +21,7 @@ It is a **hosted, multi-tenant service**. Each company is a tenant (an _organiza
 ### Non-goals for v1
 
 - Permissions on individual records (for example, "editor of project X"). This becomes a relationship-based authorization system like Google Zanzibar, which is a separate product. Permissions are **static**: an app declares them, and admins combine them into roles. Apps handle record-level checks themselves.
-- Directory sync and upstream single sign-on (see §5, D2).
+- Directory sync (SCIM) and SAML. Upstream sign-in over OIDC is in Release 1 (see §6).
 - Billing, customer-facing (B2C) identity, and social login for end customers.
 
 ## 2. Design principles
@@ -165,6 +165,52 @@ export default defineCatalog({
 
 Sources: [WorkOS RBAC](https://workos.com/docs/rbac/integration), [WorkOS permissions](https://workos.com/docs/reference/roles/permission), [Terraform provider for WorkOS](https://github.com/osodevops/terraform-provider-workos), [Retool current_user](https://docs.retool.com/permissions/guides/current-user), [Retool forum: groups by name](https://community.retool.com/t/hide-show-components-based-off-of-permission-group/1983), [Retool forum: keys instead of names](https://community.retool.com/t/ability-to-check-for-permission-group-using-keys-instead-of-group-name/39942), [Appsmith granular access control](https://docs.appsmith.com/advanced-concepts/granular-access-control), [Appsmith custom roles](https://docs.appsmith.com/advanced-concepts/granular-access-control/reference/custom-roles), [Okta groups claim](https://developer.okta.com/docs/guides/customize-tokens-groups-claim/main/), [Okta authorization servers](https://developer.okta.com/docs/concepts/auth-servers/), [Auth0 RBAC for APIs](https://auth0.com/docs/get-started/apis/enable-role-based-access-control-for-apis), [Auth0 role permissions](https://auth0.com/docs/manage-users/access-control/configure-core-rbac/roles/add-permissions-to-roles), [Clerk roles and permissions](https://clerk.com/docs/guides/organizations/control-access/roles-and-permissions), [Clerk custom types](https://clerk.com/docs/guides/development/override-clerk-types-interfaces).
 
+### Sign-in
+
+_Decided 2026-10-07._
+
+**The identity provider says who someone is. Backlit says what they can do.** The two are kept separate: no role or app access is ever derived from the provider's groups or attributes. Every role a member holds was given in Backlit, by a named person or by an app's default role.
+
+|                   | Staff                                                     | Guests                                 |
+| ----------------- | --------------------------------------------------------- | -------------------------------------- |
+| Who               | An email on one of the company's domains                  | Any other email: contractors, auditors |
+| Signs in with     | The company's identity provider, always                   | A Backlit password, with TOTP          |
+| How they arrive   | Their first sign-in, or an invite                         | An invite only                         |
+| Access comes from | Invites and grants in Backlit, or an app's default role   | Invites and grants in Backlit          |
+| Removed when      | The provider stops letting them in (noticed within a day) | An admin removes them                  |
+
+- **One identity provider per organization,** connected over OIDC with the company's own client at its own provider (issuer URL, client ID, secret). Whatever that provider says is authoritative, because it is the company's own tenant. A shared "Sign in with Google" client is not used for members: it would mean trusting an email from a provider that may not own the domain.
+- **The provider belongs to the organization,** like members do. The company registers one redirect URI, on the console host: `https://<domain>/sign-in/callback/<org slug>`. That URL only forwards the browser to the environment's issuer host that started the sign-in, which holds the session and exchanges the code. One central URL is what a shared Google or Microsoft client needs later (they allow no wildcards), and a URL per provider is the mix-up defence RFC 9700 asks for when the provider doesn't send `iss`.
+- **The sign-in page asks for the email first.** Staff domains go to the provider; other emails get the password field. A staff email can never use a password. An organization with no provider is the same model with everyone a guest.
+- **A first sign-in creates the member,** with no access. They see "You don't have access to Invoices" and show up in the console as waiting. The first match is by verified email; after that the member is pinned to the provider's `sub`, which never changes.
+- **Staff are re-checked with the provider daily:** their grants last a day instead of 14, so apps send them back through the provider, silently if they are still signed in there. SCIM (Release 2) makes it immediate.
+- **Why no rules from provider attributes.** Providers hold organizational groups (Finance, Engineering), not "Approver on Invoices". Exact mapping needs IT to keep one group per app role, and mixing rules with manual changes has no clean answer: either a rule silently undoes an admin's change, or a rule-given role can't be taken from one person. Our buyer is the engineering lead, who often doesn't run the provider. Group mapping is a Release 2 opt-in if deals ask.
+- **Why one provider.** Companies with two office suites usually sign in through one; a second provider mostly arrives with an acquisition. No public data covers companies of 50 to 500 people, so ask prospects: "Where do your staff sign in today, and is there anyone who signs in somewhere else?" The provider row holds its own domains, so a second provider later is another row, not a redesign.
+- **Built on `@adonisjs/ally`,** with one generic OIDC driver that adds discovery and PKCE, created per request from the organization's provider. TOTP comes from the flow's two-factor pack (`withTotpManagement` on `Member`).
+
+**Rules the sign-in must follow** _(researched 2026-10-07; check each one off in the guide when its step is built)_
+
+1. **A redirect URI per provider.** RFC 9700 §4.4.2: a client that talks to several providers MUST prevent mix-up, by checking the `iss` response parameter (RFC 9207) or by using a distinct redirect URI per issuer, and MUST store the issuer each request went to, bound to the browser. Google's discovery document advertises `iss`; Microsoft's and Okta's don't. So the path carries the provider (`/sign-in/callback/acme`, later `/sign-in/callback/google`), the callback checks it against the stored issuer, and `iss` is checked too when present.
+2. **The forwarding URL is not an open redirector** (RFC 9700 §2.1). It forwards only to an issuer host of ours, found from the organization in the path and the signed `state`, never to a URL from the query string.
+3. **`state`, `nonce` and PKCE, all three.** RFC 9700 §4.7.1 lets PKCE stand in for `state` only when the provider is known to support it, and Microsoft's discovery document doesn't say. The PKCE verifier and the nonce never leave the issuer host's session, so a code seen in transit can't be redeemed.
+4. **Verify the ID token:** signature against the provider's keys, `iss`, `aud`, `exp`, `nonce`. Ally doesn't; the driver does it with `jose`.
+5. **Identify by `sub`, never by email.** Google: "you shouldn't use the `email` field in the ID token as a unique identifier". Microsoft: "Never use claims like `email`, `preferred_username` or `unique_name`" for access; use `tid` + `oid`. Email is used once, to match an invited member on their first sign-in, and only when the provider says it is verified.
+6. **Google, shared client:** the ID token's `hd` claim must equal one of the company's domains. The `hd` request parameter is only a hint ("client-side requests can be modified").
+7. **Microsoft, shared client:** the token's `tid` must equal the tenant recorded when the admin approved the app. Email is trusted only when domain-owner verified (`xms_edov`); Microsoft removes unverified emails from tokens of new multi-tenant apps. Publisher verification (a Microsoft partner account) is needed for a consent screen that doesn't say "Unverified".
+8. **Fetching a typed issuer URL is an SSRF risk** (OWASP): https only, every resolved address public, the connection bound to the address that was checked (DNS rebinding), no redirects, a short timeout, and outbound network rules where the host allows them.
+9. **Callback responses** send `Referrer-Policy: no-referrer` and load nothing from other sites (RFC 9700 §4.2.4). Codes are in the URL, so request logs must not keep the query string of callback paths.
+10. **For SOC 2:** it sets criteria, not architecture, so nothing here needs redesigning for it. What auditors will ask of this feature: secrets encrypted with rotatable keys (done through the encryption service), tenant isolation that is tested (done), and a record of every provider change and every sign-in, successful or refused (CC7.2). Emit events for those from step 1, so the audit milestone only has to store them.
+
+**Steps:**
+
+1. Sign-in settings in the console: the provider's details and the company's domains. _Built 2026-10-08 ([guide](guides/identity-provider.md)): rules 1 (the URL), 8 and the events of rule 10. The saved provider isn't used for sign-in yet._
+2. The OIDC driver and the sign-in, creating the member on first sign-in.
+3. The email-first sign-in page, and the daily re-check for staff.
+4. Invites with roles, with mail set up.
+5. Waiting members in the console, and a default role per app.
+6. TOTP for guests.
+7. Real providers (Google Workspace, Entra, Okta), with a setup guide for each.
+
 ### Audit events
 
 - **Storage:** two ClickHouse tables, `audit_events` (app activity, per environment) and `admin_audit_events` (console actions, per organization). Both are partitioned by month and sorted by tenant first, so every query reads one tenant's slice.
@@ -180,20 +226,44 @@ The research is in [research/agent-auth.md](research/agent-auth.md) (2026-10-05)
 
 ## 5. Decisions needed before building
 
-| #   | Decision                                                       | Status                                                                                                                                                                                                                                                                                                                       |
-| --- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D1  | Self-hosted per company, or multi-tenant SaaS?                 | **Decided: hosted multi-tenant.** See the multi-tenancy rules in §3.                                                                                                                                                                                                                                                         |
-| D2  | Our own accounts, or the company's existing identity provider? | **Decided: our own accounts first** (passkeys, password, TOTP). There are two separate later features: _upstream SSO_ (staff sign in with Google, Okta, or Entra) and _directory sync_ (SCIM 2.0 automatically creates and removes staff when HR or IT changes them). We will choose the order later.                        |
-| D3  | OAuth/OIDC engine                                              | **Decided: `oidc-provider`, with a new instance per request.** See §8.                                                                                                                                                                                                                                                       |
-| D4  | Permission model                                               | **Decided: one master catalogue of static permissions**, kept in one company repo and synced once for the organization. Roles span apps; members hold several roles per app, per environment, and an app's token carries the union of their keys. See §3.                                                                    |
-| D5  | SDK shape                                                      | **Decided: one framework-agnostic TypeScript package, with no framework adapters.** Its functions take plain inputs (token string, callback URL, cookie values) and return plain results. The docs show a short wiring example for each popular framework.                                                                   |
-| D6  | Databases                                                      | **Decided: PostgreSQL for app data, self-hosted ClickHouse for audit events from day one.** See "Audit events" in §3.                                                                                                                                                                                                        |
-| D7  | Audit tamper-evidence                                          | **Decided: none in v1.** Events are append-only and only the ingest path writes them, which matches WorkOS, Okta, Auth0 and GitHub. Archiving, exports and integrity digests come later if customers ask.                                                                                                                    |
-| D8  | Environments                                                   | **Decided: definitions shared, runtime and access per environment.** Apps, members, the catalogue and roles are created once for the organization. Each environment has its own app setups (credentials, URLs), access (member × app × role), issuer, keys, sessions and audit. Revised 2026-10-05 from full isolation (§3). |
-| D9  | Environment limits                                             | **Decided:** dev, staging, and prod by default, with the number of environments set by plan. Billing counts active **prod** members only. Later: short-lived preview environments per pull request.                                                                                                                          |
-| D10 | Real staff in staging                                          | **Decided: one member record per person, with access per environment.** Staging access is granted separately from production access. Revised 2026-10-05 from separate member records per environment (§3).                                                                                                                   |
+| #   | Decision                                                       | Status                                                                                                                                                                                                                                                                                                                                                                                  |
+| --- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | Self-hosted per company, or multi-tenant SaaS?                 | **Decided: hosted multi-tenant.** See the multi-tenancy rules in §3.                                                                                                                                                                                                                                                                                                                    |
+| D2  | Our own accounts, or the company's existing identity provider? | **Revised 2026-10-07: the company's identity provider first.** Staff sign in with Google Workspace, Entra or Okta over OIDC (_upstream sign-in_, Release 1); a serious company won't give staff a second password. Passwords stay as a fallback. Member passkeys, TOTP and invites are dropped: MFA is the identity provider's job. SAML and _directory sync_ (SCIM 2.0) are Release 2. |
+| D3  | OAuth/OIDC engine                                              | **Decided: `oidc-provider`, with a new instance per request.** See §8.                                                                                                                                                                                                                                                                                                                  |
+| D4  | Permission model                                               | **Decided: one master catalogue of static permissions**, kept in one company repo and synced once for the organization. Roles span apps; members hold several roles per app, per environment, and an app's token carries the union of their keys. See §3.                                                                                                                               |
+| D5  | SDK shape                                                      | **Decided: one framework-agnostic TypeScript package, with no framework adapters.** Its functions take plain inputs (token string, callback URL, cookie values) and return plain results. The docs show a short wiring example for each popular framework.                                                                                                                              |
+| D6  | Databases                                                      | **Revised 2026-10-07: PostgreSQL for everything in Release 1,** audit events included. The ingest contract in §3 stays, so audit events can move to ClickHouse when volume asks for it.                                                                                                                                                                                                 |
+| D7  | Audit tamper-evidence                                          | **Decided: none in v1.** Events are append-only and only the ingest path writes them, which matches WorkOS, Okta, Auth0 and GitHub. Archiving, exports and integrity digests come later if customers ask.                                                                                                                                                                               |
+| D8  | Environments                                                   | **Decided: definitions shared, runtime and access per environment.** Apps, members, the catalogue and roles are created once for the organization. Each environment has its own app setups (credentials, URLs), access (member × app × role), issuer, keys, sessions and audit. Revised 2026-10-05 from full isolation (§3).                                                            |
+| D9  | Environment limits                                             | **Decided:** dev, staging, and prod by default, with the number of environments set by plan. Billing counts active **prod** members only. Later: short-lived preview environments per pull request.                                                                                                                                                                                     |
+| D10 | Real staff in staging                                          | **Decided: one member record per person, with access per environment.** Staging access is granted separately from production access. Revised 2026-10-05 from separate member records per environment (§3).                                                                                                                                                                              |
 
-## 6. Milestones
+## 6. Releases and milestones
+
+### Two releases
+
+_Decided 2026-10-07. Where this and the milestones below disagree, this wins._
+
+**Who it is for.** A company of 50 to 500 people with a small platform or internal-tools team, building several TypeScript apps and deploying them itself. The buyer is the engineering or platform lead. They come looking after an audit asks who has access to their admin tools, or when they rebuild login and roles for the third app. Not for now: companies that need self-hosting, SAML-only shops, other languages.
+
+**What we are.** The layer between a company's identity provider and the apps it builds. The identity provider answers "who is this?". We answer "what can they do in this app, and what did they do?". We don't compete with Okta; we sit behind it.
+
+|             | Release 1: get on the shortlist                                                                                           | Release 2: win the deal                                                  |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Goal        | Sign up, integrate one app in 15 minutes, and tick login, RBAC and audit                                                  | Pass a security review and beat "just use Okta"                          |
+| Sign-in     | The company's identity provider over OIDC (Google Workspace, Entra, Okta) for staff; Backlit password and TOTP for guests | SAML, SCIM, identity provider groups mapped to roles (opt-in)            |
+| Access      | Catalogue sync, typed `can()`, roles                                                                                      | Access reviews, expiring grants, a "who has access to what" report       |
+| Audit       | Ingest, explorer, console self-audit, CSV export (PostgreSQL)                                                             | Streaming to a SIEM, retention policies                                  |
+| SDK         | TypeScript, with wiring docs for three frameworks                                                                         | Revocation push; a second language if deals ask                          |
+| Trust       | Key rotation, expired-row cleanup, sign-in rate limits, encrypted secrets                                                 | SOC 2, custom login domains, status page                                 |
+| Being found | Landing page, docs, pricing, comparisons (Okta directly, Cloudflare Access, WorkOS, Keycloak)                             | Agents: MCP sign-in for internal apps, agents as actors in the audit log |
+
+**Release 1 build order:** sign-in with the company's identity provider (steps in §3, "Sign-in"), catalogue sync, the SDK, audit, housekeeping, the public site.
+
+**Cut from Release 1:** member passkeys, SMS codes, access rules from identity provider attributes, several identity providers per organization, the benchmark harness, load tests, device management, several secrets per client, billing (invoiced by hand), ClickHouse.
+
+### Milestones
 
 Each milestone ends with something that can be demonstrated.
 

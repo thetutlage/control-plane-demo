@@ -1218,6 +1218,9 @@ fieldset.field {
   gap: 8px;
   margin-top: 10px;
 }
+.client > .notice {
+  margin: 14px 0 0;
+}
 .notice--secret {
   margin: 14px 0 0;
   border-color: color-mix(in oklab, #d97706 45%, var(--line-2));

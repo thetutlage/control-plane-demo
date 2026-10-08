@@ -451,6 +451,78 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/environments_controller').default['index']>>>
     }
   }
+  'identity_providers.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/w/:org/settings/identity-providers'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { org: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/identity_providers_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/identity_providers_controller').default['index']>>>
+    }
+  }
+  'identity_providers.create': {
+    methods: ["GET","HEAD"]
+    pattern: '/w/:org/settings/identity-providers/create'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { org: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/identity_providers_controller').default['create']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/identity_providers_controller').default['create']>>>
+    }
+  }
+  'identity_providers.store': {
+    methods: ["POST"]
+    pattern: '/w/:org/settings/identity-providers'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/identity_provider').createIdentityProviderValidator)>>
+      paramsTuple: [ParamValue]
+      params: { org: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/identity_provider').createIdentityProviderValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/identity_providers_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/identity_providers_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'identity_providers.edit': {
+    methods: ["GET","HEAD"]
+    pattern: '/w/:org/settings/identity-providers/:provider/edit'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue]
+      params: { org: ParamValue; provider: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/identity_providers_controller').default['edit']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/identity_providers_controller').default['edit']>>>
+    }
+  }
+  'identity_providers.update': {
+    methods: ["PUT","PATCH"]
+    pattern: '/w/:org/settings/identity-providers/:provider'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/identity_provider').updateIdentityProviderValidator)>>
+      paramsTuple: [ParamValue, ParamValue]
+      params: { org: ParamValue; provider: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/identity_provider').updateIdentityProviderValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/identity_providers_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/identity_providers_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'identity_providers.destroy': {
+    methods: ["DELETE"]
+    pattern: '/w/:org/settings/identity-providers/:provider'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue]
+      params: { org: ParamValue; provider: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/identity_providers_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/identity_providers_controller').default['destroy']>>>
+    }
+  }
   'sign_in.show': {
     methods: ["GET","HEAD"]
     pattern: '/sign-in/:signInId'

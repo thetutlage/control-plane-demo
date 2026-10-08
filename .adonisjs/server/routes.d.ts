@@ -41,6 +41,12 @@ export type ScannedRoutes = {
     'roles.update': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'role': ParamValue} }
     'roles.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'role': ParamValue} }
     'environments.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'identity_providers.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'identity_providers.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'identity_providers.store': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'identity_providers.edit': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
+    'identity_providers.update': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
+    'identity_providers.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
     'sign_in.show': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
     'sign_in.store': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
     'sign_in.destroy': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
@@ -66,6 +72,9 @@ export type ScannedRoutes = {
     'roles.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'roles.edit': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'role': ParamValue} }
     'environments.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'identity_providers.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'identity_providers.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'identity_providers.edit': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
     'sign_in.show': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
   }
   HEAD: {
@@ -89,6 +98,9 @@ export type ScannedRoutes = {
     'roles.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'roles.edit': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'role': ParamValue} }
     'environments.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'identity_providers.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'identity_providers.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'identity_providers.edit': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
     'sign_in.show': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
   }
   POST: {
@@ -101,6 +113,7 @@ export type ScannedRoutes = {
     'app_members.store': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
     'members.store': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'roles.store': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'identity_providers.store': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'sign_in.store': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
   }
   DELETE: {
@@ -109,16 +122,19 @@ export type ScannedRoutes = {
     'app_members.destroy': { paramsTuple: [ParamValue,ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue,'member': ParamValue} }
     'member_sessions.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'member': ParamValue} }
     'roles.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'role': ParamValue} }
+    'identity_providers.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
     'sign_in.destroy': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
   }
   PUT: {
     'app_environments.update': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
     'app_members.update': { paramsTuple: [ParamValue,ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue,'member': ParamValue} }
     'roles.update': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'role': ParamValue} }
+    'identity_providers.update': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
   }
   PATCH: {
     'app_members.update': { paramsTuple: [ParamValue,ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue,'member': ParamValue} }
     'roles.update': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'role': ParamValue} }
+    'identity_providers.update': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
   }
 }
 declare module '@adonisjs/core/types/http' {

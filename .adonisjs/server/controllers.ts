@@ -9,6 +9,7 @@ export const controllers = {
   AppSecrets: () => import('#controllers/app_secrets_controller'),
   Apps: () => import('#controllers/apps_controller'),
   Environments: () => import('#controllers/environments_controller'),
+  IdentityProviders: () => import('#controllers/identity_providers_controller'),
   MemberSessions: () => import('#controllers/member_sessions_controller'),
   Members: () => import('#controllers/members_controller'),
   NewAccount: () => import('#controllers/new_account_controller'),

@@ -72,12 +72,22 @@ router
 
     router.resource('roles', controllers.Roles).except(['show']).params({ roles: 'role' })
     router.get('settings/environments', [controllers.Environments, 'index'])
+
+    router
+      .group(() => {
+        router
+          .resource('identity-providers', controllers.IdentityProviders)
+          .except(['show'])
+          .params({ 'identity-providers': 'provider' })
+      })
+      .prefix('settings')
   })
   .prefix('w/:org')
   .where('org', router.matchers.slug())
   .where('app', router.matchers.slug())
   .where('member', router.matchers.number())
   .where('role', router.matchers.number())
+  .where('provider', router.matchers.number())
   .use([middleware.auth(), middleware.organization()])
 
 /**

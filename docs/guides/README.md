@@ -14,3 +14,4 @@ Short guides to how the control plane works, and where each part lives in the co
 10. [Sign-in records](sign-in-records.md): what `oidc-provider` stores while members sign in, and where.
 11. [Tokens](tokens.md): swapping the code for tokens, what's inside them, refreshing, and how long everything lasts.
 12. [Logout](logout.md): signing out of one app signs out of every app in the browser.
+13. [Identity provider](identity-provider.md): connecting the company's own provider (Google Workspace, Entra, Okta) for staff sign-in.

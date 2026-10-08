@@ -1,9 +1,23 @@
 import vine from '@vinejs/vine'
 
 /**
- * Subdomain labels that the platform itself uses
+ * Subdomain labels that the platform itself uses. `google` and `microsoft`
+ * are kept for the sign-in callbacks of shared provider apps
+ * (`/sign-in/callback/google`), which sit next to the organizations' own.
  */
-const RESERVED_SLUGS = ['www', 'api', 'app', 'console', 'admin', 'auth', 'login', 'status', 'docs']
+const RESERVED_SLUGS = [
+  'www',
+  'api',
+  'app',
+  'console',
+  'admin',
+  'auth',
+  'login',
+  'status',
+  'docs',
+  'google',
+  'microsoft',
+]
 
 /**
  * Validator to use when someone signs up for the control plane. The

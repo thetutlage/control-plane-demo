@@ -55,6 +55,12 @@ export default {
         post_logout_redirect_uris: { tsType: 'string[]', decorators: [{ name: '@column' }] },
       },
     },
+    identity_providers: {
+      columns: {
+        kind: valueColumn('IdentityProviderKind', 'identity_provider_kind'),
+        domains: { tsType: 'string[]', decorators: [{ name: '@column' }] },
+      },
+    },
   },
   primaryKey: undefined,
 } satisfies SchemaRules

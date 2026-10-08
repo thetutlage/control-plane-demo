@@ -8,6 +8,7 @@ import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 import type { ActorType } from '#values/actor_type'
 import type { EnvironmentKind } from '#values/environment_kind'
+import type { IdentityProviderKind } from '#values/identity_provider_kind'
 import type { MemberStatus } from '#values/member_status'
 
 export class ActorSchema extends BaseModel {
@@ -122,6 +123,31 @@ export class EnvironmentSchema extends BaseModel {
   declare organizationId: number
   @column()
   declare slug: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
+export class IdentityProviderSchema extends BaseModel {
+  static $columns = ['clientId', 'clientSecret', 'clientSecretHint', 'createdAt', 'domains', 'id', 'issuer', 'kind', 'organizationId', 'updatedAt'] as const
+  $columns = IdentityProviderSchema.$columns
+  @column()
+  declare clientId: string
+  @column()
+  declare clientSecret: string
+  @column()
+  declare clientSecretHint: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare domains: string[]
+  @column()
+  declare id: number
+  @column()
+  declare issuer: string
+  @column()
+  declare kind: IdentityProviderKind
+  @column()
+  declare organizationId: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }

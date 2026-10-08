@@ -27,6 +27,9 @@ declare module '@adonisjs/inertia/types' {
     'errors/oidc': ExtractProps<(typeof import('../../inertia/pages/errors/oidc.tsx'))['default']>
     'errors/server_error': ExtractProps<(typeof import('../../inertia/pages/errors/server_error.tsx'))['default']>
     'home': ExtractProps<(typeof import('../../inertia/pages/home.tsx'))['default']>
+    'identity_providers/create': ExtractProps<(typeof import('../../inertia/pages/identity_providers/create.tsx'))['default']>
+    'identity_providers/edit': ExtractProps<(typeof import('../../inertia/pages/identity_providers/edit.tsx'))['default']>
+    'identity_providers/index': ExtractProps<(typeof import('../../inertia/pages/identity_providers/index.tsx'))['default']>
     'members/create': ExtractProps<(typeof import('../../inertia/pages/members/create.tsx'))['default']>
     'members/index': ExtractProps<(typeof import('../../inertia/pages/members/index.tsx'))['default']>
     'members/show': ExtractProps<(typeof import('../../inertia/pages/members/show.tsx'))['default']>
