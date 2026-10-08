@@ -1,15 +1,25 @@
+import { useState } from 'react'
 import Page from '~/components/page'
 import type { InertiaProps } from '~/types'
 import ConsoleLayout from '~/layouts/console'
 import { Form, Link } from '@adonisjs/inertia/react'
 
-export default function MembersCreate({ organization }: InertiaProps) {
+type PageProps = InertiaProps<{ hasIdentityProvider: boolean }>
+
+/**
+ * Adds a member. With an identity provider connected, the admin chooses
+ * how the member signs in, and only a password member gets a password.
+ */
+export default function MembersCreate({ hasIdentityProvider, organization }: PageProps) {
   const routeParams = { org: organization?.slug ?? '' }
+  const [signsInWith, setSignsInWith] = useState<'provider' | 'password'>(
+    hasIdentityProvider ? 'provider' : 'password'
+  )
 
   return (
     <Page
       title="Add member"
-      description="Add someone who signs in to your apps. They can sign in right away with this password, in every environment."
+      description="Add someone who signs in to your apps. They can sign in right away, in every environment."
     >
       <Form route="members.store" routeParams={routeParams} options={{ preserveScroll: true }}>
         {({ errors, processing }) => (
@@ -46,24 +56,61 @@ export default function MembersCreate({ organization }: InertiaProps) {
               {errors.email && <span className="field__error">{errors.email}</span>}
             </div>
 
-            <div className="field">
-              <label className="field__label" htmlFor="password">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                className="field__input"
-                autoComplete="new-password"
-                aria-describedby="passwordHint"
-                aria-invalid={errors.password ? 'true' : 'false'}
-              />
-              <span id="passwordHint" className="field__hint">
-                8 to 32 characters. Share it with them yourself.
-              </span>
-              {errors.password && <span className="field__error">{errors.password}</span>}
-            </div>
+            {hasIdentityProvider ? (
+              <fieldset className="field">
+                <legend className="field__label">Signs in with</legend>
+                <div className="checks">
+                  <label className="check">
+                    <input
+                      type="radio"
+                      name="signsInWith"
+                      value="provider"
+                      checked={signsInWith === 'provider'}
+                      onChange={() => setSignsInWith('provider')}
+                    />
+                    Your identity provider
+                    <span className="check__hint">They never have a password here.</span>
+                  </label>
+                  <label className="check">
+                    <input
+                      type="radio"
+                      name="signsInWith"
+                      value="password"
+                      checked={signsInWith === 'password'}
+                      onChange={() => setSignsInWith('password')}
+                    />
+                    A password
+                    <span className="check__hint">
+                      For someone who isn&apos;t in your identity provider.
+                    </span>
+                  </label>
+                </div>
+                {errors.signsInWith && <span className="field__error">{errors.signsInWith}</span>}
+              </fieldset>
+            ) : (
+              <input type="hidden" name="signsInWith" value="password" />
+            )}
+
+            {signsInWith === 'password' && (
+              <div className="field">
+                <label className="field__label" htmlFor="password">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  className="field__input"
+                  autoComplete="new-password"
+                  aria-describedby="passwordHint"
+                  aria-invalid={errors.password ? 'true' : 'false'}
+                />
+                <span id="passwordHint" className="field__hint">
+                  8 to 32 characters. Share it with them yourself.
+                </span>
+                {errors.password && <span className="field__error">{errors.password}</span>}
+              </div>
+            )}
 
             <div className="form__actions">
               <button type="submit" className="btn btn--primary" disabled={processing}>

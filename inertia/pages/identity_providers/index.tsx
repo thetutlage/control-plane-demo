@@ -11,12 +11,22 @@ import EmptyState from '~/components/empty_state'
 type PageProps = InertiaProps<{
   identityProviders: Data.IdentityProvider[]
   redirectUri: string
+  passwordMembersCount: number
+  providerMembersCount: number
 }>
 
 /**
  * Edit the provider or remove it. Removing asks first, in the panel.
  */
-function ProviderActions({ org, provider }: { org: string; provider: number }) {
+function ProviderActions({
+  org,
+  provider,
+  membersCount,
+}: {
+  org: string
+  provider: number
+  membersCount: number
+}) {
   const [confirming, setConfirming] = useState(false)
 
   return (
@@ -47,7 +57,11 @@ function ProviderActions({ org, provider }: { org: string; provider: number }) {
         >
           {({ processing }) => (
             <>
-              <p>The provider&apos;s details and its client secret are removed from here.</p>
+              <p>
+                {membersCount === 0
+                  ? 'Nobody signs in with it yet.'
+                  : `${membersCount} ${membersCount === 1 ? 'member signs' : 'members sign'} in with it. They switch to a password, are signed out everywhere, and can't sign in until they have a password.`}
+              </p>
               <div className="client__confirm-actions">
                 <button type="submit" className="btn btn--danger btn--sm" disabled={processing}>
                   Yes, remove
@@ -75,6 +89,8 @@ function ProviderActions({ org, provider }: { org: string; provider: number }) {
 export default function IdentityProvidersIndex({
   identityProviders,
   redirectUri,
+  passwordMembersCount,
+  providerMembersCount,
   organization,
 }: PageProps) {
   const org = organization?.slug ?? ''
@@ -85,15 +101,38 @@ export default function IdentityProvidersIndex({
         <section key={identityProvider.id} className="panel client" aria-label="Identity provider">
           <header className="client__header">
             <h2 className="section__title">Identity provider</h2>
-            <ProviderActions org={org} provider={identityProvider.id} />
+            <ProviderActions
+              org={org}
+              provider={identityProvider.id}
+              membersCount={providerMembersCount}
+            />
           </header>
 
           <p className="notice">
-            Anyone your provider lets through can sign in. They get no access to an app until you
-            give them a role on it.
+            {providerMembersCount} {providerMembersCount === 1 ? 'member signs' : 'members sign'} in
+            with it.{' '}
+            {passwordMembersCount > 0 && (
+              <>
+                {passwordMembersCount} still {passwordMembersCount === 1 ? 'signs' : 'sign'} in with
+                a password.{' '}
+                <Link
+                  route="identity_providers.members.create"
+                  routeParams={{ org, provider: identityProvider.id }}
+                >
+                  Choose who switches
+                </Link>
+              </>
+            )}
           </p>
 
           <dl className="kv">
+            <dt>People you didn&apos;t add</dt>
+            <dd>
+              {identityProvider.admitsNewcomers
+                ? 'Can join when your provider lets them through, with no access'
+                : 'Are refused'}
+            </dd>
+
             <dt>Issuer URL</dt>
             <dd>
               <code className="mono">{identityProvider.issuer}</code>

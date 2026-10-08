@@ -47,6 +47,7 @@ export class StubbedProviderDiscovery extends ProviderDiscoveryService {
 export function setupConnectedProvider(organization: Organization) {
   return organization.related('identityProviders').create({
     kind: IdentityProviderKind.OIDC,
+    admitsNewcomers: false,
     issuer: PROVIDER.issuer,
     clientId: PROVIDER.clientId,
     ...IdentityProvider.encryptSecret(PROVIDER.clientSecret),

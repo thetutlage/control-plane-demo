@@ -29,12 +29,16 @@ export const SARA: Account = {
  * An organization whose identity provider is a real OpenID Connect
  * provider running on this machine for the length of the test, already
  * connected. It signs in whoever `signsInAs` names, without a login
- * page, or refuses when told to `cancel`.
+ * page, or refuses when told to `cancel`. People no admin added are
+ * refused by the app unless `admitsNewcomers` is on.
  *
  * The app reaches it only when `ProviderRequestService` is swapped for
  * one that allows local addresses.
  */
-export async function setupOrganizationProvider(organization: Organization) {
+export async function setupOrganizationProvider(
+  organization: Organization,
+  options: { admitsNewcomers?: boolean } = {}
+) {
   const test = getActiveTest()
   if (!test) {
     throw new Error('setupOrganizationProvider must be called inside a test')
@@ -107,6 +111,7 @@ export async function setupOrganizationProvider(organization: Organization) {
     kind: IdentityProviderKind.OIDC,
     issuer,
     clientId: CLIENT.id,
+    admitsNewcomers: options.admitsNewcomers ?? false,
     ...IdentityProvider.encryptSecret(CLIENT.secret),
   })
 

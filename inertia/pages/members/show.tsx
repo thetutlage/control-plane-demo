@@ -7,6 +7,7 @@ import { Form, Link } from '@adonisjs/inertia/react'
 import EnvironmentBadge from '~/components/environment_badge'
 
 type PageProps = InertiaProps<{
+  identityProviderId: number | null
   member: Data.Member
   sessions: Data.OidcSession[]
   apps: Data.AppMember.Variants['forMember'][]
@@ -63,11 +64,70 @@ function SignOutEverywhere({ member, org }: { member: Data.Member; org: string }
 }
 
 /**
+ * How the member signs in, and the control to change it. Only an admin
+ * changes it, here or on the Authentication page. Changing it signs the
+ * member out everywhere.
+ */
+function SignInMethod({
+  member,
+  org,
+  provider,
+}: {
+  member: Data.Member
+  org: string
+  provider: number
+}) {
+  const usesProvider = member.signsInWith.raw === 'provider'
+
+  return (
+    <section className="panel client" aria-label="Sign-in">
+      <header className="client__header">
+        <div>
+          <h2 className="section__title">
+            Signs in with {member.signsInWith.formatted.toLowerCase()}
+          </h2>
+          <p className="section__description">
+            {usesProvider
+              ? 'A password is refused for them.'
+              : 'Your identity provider is refused for them.'}
+            {!usesProvider && !member.hasPassword && ' They have no password yet.'}
+          </p>
+        </div>
+        {usesProvider ? (
+          <Form
+            route="identity_providers.members.destroy"
+            routeParams={{ org, provider, member: member.id }}
+          >
+            {({ processing }) => (
+              <button type="submit" className="btn btn--secondary btn--sm" disabled={processing}>
+                Switch to a password
+              </button>
+            )}
+          </Form>
+        ) : (
+          <Form route="identity_providers.members.store" routeParams={{ org, provider }}>
+            {({ processing }) => (
+              <>
+                <input type="hidden" name="memberIds[]" value={member.id} />
+                <button type="submit" className="btn btn--secondary btn--sm" disabled={processing}>
+                  Switch to your identity provider
+                </button>
+              </>
+            )}
+          </Form>
+        )}
+      </header>
+    </section>
+  )
+}
+
+/**
  * The member, then one section per environment: the browsers they're
  * signed in on there, and the apps they have access to there, with their
  * roles
  */
 export default function MembersShow({
+  identityProviderId,
   member,
   sessions,
   apps,
@@ -83,6 +143,9 @@ export default function MembersShow({
       actions={<SignOutEverywhere member={member} org={org} />}
     >
       <div className="panels">
+        {identityProviderId !== null && (
+          <SignInMethod member={member} org={org} provider={identityProviderId} />
+        )}
         {environments.map((environment) => {
           const environmentSessions = sessions.filter(
             ({ environmentId }) => environmentId === environment.id

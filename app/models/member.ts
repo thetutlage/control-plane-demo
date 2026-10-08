@@ -11,6 +11,7 @@ import Actor from '#models/actor'
 import AppMember from '#models/app_member'
 import OidcSession from '#models/oidc_session'
 import { MemberStatus } from '#values/member_status'
+import { MemberSignInMethod } from '#values/member_sign_in_method'
 
 /**
  * A person who signs in to the organization's internal apps, the same
@@ -55,6 +56,17 @@ export default class Member extends compose(MemberSchema, withAuthFinder(hash)) 
       .where('actor_id', id)
       .where('status', MemberStatus.ACTIVE)
       .first()
+  }
+
+  /**
+   * Changes how the member signs in, and signs them out everywhere, so
+   * the way they signed in before stops counting right away. Only an
+   * admin's action calls this.
+   */
+  async signInWith(method: MemberSignInMethod) {
+    this.signInMethod = method
+    await this.save()
+    await this.signOutEverywhere()
   }
 
   /**

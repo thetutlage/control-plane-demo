@@ -88,6 +88,10 @@ router
           .resource('identity-providers', controllers.IdentityProviders)
           .except(['show'])
           .params({ 'identity-providers': 'provider' })
+        router
+          .resource('identity-providers.members', controllers.ProviderMembers)
+          .only(['create', 'store', 'destroy'])
+          .params({ 'identity-providers': 'provider', 'members': 'member' })
       })
       .prefix('settings')
   })

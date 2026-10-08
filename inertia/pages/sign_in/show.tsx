@@ -1,4 +1,5 @@
-import { Head } from '@inertiajs/react'
+import { useEffect, useRef } from 'react'
+import { Head, usePage } from '@inertiajs/react'
 import { Form } from '@adonisjs/inertia/react'
 import type { InertiaProps } from '~/types'
 import SignInLayout from '~/layouts/sign_in'
@@ -10,6 +11,7 @@ type PageProps = InertiaProps<{
   isProduction: boolean
   appName: string
   providerSignIn: boolean
+  providerRecheck: boolean
 }>
 
 export default function SignInShow({
@@ -19,7 +21,22 @@ export default function SignInShow({
   isProduction,
   appName,
   providerSignIn,
+  providerRecheck,
 }: PageProps) {
+  const { flash } = usePage()
+  const providerButton = useRef<HTMLButtonElement>(null)
+
+  /**
+   * A member whose sign-in through the provider is over a day old is sent
+   * back through it without a click. Not after an error, such as
+   * cancelling there, which would send them round again.
+   */
+  useEffect(() => {
+    if (providerRecheck && !flash.error) {
+      providerButton.current?.click()
+    }
+  }, [providerRecheck, flash.error])
+
   return (
     <>
       <Head title={`Sign in to ${organizationName}`} />
@@ -39,7 +56,12 @@ export default function SignInShow({
             className="signin__provider"
           >
             {({ processing }) => (
-              <button type="submit" className="btn btn--primary btn--block" disabled={processing}>
+              <button
+                ref={providerButton}
+                type="submit"
+                className="btn btn--primary btn--block"
+                disabled={processing}
+              >
                 {processing ? 'One moment…' : 'Continue with your company account'}
               </button>
             )}

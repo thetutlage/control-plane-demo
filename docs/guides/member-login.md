@@ -35,7 +35,7 @@ The page uses `inertia/layouts/sign_in.tsx`, which has no console navigation. No
 ## Checking a member
 
 - **Lookup:** by email, **within the issuer's organization only**. A member of another organization can't sign in, even with the same email and password.
-- **Rules:** the member must be `ACTIVE` and have a password. The password is checked with `member.verifyPassword()`.
+- **Rules:** the member must be `ACTIVE`, be set to sign in with a password ([Identity provider](identity-provider.md#who-signs-in-with-it)), and have one. The password is checked with `member.verifyPassword()`.
 - **Same answer for every failure:** "Email or password is incorrect", whether the email is unknown, the password is wrong, or the member is invited or suspended. Unknown emails still hash the password, so they take as long as a wrong one.
 - **Account:** `oidc-provider` signs in the member's **actor ID**. Both middleware pass `createProvider()` a `findAccount` that uses `Member.findActive(environment, actorId)`, which only finds active members of the environment's organization, so a suspended member's existing sessions stop working too.
 

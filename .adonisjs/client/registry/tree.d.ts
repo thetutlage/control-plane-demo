@@ -73,6 +73,11 @@ export interface ApiDefinition {
     edit: typeof routes['identity_providers.edit']
     update: typeof routes['identity_providers.update']
     destroy: typeof routes['identity_providers.destroy']
+    members: {
+      create: typeof routes['identity_providers.members.create']
+      store: typeof routes['identity_providers.members.store']
+      destroy: typeof routes['identity_providers.members.destroy']
+    }
   }
   signIn: {
     show: typeof routes['sign_in.show']

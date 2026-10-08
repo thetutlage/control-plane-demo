@@ -39,6 +39,8 @@ Each row stores the full record in `payload` (JSONB), in the shape `oidc-provide
 | `consumed_at`  | codes, refresh tokens | marking a code or refresh token as used                  |
 | `expires_at`   | all                   | expired rows are ignored when read                       |
 
+A session's payload also records how the member signed in (`amr`). A sign-in through the identity provider sets `amr: ['provider']`, which is what [the daily re-check](identity-provider.md#the-daily-re-check) reads. It has no column of its own.
+
 `oidc-provider` calls a member's ID an "account". In our tables that's the member's actor ID.
 
 ## The storage adapter

@@ -6,10 +6,11 @@ import testUtils from '@adonisjs/core/services/test_utils'
 import Member from '#models/member'
 import MemberIdentity from '#models/member_identity'
 import { MemberStatus } from '#values/member_status'
+import { MemberSignInMethod } from '#values/member_sign_in_method'
 import ProviderRequestService from '#services/provider_request_service'
 import { setupOnboardedOrganization } from '#tests/helpers/organizations'
 import { SARA, setupOrganizationProvider } from '#tests/helpers/fake_provider'
-import { appCallback, authorizeUrl, giveAccess, setupApp } from '#tests/helpers/oidc'
+import { appCallback, authorizeUrl, giveAccess, setupApp, signIn } from '#tests/helpers/oidc'
 
 const BUTTON = 'Continue with your company account'
 
@@ -38,7 +39,7 @@ async function stateSentToProvider(page: Page, issuer: string) {
 test.group('Sign-in with the identity provider', (group) => {
   group.each.setup(() => testUtils.db().truncate())
 
-  test('a member an admin added signs in with their company account', async ({
+  test('a member set to the provider signs in with their company account', async ({
     assert,
     swap,
     browserContext,
@@ -52,6 +53,7 @@ test.group('Sign-in with the identity provider', (group) => {
       email: 'sara@acme.test',
       fullName: null,
       status: MemberStatus.INVITED,
+      signInMethod: MemberSignInMethod.PROVIDER,
     })
     await giveAccess(sara, client)
 
@@ -76,7 +78,79 @@ test.group('Sign-in with the identity provider', (group) => {
     })
   })
 
-  test('someone new becomes a member with no access', async ({
+  test('someone no admin added is refused', async ({ swap, db, browserContext }) => {
+    swap(ProviderRequestService, reachLocalProvider)
+    using fakeEmitter = emitter.fake([events.ProviderSignInRefused])
+    const { organization, staging } = await setupOnboardedOrganization({ slug: 'acme' })
+    await setupOrganizationProvider(organization)
+    const client = await setupApp(staging)
+
+    const page = await browserContext.newPage()
+    await page.goto(authorizeUrl(organization, staging, client))
+    await continueWithProvider(page)
+
+    await page.assertVisible(page.getByRole('heading', { name: "We couldn't sign you in" }))
+    await db.assertEmpty('members')
+    fakeEmitter.assertEmitted(events.ProviderSignInRefused, ({ data }) => {
+      return data.reason === 'not_a_member' && data.email === 'sara@acme.test'
+    })
+  })
+
+  test('a member set to a password is refused by the provider, and stays on a password', async ({
+    assert,
+    swap,
+    db,
+    browserContext,
+  }) => {
+    swap(ProviderRequestService, reachLocalProvider)
+    using fakeEmitter = emitter.fake([events.ProviderSignInRefused])
+    const { organization, staging } = await setupOnboardedOrganization({ slug: 'acme' })
+    await setupOrganizationProvider(organization, { admitsNewcomers: true })
+    const client = await setupApp(staging)
+    const sara = await organization.createMember({
+      email: 'sara@acme.test',
+      fullName: 'Sara',
+      status: MemberStatus.ACTIVE,
+      password: 'correct-horse',
+    })
+    await giveAccess(sara, client)
+
+    const page = await browserContext.newPage()
+    await page.goto(authorizeUrl(organization, staging, client))
+    await continueWithProvider(page)
+
+    await page.assertVisible(page.getByRole('heading', { name: "We couldn't sign you in" }))
+    await sara.refresh()
+    assert.equal(sara.signInMethod, MemberSignInMethod.PASSWORD)
+    await db.assertEmpty('member_identities')
+    fakeEmitter.assertEmitted(events.ProviderSignInRefused, ({ data }) => {
+      return data.reason === 'signs_in_with_a_password'
+    })
+  })
+
+  test('a member set to the provider is refused by the password form', async ({
+    browserContext,
+  }) => {
+    const { organization, staging } = await setupOnboardedOrganization({ slug: 'acme' })
+    await setupOrganizationProvider(organization)
+    const client = await setupApp(staging)
+    const sara = await organization.createMember({
+      email: 'sara@acme.test',
+      fullName: 'Sara',
+      status: MemberStatus.ACTIVE,
+      password: 'correct-horse',
+      signInMethod: MemberSignInMethod.PROVIDER,
+    })
+    await giveAccess(sara, client)
+
+    const page = await browserContext.newPage()
+    await page.goto(authorizeUrl(organization, staging, client))
+    await signIn(page, 'sara@acme.test', 'correct-horse')
+
+    await page.assertVisible(page.getByText('Email or password is incorrect', { exact: true }))
+  })
+
+  test('with newcomers admitted, someone new becomes a member with no access', async ({
     assert,
     swap,
     db,
@@ -85,7 +159,7 @@ test.group('Sign-in with the identity provider', (group) => {
     swap(ProviderRequestService, reachLocalProvider)
     using fakeEmitter = emitter.fake([events.MemberSignedInWithProvider])
     const { organization, staging } = await setupOnboardedOrganization({ slug: 'acme' })
-    const provider = await setupOrganizationProvider(organization)
+    const provider = await setupOrganizationProvider(organization, { admitsNewcomers: true })
     const client = await setupApp(staging)
     provider.signsInAs({ sub: '00u-dev', email: 'Designer@Gmail.com', name: 'Dev Patel' })
 
@@ -98,6 +172,7 @@ test.group('Sign-in with the identity provider', (group) => {
     assert.equal(member.status, MemberStatus.ACTIVE)
     assert.equal(member.fullName, 'Dev Patel')
     assert.isNull(member.password)
+    assert.equal(member.signInMethod, MemberSignInMethod.PROVIDER)
     await db.assertHas('member_identities', { member_id: member.id, subject: '00u-dev' })
     fakeEmitter.assertEmitted(events.MemberSignedInWithProvider, ({ data }) => {
       return data.member.id === member.id && data.how === 'created'
@@ -119,6 +194,7 @@ test.group('Sign-in with the identity provider', (group) => {
       email: 'sara.before@acme.test',
       fullName: 'Sara Before',
       status: MemberStatus.ACTIVE,
+      signInMethod: MemberSignInMethod.PROVIDER,
     })
     await giveAccess(sara, client)
     await MemberIdentity.create({
@@ -158,6 +234,7 @@ test.group('Sign-in with the identity provider', (group) => {
       email: 'sara@acme.test',
       fullName: 'The Sara who left',
       status: MemberStatus.ACTIVE,
+      signInMethod: MemberSignInMethod.PROVIDER,
     })
     await giveAccess(formerSara, client)
     await MemberIdentity.create({
@@ -215,6 +292,7 @@ test.group('Sign-in with the identity provider', (group) => {
       email: 'sara@acme.test',
       fullName: 'Sara',
       status: MemberStatus.SUSPENDED,
+      signInMethod: MemberSignInMethod.PROVIDER,
     })
     await giveAccess(sara, client)
 

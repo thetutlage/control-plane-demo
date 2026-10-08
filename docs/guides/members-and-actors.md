@@ -13,13 +13,14 @@ An **actor** is any identity that can hold roles or appear in the audit log. Rig
 
 A member is a person who signs in to the organization's internal apps. They are the same member in every environment, with one password.
 
-| Column      | Meaning                                                                            |
-| ----------- | ---------------------------------------------------------------------------------- |
-| `email`     | unique within the organization                                                     |
-| `full_name` | optional                                                                           |
-| `password`  | nullable; hashed on save (`withAuthFinder`). Without one, the member can't sign in |
-| `status`    | `MemberStatus`: INVITED, ACTIVE or SUSPENDED                                       |
-| `actor_id`  | the member's actor, one-to-one                                                     |
+| Column           | Meaning                                                                                                                      |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `email`          | unique within the organization                                                                                               |
+| `full_name`      | optional                                                                                                                     |
+| `password`       | nullable; hashed on save (`withAuthFinder`). Without one, the member can't sign in                                           |
+| `sign_in_method` | `MemberSignInMethod`: PASSWORD or PROVIDER. Set by an admin ([Identity provider](identity-provider.md#who-signs-in-with-it)) |
+| `status`         | `MemberStatus`: INVITED, ACTIVE or SUSPENDED                                                                                 |
+| `actor_id`       | the member's actor, one-to-one                                                                                               |
 
 ## Creating a member
 
@@ -56,6 +57,8 @@ A member can sign in to an app in an environment only as an **app member** (`app
 
 There's no "active apps": a member is signed in on browsers (sessions), and has access to apps.
 
-**Add member** (`/members/create`) adds an **active** member with a password the admin chooses (8 to 32 characters). They can sign in right away, in every environment. Emails are unique within the organization (`app/validators/member.ts`).
+**Add member** (`/members/create`) adds an **active** member who can sign in right away, in every environment. With an identity provider connected, the admin chooses how they sign in: with the provider, and then no password is stored, or with a password the admin chooses (8 to 32 characters). Without a provider it is always a password. Emails are unique within the organization (`app/validators/member.ts`).
+
+The member's page shows how they sign in, with a control to switch it, when a provider is connected.
 
 Inviting members, so they choose their own password, is not built yet.

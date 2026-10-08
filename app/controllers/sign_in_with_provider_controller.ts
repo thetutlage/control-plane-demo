@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/core'
 import { events } from '#generated/events'
 import type { HttpContext } from '@adonisjs/core/http'
+import { PROVIDER_AMR } from '#oidc/create_provider'
 import { pendingSignIn } from '#oidc/pending_sign_in'
 import { driverFor } from '#identity_providers/driver_for'
 import ProviderSignInService from '#services/provider_sign_in_service'
@@ -18,7 +19,8 @@ export default class SignInWithProviderController {
   /**
    * Ally checks the state and exchanges the code, the driver verifies
    * the ID token, and the member it names is signed in, the same way the
-   * password form does it.
+   * password form does it. The session is marked as signed in through
+   * the provider, so the provider is asked again a day later.
    */
   @inject()
   async handle(
@@ -78,7 +80,7 @@ export default class SignInWithProviderController {
     const returnTo = await issuer.provider.interactionResult(
       request.request,
       response.response,
-      { login: { accountId: String(result.member.actorId) } },
+      { login: { accountId: String(result.member.actorId), amr: [PROVIDER_AMR] } },
       { mergeWithLastSubmission: false }
     )
 

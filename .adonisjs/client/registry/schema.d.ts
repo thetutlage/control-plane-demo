@@ -535,6 +535,42 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/identity_providers_controller').default['destroy']>>>
     }
   }
+  'identity_providers.members.create': {
+    methods: ["GET","HEAD"]
+    pattern: '/w/:org/settings/identity-providers/:provider/members/create'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue]
+      params: { org: ParamValue; provider: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/provider_members_controller').default['create']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/provider_members_controller').default['create']>>>
+    }
+  }
+  'identity_providers.members.store': {
+    methods: ["POST"]
+    pattern: '/w/:org/settings/identity-providers/:provider/members'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/provider_member').createProviderMembersValidator)>>
+      paramsTuple: [ParamValue, ParamValue]
+      params: { org: ParamValue; provider: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/provider_member').createProviderMembersValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/provider_members_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/provider_members_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'identity_providers.members.destroy': {
+    methods: ["DELETE"]
+    pattern: '/w/:org/settings/identity-providers/:provider/members/:member'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue, ParamValue]
+      params: { org: ParamValue; provider: ParamValue; member: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/provider_members_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/provider_members_controller').default['destroy']>>>
+    }
+  }
   'sign_in.show': {
     methods: ["GET","HEAD"]
     pattern: '/sign-in/:signInId'

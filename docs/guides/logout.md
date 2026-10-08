@@ -17,6 +17,10 @@ The issuer ends the member's session, revokes what was issued in it, and redirec
 
 `post_logout_redirect_uri` must exactly match one of the app's **Sign-out redirect URIs** ([Apps](apps.md)). To land on a page that isn't registered, the app can pass its own `state`, or keep the page in its own cookie, and redirect after it lands.
 
+## With an identity provider
+
+Signing out ends the member's session with us. It does not sign them out of the company's identity provider. While they are still signed in there, **Continue with your company account** signs them straight back in without asking for anything. Signing out of the provider is the provider's own page.
+
 ## What gets revoked
 
 Everything issued belongs to the browser's session. When it ends, nothing issued in it works, for any app:

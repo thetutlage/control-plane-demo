@@ -9,6 +9,7 @@ import { DateTime } from 'luxon'
 import type { ActorType } from '#values/actor_type'
 import type { EnvironmentKind } from '#values/environment_kind'
 import type { IdentityProviderKind } from '#values/identity_provider_kind'
+import type { MemberSignInMethod } from '#values/member_sign_in_method'
 import type { MemberStatus } from '#values/member_status'
 
 export class ActorSchema extends BaseModel {
@@ -128,8 +129,10 @@ export class EnvironmentSchema extends BaseModel {
 }
 
 export class IdentityProviderSchema extends BaseModel {
-  static $columns = ['clientId', 'clientSecret', 'clientSecretHint', 'createdAt', 'id', 'issuer', 'kind', 'organizationId', 'updatedAt'] as const
+  static $columns = ['admitsNewcomers', 'clientId', 'clientSecret', 'clientSecretHint', 'createdAt', 'id', 'issuer', 'kind', 'organizationId', 'updatedAt'] as const
   $columns = IdentityProviderSchema.$columns
+  @column()
+  declare admitsNewcomers: boolean
   @column()
   declare clientId: string
   @column()
@@ -170,7 +173,7 @@ export class MemberIdentitySchema extends BaseModel {
 }
 
 export class MemberSchema extends BaseModel {
-  static $columns = ['actorId', 'createdAt', 'email', 'fullName', 'id', 'organizationId', 'password', 'status', 'updatedAt'] as const
+  static $columns = ['actorId', 'createdAt', 'email', 'fullName', 'id', 'organizationId', 'password', 'signInMethod', 'status', 'updatedAt'] as const
   $columns = MemberSchema.$columns
   @column()
   declare actorId: number
@@ -186,6 +189,8 @@ export class MemberSchema extends BaseModel {
   declare organizationId: number
   @column({ serializeAs: null })
   declare password: string | null
+  @column()
+  declare signInMethod: MemberSignInMethod
   @column()
   declare status: MemberStatus
   @column.dateTime({ autoCreate: true, autoUpdate: true })

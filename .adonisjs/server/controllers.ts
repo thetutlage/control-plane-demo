@@ -15,6 +15,7 @@ export const controllers = {
   NewAccount: () => import('#controllers/new_account_controller'),
   Organizations: () => import('#controllers/organizations_controller'),
   Overview: () => import('#controllers/overview_controller'),
+  ProviderMembers: () => import('#controllers/provider_members_controller'),
   RedirectToProvider: () => import('#controllers/redirect_to_provider_controller'),
   Roles: () => import('#controllers/roles_controller'),
   Session: () => import('#controllers/session_controller'),

@@ -31,7 +31,10 @@ export default {
       columns: { kind: valueColumn('EnvironmentKind', 'environment_kind') },
     },
     members: {
-      columns: { status: valueColumn('MemberStatus', 'member_status') },
+      columns: {
+        status: valueColumn('MemberStatus', 'member_status'),
+        sign_in_method: valueColumn('MemberSignInMethod', 'member_sign_in_method'),
+      },
     },
     actors: {
       columns: { type: valueColumn('ActorType', 'actor_type') },

@@ -6,6 +6,7 @@
 import IdentityProviderChanged from '#events/identity_provider_changed'
 import IdentityProviderConnected from '#events/identity_provider_connected'
 import IdentityProviderRemoved from '#events/identity_provider_removed'
+import MemberSignInMethodChanged from '#events/member_sign_in_method_changed'
 import MemberSignedInWithProvider from '#events/member_signed_in_with_provider'
 import ProviderSignInRefused from '#events/provider_sign_in_refused'
 
@@ -13,6 +14,7 @@ export const events = {
   IdentityProviderChanged: IdentityProviderChanged,
   IdentityProviderConnected: IdentityProviderConnected,
   IdentityProviderRemoved: IdentityProviderRemoved,
+  MemberSignInMethodChanged: MemberSignInMethodChanged,
   MemberSignedInWithProvider: MemberSignedInWithProvider,
   ProviderSignInRefused: ProviderSignInRefused,
 }

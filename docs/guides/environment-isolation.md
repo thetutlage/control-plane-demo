@@ -2,6 +2,8 @@
 
 Apps, members, the catalogue and roles belong to the organization and are shared by its environments. What runs in an environment never leaks into another: an app's setup there (credentials, URLs), its sign-ins (sessions, grants, tokens) and its signing keys. This is enforced in two places.
 
+The organization's identity provider belongs to the organization too, with each member's tie to it (`member_identities`) and how each member signs in. One provider, and one redirect URI, serve every environment. A sign-in through it still happens in one environment: its cookies live on that environment's issuer host, and the signed `state` names the environment, so the provider's answer can only be finished where it started ([Identity provider](identity-provider.md#signing-in)).
+
 ## 1. The database
 
 Every table that belongs to an environment has both `organization_id` and `environment_id`. A composite foreign key ties the pair to `environments`:

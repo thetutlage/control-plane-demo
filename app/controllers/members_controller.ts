@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type Organization from '#models/organization'
 import { MemberStatus } from '#values/member_status'
+import { MemberSignInMethod } from '#values/member_sign_in_method'
 import { createMemberValidator } from '#validators/member'
 import MemberTransformer from '#transformers/member_transformer'
 import AppMemberTransformer from '#transformers/app_member_transformer'
@@ -31,21 +32,45 @@ export default class MembersController {
     })
   }
 
-  async create({ inertia }: HttpContext) {
-    return inertia.render('members/create', {})
+  /**
+   * The form asks how the member signs in only when the organization has
+   * an identity provider
+   */
+  async create({ inertia, organization }: HttpContext) {
+    const identityProvider = await organization.related('identityProviders').query().first()
+    return inertia.render('members/create', { hasIdentityProvider: identityProvider !== null })
   }
 
   /**
-   * Adds an active member who can sign in right away with the given
-   * password
+   * Adds an active member who can sign in right away: with the identity
+   * provider, or with the given password. Without a provider connected,
+   * it is always a password.
    */
   async store({ request, response, session, organization }: HttpContext) {
-    const payload = await request.validateUsing(createMemberValidator, {
-      meta: { organizationId: organization.id },
-    })
-    const member = await organization.createMember({ ...payload, status: MemberStatus.ACTIVE })
+    const { signsInWith, password, ...payload } = await request.validateUsing(
+      createMemberValidator,
+      { meta: { organizationId: organization.id } }
+    )
+    const identityProvider = await organization.related('identityProviders').query().first()
+    if (signsInWith === 'provider' && !identityProvider) {
+      session.flash('error', 'Connect an identity provider before adding members who use it.')
+      return response.redirect().back()
+    }
 
-    session.flash('success', `${member.email} can now sign in.`)
+    const member = await organization.createMember({
+      ...payload,
+      status: MemberStatus.ACTIVE,
+      ...(signsInWith === 'provider'
+        ? { signInMethod: MemberSignInMethod.PROVIDER }
+        : { signInMethod: MemberSignInMethod.PASSWORD, password }),
+    })
+
+    session.flash(
+      'success',
+      signsInWith === 'provider'
+        ? `${member.email} can now sign in with your identity provider.`
+        : `${member.email} can now sign in.`
+    )
     return response.redirect().toRoute('members.index', { org: organization.slug })
   }
 
@@ -67,7 +92,10 @@ export default class MembersController {
       .preload('roles', (roles) => roles.orderBy('name', 'asc'))
       .orderByRaw('last_signed_in_at desc nulls last')
 
+    const identityProvider = await organization.related('identityProviders').query().first()
+
     return inertia.render('members/show', {
+      identityProviderId: identityProvider?.id ?? null,
       member: MemberTransformer.transform(member),
       sessions: OidcSessionTransformer.transform(sessions),
       apps: AppMemberTransformer.transform(apps).useVariant('forMember'),

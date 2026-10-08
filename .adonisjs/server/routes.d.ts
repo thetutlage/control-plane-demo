@@ -48,6 +48,9 @@ export type ScannedRoutes = {
     'identity_providers.edit': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
     'identity_providers.update': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
     'identity_providers.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
+    'identity_providers.members.create': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
+    'identity_providers.members.store': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
+    'identity_providers.members.destroy': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue,'member': ParamValue} }
     'sign_in.show': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
     'sign_in.store': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
     'sign_in.destroy': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
@@ -79,6 +82,7 @@ export type ScannedRoutes = {
     'identity_providers.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'identity_providers.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'identity_providers.edit': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
+    'identity_providers.members.create': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
     'sign_in.show': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
     'sign_in_with_provider': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
   }
@@ -107,6 +111,7 @@ export type ScannedRoutes = {
     'identity_providers.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'identity_providers.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'identity_providers.edit': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
+    'identity_providers.members.create': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
     'sign_in.show': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
     'sign_in_with_provider': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
   }
@@ -121,6 +126,7 @@ export type ScannedRoutes = {
     'members.store': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'roles.store': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'identity_providers.store': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'identity_providers.members.store': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
     'sign_in.store': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
     'redirect_to_provider': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
   }
@@ -131,6 +137,7 @@ export type ScannedRoutes = {
     'member_sessions.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'member': ParamValue} }
     'roles.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'role': ParamValue} }
     'identity_providers.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
+    'identity_providers.members.destroy': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue,'member': ParamValue} }
     'sign_in.destroy': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
   }
   PUT: {

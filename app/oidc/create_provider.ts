@@ -1,7 +1,7 @@
 import edge from 'edge.js'
 import logger from '@adonisjs/core/services/logger'
 import { errorPage } from '#oidc/error_pages'
-import Provider, { errors } from 'oidc-provider'
+import Provider, { errors, interactionPolicy } from 'oidc-provider'
 import type { AdapterFactory, FindAccount, JWK, KoaContextWithOIDC } from 'oidc-provider'
 
 const MINUTE = 60
@@ -12,6 +12,43 @@ const DAY = 24 * 60 * MINUTE
  * cannot be revoked before they expire. They are kept short.
  */
 const ACCESS_TOKEN_TTL = 5 * MINUTE
+
+/**
+ * How long a sign-in through the organization's identity provider counts
+ * before the provider is asked again. Someone disabled there loses
+ * access to every app within this long.
+ */
+const PROVIDER_RECHECK = 1 * DAY
+
+/**
+ * Marks a session as signed in through the identity provider (its `amr`,
+ * the standard field for how someone authenticated)
+ */
+export const PROVIDER_AMR = 'provider'
+
+/**
+ * oidc-provider's own rules for when a member must sign in again, plus
+ * one of ours: a session signed in through the identity provider must go
+ * back through it once that sign-in is older than `PROVIDER_RECHECK`.
+ * Without it, the issuer's 30-day session would keep letting them in.
+ */
+function signInPolicy() {
+  const policy = interactionPolicy.base()
+  policy.get('login')!.checks.add(
+    new interactionPolicy.Check(
+      'provider_recheck',
+      'the identity provider must be asked about this member again',
+      (ctx) => {
+        const { session } = ctx.oidc
+        const stale = session?.amr?.includes(PROVIDER_AMR) && session.past(PROVIDER_RECHECK)
+        return stale
+          ? interactionPolicy.Check.REQUEST_PROMPT
+          : interactionPolicy.Check.NO_NEED_TO_PROMPT
+      }
+    )
+  )
+  return policy
+}
 
 /**
  * oidc-provider issues JWT access tokens only for a "resource", the API
@@ -92,6 +129,7 @@ export function createProvider(input: CreateProviderInput) {
      */
     interactions: {
       url: (_ctx, interaction) => `/sign-in/${interaction.uid}`,
+      policy: signInPolicy(),
     },
 
     /**
@@ -113,7 +151,15 @@ export function createProvider(input: CreateProviderInput) {
       IdToken: 60 * MINUTE,
       Interaction: 10 * MINUTE,
       RefreshToken: 14 * DAY,
-      Grant: 14 * DAY,
+
+      /**
+       * A grant from a sign-in through the identity provider lasts a day
+       * instead of 14. The app's refresh then fails, and it sends the
+       * member back here, where the provider is asked again.
+       */
+      Grant: (ctx) => {
+        return ctx.oidc.session?.amr?.includes(PROVIDER_AMR) ? PROVIDER_RECHECK : 14 * DAY
+      },
       Session: 30 * DAY,
     },
 

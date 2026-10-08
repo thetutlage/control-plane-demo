@@ -5,6 +5,7 @@ import type { HasMany, HasOne, ManyToMany } from '@adonisjs/lucid/types/relation
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { OrganizationSchema } from '#database/schema'
 import { ActorType } from '#values/actor_type'
+import { MemberSignInMethod } from '#values/member_sign_in_method'
 import User from '#models/user'
 import Environment from '#models/environment'
 import Actor from '#models/actor'
@@ -59,7 +60,10 @@ export default class Organization extends OrganizationSchema {
    * environment.
    */
   async createMember(
-    values: Pick<Member, 'email' | 'fullName' | 'status'> & { password?: string }
+    values: Pick<Member, 'email' | 'fullName' | 'status'> & {
+      password?: string
+      signInMethod?: MemberSignInMethod
+    }
   ) {
     const create = async (trx: TransactionClientContract) => {
       const actor = await Actor.create(
@@ -67,7 +71,12 @@ export default class Organization extends OrganizationSchema {
         { client: trx }
       )
       return Member.create(
-        { ...values, organizationId: this.id, actorId: actor.id },
+        {
+          signInMethod: MemberSignInMethod.PASSWORD,
+          ...values,
+          organizationId: this.id,
+          actorId: actor.id,
+        },
         { client: trx }
       )
     }

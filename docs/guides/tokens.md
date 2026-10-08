@@ -93,15 +93,15 @@ A refresh fails with `invalid_grant` when the grant has expired, or the member i
 
 ## Lifetimes
 
-| Record        | Lasts                                         |
-| ------------- | --------------------------------------------- |
-| Access token  | 5 minutes                                     |
-| ID token      | 1 hour                                        |
-| Code          | 1 minute                                      |
-| Sign-in page  | 10 minutes                                    |
-| Grant         | 14 days from the visit to the issuer          |
-| Refresh token | 14 days, but never longer than its grant      |
-| SSO session   | 30 days, renewed on every visit to the issuer |
+| Record        | Lasts                                                                                                                                                     |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Access token  | 5 minutes                                                                                                                                                 |
+| ID token      | 1 hour                                                                                                                                                    |
+| Code          | 1 minute                                                                                                                                                  |
+| Sign-in page  | 10 minutes                                                                                                                                                |
+| Grant         | 14 days from the visit to the issuer; 1 day after a sign-in through the identity provider ([the daily re-check](identity-provider.md#the-daily-re-check)) |
+| Refresh token | 14 days, but never longer than its grant                                                                                                                  |
+| SSO session   | 30 days, renewed on every visit to the issuer                                                                                                             |
 
 Every visit to the issuer creates a new **grant** (Sara → Invoices), replacing the app's previous grant in that browser. The refresh tokens from that visit work until the grant expires, however often the app refreshes. In practice:
 

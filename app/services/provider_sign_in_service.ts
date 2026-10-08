@@ -4,6 +4,7 @@ import Organization from '#models/organization'
 import MemberIdentity from '#models/member_identity'
 import type IdentityProvider from '#models/identity_provider'
 import { MemberStatus } from '#values/member_status'
+import { MemberSignInMethod } from '#values/member_sign_in_method'
 
 type Profile = {
   subject: string
@@ -22,12 +23,16 @@ type Outcome =
  * A member is found by the provider's permanent ID for them. Email is
  * only looked at the first time, to pick up a member an admin had
  * already added; an email can change or be given to someone else, so it
- * never finds a member who is already tied to an ID (plan §3, "Sign-in").
+ * never finds a member who is already tied to an ID.
+ *
+ * Only members an admin set to sign in with the provider get in. Nothing
+ * here changes that setting (plan §3, "Sign-in").
  */
 export default class ProviderSignInService {
   /**
    * The member to sign in and how they were found, or why they can't be.
-   * A first sign-in creates the member, with no password and no access.
+   * Someone no admin added becomes a member, with no access, only when
+   * the provider admits newcomers.
    */
   async admit(identityProvider: IdentityProvider, profile: Profile): Promise<Outcome> {
     return db.transaction(async (trx): Promise<Outcome> => {
@@ -58,6 +63,10 @@ export default class ProviderSignInService {
         .first()
 
       if (!member) {
+        if (!identityProvider.admitsNewcomers) {
+          return { refusal: 'not_a_member' }
+        }
+
         const organization = await Organization.findOrFail(identityProvider.organizationId, {
           client: trx,
         })
@@ -65,6 +74,7 @@ export default class ProviderSignInService {
           email: profile.email,
           fullName: profile.name,
           status: MemberStatus.ACTIVE,
+          signInMethod: MemberSignInMethod.PROVIDER,
         })
         await this.#tie(created, identityProvider, profile.subject)
         return { member: created, how: 'created' }
@@ -72,6 +82,9 @@ export default class ProviderSignInService {
 
       if (member.status === MemberStatus.SUSPENDED) {
         return { refusal: 'suspended' }
+      }
+      if (member.signInMethod !== MemberSignInMethod.PROVIDER) {
+        return { refusal: 'signs_in_with_a_password' }
       }
 
       /**
@@ -101,6 +114,9 @@ export default class ProviderSignInService {
   async #returning(member: Member, profile: Profile): Promise<Outcome> {
     if (member.status === MemberStatus.SUSPENDED) {
       return { refusal: 'suspended' }
+    }
+    if (member.signInMethod !== MemberSignInMethod.PROVIDER) {
+      return { refusal: 'signs_in_with_a_password' }
     }
 
     member.fullName = profile.name ?? member.fullName

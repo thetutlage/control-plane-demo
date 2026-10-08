@@ -1,6 +1,7 @@
 import hash from '@adonisjs/core/services/hash'
 import { pendingSignIn } from '#oidc/pending_sign_in'
 import { MemberStatus } from '#values/member_status'
+import { MemberSignInMethod } from '#values/member_sign_in_method'
 import type { HttpContext } from '@adonisjs/core/http'
 import { memberLoginValidator } from '#validators/member'
 import { EnvironmentKind } from '#values/environment_kind'
@@ -47,7 +48,17 @@ export default class SignInController {
       .related('identityProviders')
       .query()
       .first()
-    return inertia.render('sign_in/show', { ...props, providerSignIn: identityProvider !== null })
+    return inertia.render('sign_in/show', {
+      ...props,
+      providerSignIn: identityProvider !== null,
+
+      /**
+       * The member is here because their sign-in through the provider is
+       * over a day old. The page sends them straight back through it.
+       */
+      providerRecheck:
+        identityProvider !== null && signIn.prompt.reasons.includes('provider_recheck'),
+    })
   }
 
   /**
@@ -70,7 +81,8 @@ export default class SignInController {
 
   /**
    * Checks the member's credentials within the issuer's organization and
-   * finishes the sign-in. Every failure gets the same message, so the page
+   * finishes the sign-in. A member set to sign in with the identity
+   * provider is refused here, whatever password they have. Every failure gets the same message, so the page
    * never reveals whether an email has an account. Unknown emails still pay
    * for a hash, so they take as long as a wrong password.
    */
@@ -86,7 +98,11 @@ export default class SignInController {
       .first()
 
     let signedIn = false
-    if (member?.password && member.status === MemberStatus.ACTIVE) {
+    if (
+      member?.password &&
+      member.status === MemberStatus.ACTIVE &&
+      member.signInMethod === MemberSignInMethod.PASSWORD
+    ) {
       signedIn = await member.verifyPassword(password)
     } else {
       await hash.make(password)

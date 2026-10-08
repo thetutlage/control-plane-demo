@@ -18,7 +18,9 @@ Once a provider is connected, the sign-in page offers it above the password form
 
 The console connects one provider per organization. The table doesn't enforce that, so a second provider later is another row.
 
-Whoever the provider lets through is staff. There is no list of email domains: Okta and Entra hold people on outside emails, such as contractors, and that is the company's choice (plan, "Sign-in").
+The provider can vouch for anyone, whatever their email. There is no list of email domains: Okta and Entra hold people on outside emails, such as contractors, and that is the company's choice. Who it may sign in is decided per member, by an admin ([Who signs in with it](#who-signs-in-with-it)).
+
+The console page is called **Authentication**, in the sidebar under Environments. The provider must be reachable from the internet: one behind a company's firewall can't be connected.
 
 ## The redirect URI
 
@@ -116,31 +118,73 @@ A sign-in makes four requests to the provider: its configuration twice (leaving 
 
 `member_identities` ties a member to the provider's permanent ID for them (`subject`). A member has one identity per provider, and an ID belongs to one member. `ProviderSignInService.admit()` decides:
 
-| What the provider says                             | Result                                                                                       |
-| -------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| An ID we know                                      | That member. Their name and email follow the provider's, unless another member has the email |
-| A new ID, the email of a member with no identity   | Tied to that member. An invited member becomes active                                        |
-| A new ID, an email nobody has                      | A new active member, with no password and no access                                          |
-| A new ID, the email of a member tied to another ID | Refused: the address may have gone to a new person                                           |
-| No email, or `email_verified: false`               | Refused                                                                                      |
-| A suspended member                                 | Refused                                                                                      |
+| What the provider says                                                | Result                                                                                                                       |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| An ID we know                                                         | That member. Their name and email follow the provider's, unless another member has the email                                 |
+| A new ID, the email of a member set to the provider, with no identity | Tied to that member. An invited member becomes active                                                                        |
+| A new ID, an email nobody has                                         | Refused, unless the provider admits newcomers. Then: a new active member set to the provider, with no password and no access |
+| A new ID, the email of a member tied to another ID                    | Refused: the address may have gone to a new person                                                                           |
+| A member set to a password                                            | Refused. Their setting doesn't change                                                                                        |
+| No email, or `email_verified: false`                                  | Refused                                                                                                                      |
+| A suspended member                                                    | Refused                                                                                                                      |
 
 - **Email is used once,** to pick up a member an admin had already added. After that only the ID counts.
 - **Every refusal shows the same page,** "We couldn't sign you in", with `sign_in_refused`. The reason goes to the log (`ProviderSignInException`) and to an event.
 - **Cancelling at the provider** returns to the sign-in page with "Sign-in was cancelled".
 - **A provider that can't be reached** shows "We couldn't reach your company's sign-in".
 
+## Who signs in with it
+
+Each member has a setting, `members.sign_in_method` (`MemberSignInMethod`: PASSWORD 0, PROVIDER 1). **An admin sets it, and only an admin's action changes it.** The way that isn't theirs is refused: the password form refuses a provider member, and the provider refuses a password member. Without a provider connected, everyone is on a password.
+
+| Where the admin sets it                                              | Route                                                   | Controller                          |
+| -------------------------------------------------------------------- | ------------------------------------------------------- | ----------------------------------- |
+| Adding a member: a choice, shown when a provider is connected        | `POST /w/:org/members`                                  | `MembersController.store`           |
+| Who signs in with the provider? Members still on a password, to tick | `GET …/identity-providers/:provider/members/create`     | `ProviderMembersController.create`  |
+| Switching the ticked members, or one from their page                 | `POST …/identity-providers/:provider/members`           | `ProviderMembersController.store`   |
+| Switching one member back to a password, from their page             | `DELETE …/identity-providers/:provider/members/:member` | `ProviderMembersController.destroy` |
+
+- **Connecting a provider changes nobody.** It lands on the "who signs in with it?" page, and the Authentication page keeps a count of members still on a password with a link back to it.
+- **Switching a member signs them out everywhere** (`member.signInWith()`), so the way they signed in before stops counting right away.
+- **A provider member has no password here.** One switched back to a password may have none yet; their page says so. Setting one by email is not built yet.
+- **People the provider lets through whom no admin added** are refused. The provider's edit form has "People my provider lets through can join without being added" (`identity_providers.admits_newcomers`), off by default.
+- **Changing the issuer URL** means a different provider, whose IDs mean nothing to the old one's. The edit form asks to confirm ("I'm replacing the provider") when members are tied to it, then clears the ties. Members stay set to the provider and are matched by email again at their next sign-in.
+- **Removing the provider** switches its members to a password and signs them out. The confirmation says how many.
+
+## The daily re-check
+
+A sign-in through the provider counts for a day (`PROVIDER_RECHECK` in `app/oidc/create_provider.ts`). Someone disabled at the provider loses every app within that long.
+
+- **The session is marked** as signed in through the provider: `amr: ['provider']`, the standard field for how someone authenticated.
+- **Its grants last a day, not 14** (`ttl.Grant`). The app's refresh then fails and it sends the member back to the issuer.
+- **The issuer asks the provider again** when that sign-in is over a day old: a check added to `oidc-provider`'s own sign-in rules (`signInPolicy`, reason `provider_recheck`). Without it, the issuer's 30-day session would let them straight through.
+- **The member isn't asked to click.** The sign-in page sends them back through the provider by itself (`providerRecheck`). If they are still signed in there, they see a redirect and nothing else. Not after an error such as cancelling, which would send them round again.
+- **A member who signs in with a password** is untouched: 14 days, as before.
+
+## Trying it with Google Workspace on your machine
+
+Google accepts `http://localhost` redirect URIs, so a real Workspace works against the dev server.
+
+1. In Google Cloud, in a project under your Workspace organization, set the OAuth consent screen's user type to **Internal**.
+2. Create an OAuth client of type **Web application**, with the redirect URI the Authentication page shows: `http://localhost:3333/sign-in/callback/<organization slug>`.
+3. Connect it on the Authentication page: issuer `https://accounts.google.com`, the client ID and the secret.
+4. Add yourself as a member set to your identity provider, with a role on an app. Or tick "People my provider lets through can join without being added", sign in, and give yourself a role after.
+5. Open the app and choose **Continue with your company account**.
+
+When a sign-in is refused, the reason is in the server log, on a line starting "Sign-in through the identity provider failed".
+
 ## Events
 
 Each change dispatches an event with the provider and the user who made it. Nothing listens yet; the audit log will.
 
-| Event                        | When                                                                         |
-| ---------------------------- | ---------------------------------------------------------------------------- |
-| `IdentityProviderConnected`  | A provider is connected                                                      |
-| `IdentityProviderChanged`    | Its details are saved                                                        |
-| `IdentityProviderRemoved`    | It is removed (the row is gone)                                              |
-| `MemberSignedInWithProvider` | A member signed in through it: `returning`, `matched_by_email` or `created`  |
-| `ProviderSignInRefused`      | Someone the provider let through wasn't signed in, with the reason and email |
+| Event                        | When                                                                                                         |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `IdentityProviderConnected`  | A provider is connected                                                                                      |
+| `IdentityProviderChanged`    | Its details are saved                                                                                        |
+| `IdentityProviderRemoved`    | It is removed (the row is gone)                                                                              |
+| `MemberSignedInWithProvider` | A member signed in through it: `returning`, `matched_by_email` or `created`                                  |
+| `ProviderSignInRefused`      | Someone the provider let through wasn't signed in, with the reason and email                                 |
+| `MemberSignInMethodChanged`  | An admin changed how a member signs in: on the page above, on the member's page, or by removing the provider |
 
 ## Tests
 
@@ -148,4 +192,6 @@ Each change dispatches an event with the provider and the user who made it. Noth
 - `tests/functional/identity_providers/provider_discovery.spec.ts`: the real service against a provider on this machine, and every address and URL it must refuse.
 - `tests/functional/identity_providers/provider_request.spec.ts`: posting to a token endpoint, and the URLs a post must refuse.
 - `tests/browser/oidc/provider_sign_in.spec.ts`: the whole round trip against a real OpenID Connect provider running on the same machine (`setupOrganizationProvider` in `tests/helpers/fake_provider.ts`): each row of the table above, cancelling, a tampered `state`, another organization's path, and an answer opened in another browser.
+- `tests/browser/console/provider_members.spec.ts`: connecting changing nobody, switching members over and back, being signed out on a switch, the choice when adding a member, the newcomers setting, replacing and removing the provider, and another organization's members being out of reach.
+- `tests/browser/oidc/provider_recheck.spec.ts`: a day's tokens for a provider sign-in and 14 for a password, being let through within a day and sent back through the provider after it, and someone the provider turns away not being signed in again.
 - `tests/functional/identity_providers/id_token.spec.ts`: tokens signed with a key made in the test: one that holds up, and one refused for each check.

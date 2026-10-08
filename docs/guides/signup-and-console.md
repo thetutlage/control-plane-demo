@@ -18,7 +18,7 @@ The user is then signed in and redirected to `/w/<org>/overview`.
 The slug appears in console URLs (`/w/acme`) and issuer URLs (`acme.<domain>/oauth`), so it must be:
 
 - 3 to 32 characters, lowercase letters, digits and single hyphens (`acme-corp`, never `acme--corp`). Three is the minimum because DNS reserves `--` in a label's third and fourth characters, and staging's issuer host is `<slug>--staging`;
-- not a reserved word such as `www`, `api`, `login` or `admin`;
+- not a reserved word such as `www`, `api`, `login` or `admin`. `google` and `microsoft` are reserved too, for sign-in callbacks ([Identity provider](identity-provider.md#the-redirect-uri));
 - unused by any other organization.
 
 Slugs can't be renamed.
@@ -38,6 +38,8 @@ Slugs can't be renamed.
 /w/:org/members/:member                           one section per environment
 /w/:org/roles
 /w/:org/settings/environments
+/w/:org/settings/identity-providers               the Authentication page
+/w/:org/settings/identity-providers/:provider/members/create   who signs in with the provider
 ```
 
 Apps, members and roles belong to the organization. An environment is in the URL only where something differs per environment: an app's setup in it.
@@ -63,10 +65,11 @@ Never query a model directly by an id from the request (`Member.find(params.memb
 
 ## Layout
 
-`inertia/layouts/console.tsx` holds the top bar, with the organization name, and the sidebar: Overview, Apps, Members, Roles, then Settings. There's no environment switcher.
+`inertia/layouts/console.tsx` holds the top bar, with the organization name, and the sidebar: Overview, Apps, Members, Roles, then Environments and Authentication. There's no environment switcher.
 
 - **Environments appear where they differ:** as tabs on an app's pages (`inertia/components/app_screen.tsx`), with a dot filled when the app is set up there, and as sections on a member's page.
 - **Environments are shown as an `EnvironmentBadge`** (`inertia/components/environment_badge.tsx`), colored by kind, production in red, never as a sentence like "in Production".
-- **Settings → Environments** lists each environment with its issuer URL and how many apps are set up in it.
+- **Environments** lists each environment with its issuer URL and how many apps are set up in it.
+- **Authentication** is how members prove who they are: the organization's [identity provider](identity-provider.md), and who signs in with it.
 
 The layout and pages get the organization and its environments, in order, from shared props (`app/middleware/inertia_middleware.ts`): `organization` and `environments`.

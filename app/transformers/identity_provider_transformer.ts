@@ -8,7 +8,7 @@ import { BaseTransformer } from '@adonisjs/core/transformers'
 export default class IdentityProviderTransformer extends BaseTransformer<IdentityProvider> {
   toObject() {
     return {
-      ...this.pick(this.resource, ['id', 'issuer', 'clientId']),
+      ...this.pick(this.resource, ['id', 'issuer', 'clientId', 'admitsNewcomers']),
       secretHint: this.resource.clientSecretHint,
     }
   }

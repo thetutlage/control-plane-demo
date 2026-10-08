@@ -8,6 +8,7 @@ Organization ── Acme
 ├── Apps ............. internal apps, registered once
 ├── Permission catalogue
 ├── Roles
+├── Identity provider  the company's own provider, which members sign in with
 └── Environments ..... development, staging, production
     ├── App setups ... each app's credentials and URLs here, once it reaches this stage
     ├── Sign-ins ..... sessions, grants and tokens at this environment's issuer
