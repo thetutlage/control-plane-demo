@@ -46,7 +46,6 @@ test.group('Console identity provider', (group) => {
     await page.getByRole('link', { name: 'Connect your identity provider', exact: true }).click()
     await page.assertVisible(page.getByText(acme.organization.signInCallbackUrl(), { exact: true }))
 
-    await page.getByLabel('Email domains', { exact: true }).fill('Acme.com\n@acme.io, acme.com')
     await page.getByLabel('Issuer URL', { exact: true }).fill(PROVIDER.issuer)
     await page.getByLabel('Client ID', { exact: true }).fill(PROVIDER.clientId)
     await page.getByLabel('Client secret', { exact: true }).fill(PROVIDER.clientSecret)
@@ -55,8 +54,6 @@ test.group('Console identity provider', (group) => {
     await page.assertPath(route('identity_providers.index', { org: 'acme' }))
     await page.assertVisible(page.getByText('Connected your identity provider.', { exact: true }))
     const panel = page.getByRole('region', { name: 'Identity provider', exact: true })
-    await page.assertVisible(panel.getByText('acme.com', { exact: true }))
-    await page.assertVisible(panel.getByText('acme.io', { exact: true }))
     await page.assertVisible(panel.getByText(PROVIDER.issuer, { exact: true }))
     await page.assertVisible(panel.getByText(PROVIDER.clientId, { exact: true }))
     await page.assertVisible(panel.getByText('••••••••wxyz', { exact: true }))
@@ -69,7 +66,6 @@ test.group('Console identity provider', (group) => {
       'organizationId',
       acme.organization.id
     )
-    assert.deepEqual(identityProvider.domains, ['acme.com', 'acme.io'])
     assert.notInclude(identityProvider.clientSecret, PROVIDER.clientSecret)
     assert.equal(identityProvider.secret, PROVIDER.clientSecret)
 
@@ -104,7 +100,6 @@ test.group('Console identity provider', (group) => {
 
     await browserContext.loginAs(acme.user)
     const page = await visit(route('identity_providers.create', { org: 'acme' }))
-    await page.getByLabel('Email domains', { exact: true }).fill('acme.com')
     await page.getByLabel('Issuer URL', { exact: true }).fill('https://acme.okta.com/typo')
     await page.getByLabel('Client ID', { exact: true }).fill(PROVIDER.clientId)
     await page.getByLabel('Client secret', { exact: true }).fill(PROVIDER.clientSecret)
@@ -113,34 +108,6 @@ test.group('Console identity provider', (group) => {
     await page.assertVisible(page.getByText('The issuer URL could not be reached', { exact: true }))
     await db.assertEmpty('identity_providers')
   })
-
-  test('refuses {domains} as email domains')
-    .with([
-      { domains: 'acme', message: '"acme" is not an email domain. Enter domains like acme.com' },
-      {
-        domains: 'https://acme.com',
-        message: '"https://acme.com" is not an email domain. Enter domains like acme.com',
-      },
-      {
-        domains: 'sara@acme.com',
-        message: '"sara@acme.com" is not an email domain. Enter domains like acme.com',
-      },
-    ])
-    .run(async ({ visit, route, swap, db, browserContext }, { domains, message }) => {
-      swap(ProviderDiscoveryService, () => new StubbedProviderDiscovery())
-      const acme = await setupOnboardedOrganization({ slug: 'acme' })
-
-      await browserContext.loginAs(acme.user)
-      const page = await visit(route('identity_providers.create', { org: 'acme' }))
-      await page.getByLabel('Email domains', { exact: true }).fill(domains)
-      await page.getByLabel('Issuer URL', { exact: true }).fill(PROVIDER.issuer)
-      await page.getByLabel('Client ID', { exact: true }).fill(PROVIDER.clientId)
-      await page.getByLabel('Client secret', { exact: true }).fill(PROVIDER.clientSecret)
-      await page.getByRole('button', { name: 'Connect', exact: true }).click()
-
-      await page.assertVisible(page.getByText(message, { exact: true }))
-      await db.assertEmpty('identity_providers')
-    })
 
   test('editing with a blank secret keeps the current one', async ({
     assert,
@@ -160,14 +127,14 @@ test.group('Console identity provider', (group) => {
     await page.assertVisible(
       page.getByText('Leave blank to keep the current secret, ending in wxyz.', { exact: true })
     )
-    await page.getByLabel('Email domains', { exact: true }).fill('acme.com\nacme.co.uk')
+    await page.getByLabel('Client ID', { exact: true }).fill('0oa9z8y7x6')
     await page.getByRole('button', { name: 'Save', exact: true }).click()
 
     await page.assertPath(route('identity_providers.index', { org: 'acme' }))
-    await page.assertVisible(page.getByText('acme.co.uk', { exact: true }))
+    await page.assertVisible(page.getByText('0oa9z8y7x6', { exact: true }))
 
     await identityProvider.refresh()
-    assert.deepEqual(identityProvider.domains, ['acme.com', 'acme.co.uk'])
+    assert.equal(identityProvider.clientId, '0oa9z8y7x6')
     assert.equal(identityProvider.secret, PROVIDER.clientSecret)
     fakeEmitter.assertEmitted(events.IdentityProviderChanged)
   })

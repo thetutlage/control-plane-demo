@@ -58,7 +58,6 @@ export default {
     identity_providers: {
       columns: {
         kind: valueColumn('IdentityProviderKind', 'identity_provider_kind'),
-        domains: { tsType: 'string[]', decorators: [{ name: '@column' }] },
       },
     },
   },

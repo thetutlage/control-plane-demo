@@ -128,7 +128,7 @@ export class EnvironmentSchema extends BaseModel {
 }
 
 export class IdentityProviderSchema extends BaseModel {
-  static $columns = ['clientId', 'clientSecret', 'clientSecretHint', 'createdAt', 'domains', 'id', 'issuer', 'kind', 'organizationId', 'updatedAt'] as const
+  static $columns = ['clientId', 'clientSecret', 'clientSecretHint', 'createdAt', 'id', 'issuer', 'kind', 'organizationId', 'updatedAt'] as const
   $columns = IdentityProviderSchema.$columns
   @column()
   declare clientId: string
@@ -138,8 +138,6 @@ export class IdentityProviderSchema extends BaseModel {
   declare clientSecretHint: string
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
-  @column()
-  declare domains: string[]
   @column()
   declare id: number
   @column()

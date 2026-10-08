@@ -9,8 +9,7 @@ type Props = {
 
 /**
  * The redirect URI to register at the identity provider, then the fields
- * that connect it: the staff email domains and the client the company
- * created at the provider. `values` prefills them when editing, where a
+ * that connect it: the client the company created at the provider. `values` prefills them when editing, where a
  * blank client secret keeps the current one.
  */
 export default function IdentityProviderFields({ redirectUri, errors, values }: Props) {
@@ -25,27 +24,6 @@ export default function IdentityProviderFields({ redirectUri, errors, values }: 
           <code className="mono">{redirectUri}</code>
           <CopyButton value={redirectUri} label="Copy redirect URI" />
         </span>
-      </div>
-
-      <div className="field">
-        <label className="field__label" htmlFor="domains">
-          Email domains
-        </label>
-        <textarea
-          id="domains"
-          name="domains"
-          rows={2}
-          className="field__input field__input--textarea mono"
-          spellCheck={false}
-          placeholder="acme.com"
-          defaultValue={values?.domains.join('\n')}
-          aria-describedby="domainsHint"
-          aria-invalid={errors.domains ? 'true' : 'false'}
-        />
-        <span id="domainsHint" className="field__hint">
-          One per line. People with an email on these domains are your staff.
-        </span>
-        {errors.domains && <span className="field__error">{errors.domains}</span>}
       </div>
 
       <div className="field">

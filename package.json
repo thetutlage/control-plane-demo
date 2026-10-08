@@ -24,6 +24,7 @@
     "#mails/*": "./app/mails/*.js",
     "#services/*": "./app/services/*.js",
     "#oidc/*": "./app/oidc/*.js",
+    "#identity_providers/*": "./app/identity_providers/*.js",
     "#listeners/*": "./app/listeners/*.js",
     "#events/*": "./app/events/*.js",
     "#generated/*": "./.adonisjs/server/*.js",
@@ -65,6 +66,7 @@
     "youch": "^4.1.1"
   },
   "dependencies": {
+    "@adonisjs/ally": "^6.3.1",
     "@adonisjs/auth": "^10.1.0",
     "@adonisjs/core": "^7.5.2",
     "@adonisjs/cors": "^3.0.0",
@@ -80,6 +82,7 @@
     "@tuyau/core": "^1.2.2",
     "@vinejs/vine": "^4.4.0",
     "edge.js": "^6.5.1",
+    "jose": "^6.2.12",
     "lucide-react": "^1.48.0",
     "luxon": "^3.7.2",
     "oidc-provider": "9.12.2",
@@ -98,6 +101,9 @@
   "overrides": {
     "eslint-plugin-react": {
       "eslint": "$eslint"
+    },
+    "@adonisjs/ally": {
+      "@adonisjs/inertia": "$@adonisjs/inertia"
     }
   },
   "allowScripts": {

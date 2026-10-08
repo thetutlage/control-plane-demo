@@ -1,7 +1,16 @@
 import { test } from '@japa/runner'
 import type { AddressInfo } from 'node:net'
 import { createServer, type RequestListener } from 'node:http'
+import ProviderRequestService from '#services/provider_request_service'
 import ProviderDiscoveryService from '#services/provider_discovery_service'
+
+/**
+ * The discovery service, sending its requests with the given options.
+ * `allowLocal` lets it reach a provider on this machine.
+ */
+const discoveryWith = (options: { allowLocal?: boolean; timeout?: number } = {}) => {
+  return new ProviderDiscoveryService(new ProviderRequestService(options))
+}
 
 /**
  * Starts a provider on this machine for one test, answering its discovery
@@ -58,7 +67,7 @@ test.group('Provider discovery', () => {
       json(configuration(self))(request, response)
     })
 
-    const result = await new ProviderDiscoveryService({ allowLocal: true }).discover(issuer)
+    const result = await discoveryWith({ allowLocal: true }).discover(issuer)
 
     assert.deepEqual(result, {
       metadata: {
@@ -74,7 +83,7 @@ test.group('Provider discovery', () => {
   test('refuses a provider that calls itself something else', async ({ assert }) => {
     const issuer = await startProvider(() => json(configuration('https://accounts.google.com')))
 
-    const result = await new ProviderDiscoveryService({ allowLocal: true }).discover(issuer)
+    const result = await discoveryWith({ allowLocal: true }).discover(issuer)
 
     assert.deepEqual(result, {
       problem:
@@ -92,7 +101,7 @@ test.group('Provider discovery', () => {
       response.writeHead(302, { location: `${target}/.well-known/openid-configuration` }).end()
     })
 
-    const result = await new ProviderDiscoveryService({ allowLocal: true }).discover(issuer)
+    const result = await discoveryWith({ allowLocal: true }).discover(issuer)
 
     assert.property(result, 'problem')
     assert.isFalse(followed)
@@ -112,7 +121,7 @@ test.group('Provider discovery', () => {
     .run(async ({ assert }, { handler, problem }) => {
       const issuer = await startProvider(handler)
 
-      const result = await new ProviderDiscoveryService({ allowLocal: true }).discover(issuer)
+      const result = await discoveryWith({ allowLocal: true }).discover(issuer)
 
       assert.include((result as { problem: string }).problem, problem)
     })
@@ -120,9 +129,7 @@ test.group('Provider discovery', () => {
   test('gives up on a provider that does not answer in time', async ({ assert }) => {
     const issuer = await startProvider(() => () => {})
 
-    const result = await new ProviderDiscoveryService({ allowLocal: true, timeout: 200 }).discover(
-      issuer
-    )
+    const result = await discoveryWith({ allowLocal: true, timeout: 200 }).discover(issuer)
 
     assert.include((result as { problem: string }).problem, 'could not be reached')
   })
@@ -143,7 +150,7 @@ test.group('Provider discovery', () => {
       'https://[fe80::1]',
     ])
     .run(async ({ assert }, issuer) => {
-      const result = await new ProviderDiscoveryService().discover(issuer)
+      const result = await discoveryWith().discover(issuer)
 
       assert.deepEqual(result, { problem: 'must be reachable from the internet' })
     })
@@ -151,7 +158,7 @@ test.group('Provider discovery', () => {
   test('lets {$self} through, which is on the public internet')
     .with(['https://8.8.8.8', 'https://1.1.1.1', 'https://[2001:4860:4860::8888]'])
     .run(async ({ assert }, issuer) => {
-      const result = await new ProviderDiscoveryService({ timeout: 1 }).discover(issuer)
+      const result = await discoveryWith({ timeout: 1 }).discover(issuer)
 
       assert.notDeepEqual(result, { problem: 'must be reachable from the internet' })
       assert.property(result, 'problem')
@@ -172,13 +179,13 @@ test.group('Provider discovery', () => {
       },
     ])
     .run(async ({ assert }, { issuer, problem }) => {
-      const result = await new ProviderDiscoveryService().discover(issuer)
+      const result = await discoveryWith().discover(issuer)
 
       assert.deepEqual(result, { problem })
     })
 
   test('refuses a host that does not exist', async ({ assert }) => {
-    const result = await new ProviderDiscoveryService().discover('https://no-such-host.invalid')
+    const result = await discoveryWith().discover('https://no-such-host.invalid')
 
     assert.include((result as { problem: string }).problem, 'could not be reached')
   })

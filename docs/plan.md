@@ -167,13 +167,13 @@ Sources: [WorkOS RBAC](https://workos.com/docs/rbac/integration), [WorkOS permis
 
 ### Sign-in
 
-_Decided 2026-10-07._
+_Decided 2026-10-07; staff and guests redefined 2026-10-08._
 
 **The identity provider says who someone is. Backlit says what they can do.** The two are kept separate: no role or app access is ever derived from the provider's groups or attributes. Every role a member holds was given in Backlit, by a named person or by an app's default role.
 
 |                   | Staff                                                     | Guests                                 |
 | ----------------- | --------------------------------------------------------- | -------------------------------------- |
-| Who               | An email on one of the company's domains                  | Any other email: contractors, auditors |
+| Who               | Anyone the company's identity provider lets through       | Someone invited as a guest: an auditor |
 | Signs in with     | The company's identity provider, always                   | A Backlit password, with TOTP          |
 | How they arrive   | Their first sign-in, or an invite                         | An invite only                         |
 | Access comes from | Invites and grants in Backlit, or an app's default role   | Invites and grants in Backlit          |
@@ -181,12 +181,14 @@ _Decided 2026-10-07._
 
 - **One identity provider per organization,** connected over OIDC with the company's own client at its own provider (issuer URL, client ID, secret). Whatever that provider says is authoritative, because it is the company's own tenant. A shared "Sign in with Google" client is not used for members: it would mean trusting an email from a provider that may not own the domain.
 - **The provider belongs to the organization,** like members do. The company registers one redirect URI, on the console host: `https://<domain>/sign-in/callback/<org slug>`. That URL only forwards the browser to the environment's issuer host that started the sign-in, which holds the session and exchanges the code. One central URL is what a shared Google or Microsoft client needs later (they allow no wildcards), and a URL per provider is the mix-up defence RFC 9700 asks for when the provider doesn't send `iss`.
-- **The sign-in page asks for the email first.** Staff domains go to the provider; other emails get the password field. A staff email can never use a password. An organization with no provider is the same model with everyone a guest.
-- **A first sign-in creates the member,** with no access. They see "You don't have access to Invoices" and show up in the console as waiting. The first match is by verified email; after that the member is pinned to the provider's `sub`, which never changes.
+- **Staff are whoever the provider lets through,** whatever their email. _(Researched 2026-10-08.)_ Google Workspace accounts are always on the company's domains, but Okta ties users to no domain (an admin can add `designer@gmail.com`) and Entra has guests with outside emails. Putting contractors in the provider is how IT keeps one place to cut access, so we don't hold a list of email domains.
+- **Why WorkOS's domain rule doesn't apply.** WorkOS rejects a profile whose email isn't on a domain the organization has proven it owns, because the products built on it keep one user per email across all their customers: Foo's admin could create `sara@bar.com` in Foo's provider and sign in as Bar's Sara. Our members belong to one organization, sign in on that organization's issuer host, and are only looked up among its members, so a provider can only ever vouch for its own company's members. **The rule becomes necessary the day anything joins people across organizations by email.** Console users are already global by email, so they must never sign in through an organization's own provider.
+- **The sign-in page shows the provider's button,** with "Sign in with a password instead" for guests. There is no email-first step. A member who signs in through the provider has no password. An organization with no provider is the same model with everyone a guest.
+- **A first sign-in creates the member,** with no access. They see "You don't have access to Invoices" and show up in the console as waiting. The first match is by email; after that the member is pinned to the provider's `sub`, which never changes. The token must carry an email, and is refused only when the provider says it is unverified: Okta sends that flag, Entra has none and calls its email claim "not guaranteed to be correct", so requiring it would lock Entra out. Inside a company the email is a field an admin sets, and the exposure is narrow: someone able to change their own email to a colleague's, before that colleague's first sign-in, would get the roles waiting for them. A first sign-in matched by email is recorded for the audit log.
 - **Staff are re-checked with the provider daily:** their grants last a day instead of 14, so apps send them back through the provider, silently if they are still signed in there. SCIM (Release 2) makes it immediate.
 - **Why no rules from provider attributes.** Providers hold organizational groups (Finance, Engineering), not "Approver on Invoices". Exact mapping needs IT to keep one group per app role, and mixing rules with manual changes has no clean answer: either a rule silently undoes an admin's change, or a rule-given role can't be taken from one person. Our buyer is the engineering lead, who often doesn't run the provider. Group mapping is a Release 2 opt-in if deals ask.
 - **Why one provider.** Companies with two office suites usually sign in through one; a second provider mostly arrives with an acquisition. No public data covers companies of 50 to 500 people, so ask prospects: "Where do your staff sign in today, and is there anyone who signs in somewhere else?" The provider row holds its own domains, so a second provider later is another row, not a redesign.
-- **Built on `@adonisjs/ally`,** with one generic OIDC driver that adds discovery and PKCE, created per request from the organization's provider. TOTP comes from the flow's two-factor pack (`withTotpManagement` on `Member`).
+- **Built on `@adonisjs/ally`,** (`^6.3.1`; npm's `latest` tag points at the AdonisJS 6 line) with one generic OIDC driver that adds discovery and ID token verification, created per request from the organization's provider. TOTP comes from the flow's two-factor pack (`withTotpManagement` on `Member`).
 
 **Rules the sign-in must follow** _(researched 2026-10-07; check each one off in the guide when its step is built)_
 
@@ -203,10 +205,10 @@ _Decided 2026-10-07._
 
 **Steps:**
 
-1. Sign-in settings in the console: the provider's details and the company's domains. _Built 2026-10-08 ([guide](guides/identity-provider.md)): rules 1 (the URL), 8 and the events of rule 10. The saved provider isn't used for sign-in yet._
-2. The OIDC driver and the sign-in, creating the member on first sign-in.
-3. The email-first sign-in page, and the daily re-check for staff.
-4. Invites with roles, with mail set up.
+1. Sign-in settings in the console: the provider's details. _Built 2026-10-08 ([guide](guides/identity-provider.md)): rules 1 (the URL), 8 and the events of rule 10. The saved provider isn't used for sign-in yet._
+2. The OIDC driver and the sign-in, creating the member on first sign-in. _Part A built 2026-10-08: the driver on Ally, requests to the provider (rule 8, now for every provider URL) and ID token verification (rule 4). Part B is the flow: the routes, the forwarding callback and matching the member._
+3. Passwords off for members who sign in through the provider, and the daily re-check for staff.
+4. Invites with roles, as staff or as a guest, with mail set up.
 5. Waiting members in the console, and a default role per app.
 6. TOTP for guests.
 7. Real providers (Google Workspace, Entra, Okta), with a setup guide for each.

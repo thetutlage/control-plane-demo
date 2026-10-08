@@ -1,4 +1,4 @@
-import { belongsTo, column } from '@adonisjs/lucid/orm'
+import { belongsTo } from '@adonisjs/lucid/orm'
 import encryption from '@adonisjs/core/services/encryption'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { IdentityProviderSchema } from '#database/schema'
@@ -8,15 +8,9 @@ const SECRET_PURPOSE = 'identity_providers.client_secret'
 
 /**
  * The company's own identity provider, which its staff sign in with: the
- * OIDC client the company created there, and its staff email domains
+ * OIDC client the company created there
  */
 export default class IdentityProvider extends IdentityProviderSchema {
-  /**
-   * pg would send a JS array as a Postgres array, not as JSON
-   */
-  @column({ prepare: (value: string[]) => JSON.stringify(value) })
-  declare domains: string[]
-
   @belongsTo(() => Organization)
   declare organization: BelongsTo<typeof Organization>
 

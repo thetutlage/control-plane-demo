@@ -66,7 +66,6 @@ export default class IdentityProvidersController {
     })
     const identityProvider = await organization.related('identityProviders').create({
       kind: IdentityProviderKind.OIDC,
-      domains: payload.domains,
       issuer: payload.issuer,
       clientId: payload.clientId,
       ...IdentityProvider.encryptSecret(payload.clientSecret),
@@ -105,7 +104,6 @@ export default class IdentityProvidersController {
     })
 
     identityProvider.merge({
-      domains: payload.domains,
       issuer: payload.issuer,
       clientId: payload.clientId,
       ...(payload.clientSecret ? IdentityProvider.encryptSecret(payload.clientSecret) : {}),

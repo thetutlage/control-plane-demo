@@ -94,17 +94,6 @@ export default function IdentityProvidersIndex({
           </p>
 
           <dl className="kv">
-            <dt>Email domains</dt>
-            <dd>
-              <ul className="kv__list">
-                {identityProvider.domains.map((domain) => (
-                  <li key={domain}>
-                    <code className="mono">{domain}</code>
-                  </li>
-                ))}
-              </ul>
-            </dd>
-
             <dt>Issuer URL</dt>
             <dd>
               <code className="mono">{identityProvider.issuer}</code>
