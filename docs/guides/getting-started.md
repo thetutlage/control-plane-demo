@@ -8,7 +8,7 @@
 ## Run it
 
 ```sh
-docker compose up -d        # PostgreSQL 17 on port 5433
+docker compose up -d        # PostgreSQL 17 on port 5433, Mailpit on 8025
 npm install
 node ace migration:run
 npm run dev                 # http://localhost:3333

@@ -1,4 +1,5 @@
 import { test } from '@japa/runner'
+import mail from '@adonisjs/mail/services/main'
 import db from '@adonisjs/lucid/services/db'
 import testUtils from '@adonisjs/core/services/test_utils'
 import {
@@ -13,33 +14,75 @@ import {
 } from '#tests/helpers/oidc'
 import { MemberStatus } from '#values/member_status'
 import { setupOnboardedOrganization } from '#tests/helpers/organizations'
+import { MemberSignInMethod } from '#values/member_sign_in_method'
+import SetPasswordNotification from '#mails/set_password_notification'
+import { linkIn } from '#tests/helpers/mail'
 
 test.group('Console members', (group) => {
   group.each.setup(() => testUtils.db().truncate())
 
-  test('an admin adds a member who can sign in right away', async ({
+  test('an admin adds a member, who gets an email to set their password from', async ({
     visit,
     route,
     browserContext,
     assert,
   }) => {
     const acme = await setupOnboardedOrganization({ slug: 'acme' })
+    const mailer = mail.fake()
 
     await browserContext.loginAs(acme.user)
     const page = await visit(route('members.index', { org: 'acme' }))
     await page.getByRole('link', { name: 'Add member', exact: true }).click()
+    await page.assertNotExists(page.getByLabel('Password', { exact: true }))
     await page.getByLabel('Full name', { exact: true }).fill('Sara Lee')
     await page.getByLabel('Email', { exact: true }).fill('sara@acme.test')
-    await page.getByLabel('Password', { exact: true }).fill('correct-horse')
     await page.getByRole('button', { name: 'Add member', exact: true }).click()
 
     await page.assertPath(route('members.index', { org: 'acme' }))
-    await page.assertVisible(page.getByRole('cell', { name: 'sara@acme.test', exact: true }))
+    await page.assertVisible(
+      page.getByText('Emailed sara@acme.test a link to set their password.', { exact: true })
+    )
 
     const member = await acme.organization.related('members').query().firstOrFail()
     assert.equal(member.status, MemberStatus.ACTIVE)
-    assert.notEqual(member.password, 'correct-horse', 'the password must be hashed')
-    assert.isTrue(await member.verifyPassword('correct-horse'))
+    assert.equal(member.signInMethod, MemberSignInMethod.PASSWORD)
+    assert.isNull(member.password)
+
+    const [setup] = mailer.mails.queued((queued) => queued instanceof SetPasswordNotification)
+    setup.message.assertTo('sara@acme.test')
+    setup.message.assertSubject('Set your password for acme Inc.')
+    assert.match(await linkIn(setup), /^http:\/\/acme\.localhost:\d+\/password-resets\//)
+  })
+
+  test('an admin emails a member the link to set a password again', async ({
+    visit,
+    route,
+    assert,
+    browserContext,
+  }) => {
+    const acme = await setupOnboardedOrganization({ slug: 'acme' })
+    const sara = await acme.organization.createMember({
+      email: 'sara@acme.test',
+      fullName: 'Sara',
+      status: MemberStatus.ACTIVE,
+    })
+    await sara.sendPasswordSetup()
+    const mailer = mail.fake()
+
+    await browserContext.loginAs(acme.user)
+    const page = await visit(route('members.show', { org: 'acme', member: sara.id }))
+    await page.assertVisible(page.getByText('They have not set a password yet.'))
+    await page.getByRole('button', { name: 'Email a link to set a password', exact: true }).click()
+
+    await page.assertVisible(
+      page.getByText('Emailed sara@acme.test a link to set their password.', { exact: true })
+    )
+    mailer.mails.assertQueuedCount(SetPasswordNotification, 1)
+    assert.lengthOf(
+      await db.from('password_reset_tokens'),
+      1,
+      'the link sent earlier must stop working'
+    )
   })
 
   test('an email can be added once per organization', async ({ visit, route, browserContext }) => {
@@ -53,7 +96,6 @@ test.group('Console members', (group) => {
     await browserContext.loginAs(acme.user)
     const page = await visit(route('members.create', { org: 'acme' }))
     await page.getByLabel('Email', { exact: true }).fill('sara@acme.test')
-    await page.getByLabel('Password', { exact: true }).fill('correct-horse')
     await page.getByRole('button', { name: 'Add member', exact: true }).click()
 
     await page.assertVisible(page.getByText('The email has already been taken'))

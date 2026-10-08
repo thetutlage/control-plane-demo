@@ -79,9 +79,9 @@ Errors are **rendered in the response to the failing request**, with its real st
 
 When the organization has connected its identity provider, the page shows **Continue with your company account** above the password form. That path is in [Identity provider](identity-provider.md#signing-in). It ends in the same `interactionResult` call, so access to the app, single sign-on and tokens work the same either way.
 
-## Not built yet
+## Forgot password
 
-- Inviting members to choose their own password.
+**Forgot password?** under the form leads to [Passwords and email](passwords.md).
 
 ## Tests
 

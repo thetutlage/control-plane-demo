@@ -31,7 +31,7 @@ export default function ProviderMembersCreate({
   return (
     <Page
       title="Who signs in with your identity provider?"
-      description="These members sign in with a password. Nobody changes until you switch them, and a member you switch is signed out everywhere and can no longer use a password."
+      description="These members sign in with a password. Nobody changes until you switch them, and a member you switch is signed out everywhere, can no longer use a password, and gets an email saying so."
     >
       <Form
         route="identity_providers.members.store"

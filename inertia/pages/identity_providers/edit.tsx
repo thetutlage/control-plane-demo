@@ -43,8 +43,8 @@ export default function IdentityProvidersEdit({
                 />
                 People my provider lets through can join without being added
                 <span className="check__hint">
-                  They become members with no access to any app. When this is off, only members you
-                  set to sign in with your provider can.
+                  They become members with no access to any app until you give them a role. When
+                  this is off, only members you set to sign in with your provider can.
                 </span>
               </label>
             </div>

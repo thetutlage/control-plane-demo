@@ -51,6 +51,12 @@ export interface ApiDefinition {
     create: typeof routes['members.create']
     store: typeof routes['members.store']
     show: typeof routes['members.show']
+    passwordResets: {
+      store: typeof routes['members.password_resets.store']
+    }
+    identities: {
+      destroy: typeof routes['members.identities.destroy']
+    }
   }
   memberSessions: {
     destroy: typeof routes['member_sessions.destroy']
@@ -86,4 +92,10 @@ export interface ApiDefinition {
   }
   redirectToProvider: typeof routes['redirect_to_provider']
   signInWithProvider: typeof routes['sign_in_with_provider']
+  passwordResets: {
+    create: typeof routes['password_resets.create']
+    store: typeof routes['password_resets.store']
+    show: typeof routes['password_resets.show']
+    update: typeof routes['password_resets.update']
+  }
 }

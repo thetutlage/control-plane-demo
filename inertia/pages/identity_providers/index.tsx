@@ -60,7 +60,7 @@ function ProviderActions({
               <p>
                 {membersCount === 0
                   ? 'Nobody signs in with it yet.'
-                  : `${membersCount} ${membersCount === 1 ? 'member signs' : 'members sign'} in with it. They switch to a password, are signed out everywhere, and can't sign in until they have a password.`}
+                  : `${membersCount} ${membersCount === 1 ? 'member signs' : 'members sign'} in with it. They switch to a password, are signed out everywhere, and get an email to set one.`}
               </p>
               <div className="client__confirm-actions">
                 <button type="submit" className="btn btn--danger btn--sm" disabled={processing}>

@@ -1,4 +1,5 @@
 import { test } from '@japa/runner'
+import mail from '@adonisjs/mail/services/main'
 import type { Page } from 'playwright'
 import { events } from '#generated/events'
 import emitter from '@adonisjs/core/services/emitter'
@@ -7,6 +8,8 @@ import type Organization from '#models/organization'
 import MemberIdentity from '#models/member_identity'
 import { MemberStatus } from '#values/member_status'
 import { MemberSignInMethod } from '#values/member_sign_in_method'
+import SetPasswordNotification from '#mails/set_password_notification'
+import ProviderSignInNotification from '#mails/provider_sign_in_notification'
 import ProviderDiscoveryService from '#services/provider_discovery_service'
 import { setupOnboardedOrganization } from '#tests/helpers/organizations'
 import { giveAccess, MEMBER, setupApp, setupMember, visitIssuer } from '#tests/helpers/oidc'
@@ -160,20 +163,30 @@ test.group('Console provider members', (group) => {
       status: MemberStatus.ACTIVE,
       signInMethod: MemberSignInMethod.PROVIDER,
     })
+    const mailer = mail.fake()
 
     await browserContext.loginAs(acme.user)
     const page = await visit(route('members.show', { org: 'acme', member: sara.id }))
+    await page.assertNotExists(
+      page.getByRole('button', { name: 'Email a link to set a password', exact: true })
+    )
     await page.getByRole('button', { name: 'Switch to a password', exact: true }).click()
 
     await page.assertVisible(
-      page.getByText('sara@acme.test now signs in with a password.', { exact: true })
+      page.getByText(
+        'sara@acme.test now signs in with a password. We emailed them a link to set it.',
+        { exact: true }
+      )
     )
-    await page.assertVisible(page.getByText('They have no password yet.'))
+    await page.assertVisible(page.getByText('They have not set a password yet.'))
     await sara.refresh()
     assert.equal(sara.signInMethod, MemberSignInMethod.PASSWORD)
+    mailer.mails.assertQueued(SetPasswordNotification, ({ message }) =>
+      message.hasTo('sara@acme.test')
+    )
   })
 
-  test("without a provider, a member's page offers no choice", async ({
+  test("without a provider, a member's page offers no switch", async ({
     visit,
     route,
     browserContext,
@@ -184,17 +197,20 @@ test.group('Console provider members', (group) => {
     await browserContext.loginAs(acme.user)
     const page = await visit(route('members.show', { org: 'acme', member: sara.id }))
 
-    await page.assertNotExists(page.getByRole('region', { name: 'Sign-in', exact: true }))
+    await page.assertVisible(page.getByRole('heading', { name: 'Signs in with a password' }))
+    await page.assertNotExists(page.getByRole('button', { name: /^Switch to (a|your)/ }))
   })
 
-  test('adding a member set to the provider stores no password', async ({
+  test('adding a member set to the provider stores no password, and tells them', async ({
     assert,
     visit,
     route,
+    db,
     browserContext,
   }) => {
     const acme = await setupOnboardedOrganization({ slug: 'acme' })
     await setupConnectedProvider(acme.organization)
+    const mailer = mail.fake()
 
     await browserContext.loginAs(acme.user)
     const page = await visit(route('members.create', { org: 'acme' }))
@@ -211,33 +227,39 @@ test.group('Console provider members', (group) => {
     const sara = await acme.organization.related('members').query().firstOrFail()
     assert.equal(sara.signInMethod, MemberSignInMethod.PROVIDER)
     assert.isNull(sara.password)
+    mailer.mails.assertQueued(ProviderSignInNotification, ({ message }) =>
+      message.hasTo('sara@acme.test')
+    )
+    mailer.mails.assertNotQueued(SetPasswordNotification)
+    await db.assertEmpty('password_reset_tokens')
   })
 
-  test('adding a member set to a password needs one', async ({
+  test('adding a member set to a password emails them a link to set it', async ({
     assert,
     visit,
     route,
-    db,
     browserContext,
   }) => {
     const acme = await setupOnboardedOrganization({ slug: 'acme' })
     await setupConnectedProvider(acme.organization)
+    const mailer = mail.fake()
 
     await browserContext.loginAs(acme.user)
     const page = await visit(route('members.create', { org: 'acme' }))
     await page.getByRole('radio', { name: /^A password/ }).check()
     await page.getByLabel('Email', { exact: true }).fill('auditor@firm.test')
     await page.getByRole('button', { name: 'Add member', exact: true }).click()
-    await page.assertVisible(page.getByText('The password field must be defined'))
-    await db.assertEmpty('members')
 
-    await page.getByLabel('Password', { exact: true }).fill('correct-horse')
-    await page.getByRole('button', { name: 'Add member', exact: true }).click()
-
-    await page.assertVisible(page.getByText('auditor@firm.test can now sign in.', { exact: true }))
+    await page.assertVisible(
+      page.getByText('Emailed auditor@firm.test a link to set their password.', { exact: true })
+    )
     const auditor = await acme.organization.related('members').query().firstOrFail()
     assert.equal(auditor.signInMethod, MemberSignInMethod.PASSWORD)
-    assert.isNotNull(auditor.password)
+    assert.isNull(auditor.password)
+    mailer.mails.assertQueued(SetPasswordNotification, ({ message }) =>
+      message.hasTo('auditor@firm.test')
+    )
+    mailer.mails.assertNotQueued(ProviderSignInNotification)
   })
 
   test('people the provider lets through are refused until the admin lets them join', async ({
@@ -367,26 +389,32 @@ test.group('Console provider members', (group) => {
       signInMethod: MemberSignInMethod.PROVIDER,
     })
     await passwordMember(acme.organization, 'auditor@firm.test')
+    const mailer = mail.fake()
 
     await browserContext.loginAs(acme.user)
     const page = await visit(route('identity_providers.index', { org: 'acme' }))
     await page.getByRole('button', { name: 'Remove', exact: true }).click()
     await page.assertVisible(
       page.getByText(
-        "They switch to a password, are signed out everywhere, and can't sign in until they have a password.",
+        'They switch to a password, are signed out everywhere, and get an email to set one.',
         { exact: false }
       )
     )
     await page.getByRole('button', { name: 'Yes, remove', exact: true }).click()
 
     await page.assertVisible(
-      page.getByText('Removed your identity provider. 1 member now signs in with a password.', {
-        exact: true,
-      })
+      page.getByText(
+        'Removed your identity provider. 1 member now signs in with a password, and got an email to set one.',
+        { exact: true }
+      )
     )
     await db.assertEmpty('identity_providers')
     await sara.refresh()
     assert.equal(sara.signInMethod, MemberSignInMethod.PASSWORD)
+    mailer.mails.assertQueuedCount(SetPasswordNotification, 1)
+    mailer.mails.assertQueued(SetPasswordNotification, ({ message }) =>
+      message.hasTo('sara@acme.test')
+    )
   })
 
   test("another organization's members and provider are out of reach", async ({

@@ -17,7 +17,7 @@ A member is a person who signs in to the organization's internal apps. They are 
 | ---------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `email`          | unique within the organization                                                                                               |
 | `full_name`      | optional                                                                                                                     |
-| `password`       | nullable; hashed on save (`withAuthFinder`). Without one, the member can't sign in                                           |
+| `password`       | nullable; hashed on save (`withAuthFinder`). Set by the member from an emailed link                                          |
 | `sign_in_method` | `MemberSignInMethod`: PASSWORD or PROVIDER. Set by an admin ([Identity provider](identity-provider.md#who-signs-in-with-it)) |
 | `status`         | `MemberStatus`: INVITED, ACTIVE or SUSPENDED                                                                                 |
 | `actor_id`       | the member's actor, one-to-one                                                                                               |
@@ -57,8 +57,6 @@ A member can sign in to an app in an environment only as an **app member** (`app
 
 There's no "active apps": a member is signed in on browsers (sessions), and has access to apps.
 
-**Add member** (`/members/create`) adds an **active** member who can sign in right away, in every environment. With an identity provider connected, the admin chooses how they sign in: with the provider, and then no password is stored, or with a password the admin chooses (8 to 32 characters). Without a provider it is always a password. Emails are unique within the organization (`app/validators/member.ts`).
+**Add member** (`/members/create`) adds an **active** member, in every environment, and emails them how they sign in. With an identity provider connected, the admin chooses: with the provider, and then no password is stored, or with a password, which the member sets from the email's link ([Passwords and email](passwords.md)). Without a provider it is always a password. Emails are unique within the organization (`app/validators/member.ts`).
 
-The member's page shows how they sign in, with a control to switch it, when a provider is connected.
-
-Inviting members, so they choose their own password, is not built yet.
+The member's page shows how they sign in. For a password member it has **Email a link to set a password**, and whether they have set one. With a provider connected, it also has the control to switch them, and for a provider member their [account at the provider](identity-provider.md#a-members-account-at-the-provider).

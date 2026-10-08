@@ -78,6 +78,14 @@ router
       .only(['index', 'create', 'store', 'show'])
       .params({ members: 'member' })
     router.delete('members/:member/sessions', [controllers.MemberSessions, 'destroy'])
+    router
+      .resource('members.password-resets', controllers.MemberPasswordResets)
+      .only(['store'])
+      .params({ members: 'member' })
+    router
+      .resource('members.identities', controllers.MemberIdentities)
+      .only(['destroy'])
+      .params({ members: 'member', identities: 'identity' })
 
     router.resource('roles', controllers.Roles).except(['show']).params({ roles: 'role' })
     router.get('settings/environments', [controllers.Environments, 'index'])
@@ -101,12 +109,14 @@ router
   .where('member', router.matchers.number())
   .where('role', router.matchers.number())
   .where('provider', router.matchers.number())
+  .where('identity', router.matchers.number())
   .use([middleware.auth(), middleware.organization()])
 
 /**
  * The sign-in page of an environment's issuer, on the issuer's own host
  * (`acme.<domain>`, `acme--staging.<domain>`). oidc-provider sends members
  * here; its own endpoints live under `/oauth` and never reach the router.
+ * A member sets or resets their password on the same host.
  */
 router
   .group(() => {
@@ -116,6 +126,11 @@ router
 
     router.post('sign-in/:signInId/provider', [controllers.RedirectToProvider])
     router.get('sign-in/:signInId/provider/callback', [controllers.SignInWithProvider])
+
+    router
+      .resource('password-resets', controllers.PasswordResets)
+      .only(['create', 'store', 'show', 'update'])
+      .params({ 'password-resets': 'token' })
   })
   .domain(`:issuer.${new URL(env.get('APP_URL')).hostname}`)
   .use(middleware.issuer())

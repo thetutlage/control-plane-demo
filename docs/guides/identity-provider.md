@@ -146,10 +146,28 @@ Each member has a setting, `members.sign_in_method` (`MemberSignInMethod`: PASSW
 
 - **Connecting a provider changes nobody.** It lands on the "who signs in with it?" page, and the Authentication page keeps a count of members still on a password with a link back to it.
 - **Switching a member signs them out everywhere** (`member.signInWith()`), so the way they signed in before stops counting right away.
-- **A provider member has no password here.** One switched back to a password may have none yet; their page says so. Setting one by email is not built yet.
+- **Each switch emails the member** how they sign in now. One switched to a password gets a link to set it ([Passwords and email](passwords.md)); until they do, their page says they have none.
 - **People the provider lets through whom no admin added** are refused. The provider's edit form has "People my provider lets through can join without being added" (`identity_providers.admits_newcomers`), off by default.
 - **Changing the issuer URL** means a different provider, whose IDs mean nothing to the old one's. The edit form asks to confirm ("I'm replacing the provider") when members are tied to it, then clears the ties. Members stay set to the provider and are matched by email again at their next sign-in.
-- **Removing the provider** switches its members to a password and signs them out. The confirmation says how many.
+- **Removing the provider** switches its members to a password, signs them out and emails each a link to set one. The confirmation says how many.
+
+## A member's account at the provider
+
+A member's page shows **Account at your identity provider** once a provider is connected and they are set to it. Nothing is fetched from the provider: every value is written when the member signs in through it (`ProviderSignInService`), into `member_identities`.
+
+| Shown                 | Column              | Notes                                                                                                      |
+| --------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------- |
+| ID at the provider    | `subject`           | What the member is recognised by                                                                           |
+| How they joined       | `origin`            | `MemberIdentityOrigin`: MATCHED_BY_EMAIL 0 (an admin added them), JOINED 1 (the provider admits newcomers) |
+| First signed in       | `created_at`        |                                                                                                            |
+| Last signed in        | `last_signed_in_at` |                                                                                                            |
+| Email at the provider | `email`             | Shown only when it differs from the member's, which happens when another member already has that email     |
+
+Before their first sign-in, the panel says they will be matched by email.
+
+**Dissociate this account** (`DELETE /w/:org/members/:member/identities/:identity`, `MemberIdentitiesController.destroy`) deletes that one member's row and signs them out everywhere. They stay a member set to the provider, with the same roles, and their next sign-in is matched by email again. It is for an account that was deleted and recreated at the provider: the new ID is refused because the email is tied to the old one. The confirmation says that whoever the provider next sends with that email becomes this member. Nobody else is affected.
+
+Once dissociated, the page reads as if the member had never signed in. That an admin did it is only in the `MemberIdentityDissociated` event, for the audit log.
 
 ## The daily re-check
 
@@ -184,6 +202,7 @@ Each change dispatches an event with the provider and the user who made it. Noth
 | `IdentityProviderRemoved`    | It is removed (the row is gone)                                                                              |
 | `MemberSignedInWithProvider` | A member signed in through it: `returning`, `matched_by_email` or `created`                                  |
 | `ProviderSignInRefused`      | Someone the provider let through wasn't signed in, with the reason and email                                 |
+| `MemberIdentityDissociated`  | An admin dissociated a member from their account at the provider, with the ID that was removed               |
 | `MemberSignInMethodChanged`  | An admin changed how a member signs in: on the page above, on the member's page, or by removing the provider |
 
 ## Tests
@@ -193,5 +212,6 @@ Each change dispatches an event with the provider and the user who made it. Noth
 - `tests/functional/identity_providers/provider_request.spec.ts`: posting to a token endpoint, and the URLs a post must refuse.
 - `tests/browser/oidc/provider_sign_in.spec.ts`: the whole round trip against a real OpenID Connect provider running on the same machine (`setupOrganizationProvider` in `tests/helpers/fake_provider.ts`): each row of the table above, cancelling, a tampered `state`, another organization's path, and an answer opened in another browser.
 - `tests/browser/console/provider_members.spec.ts`: connecting changing nobody, switching members over and back, being signed out on a switch, the choice when adding a member, the newcomers setting, replacing and removing the provider, and another organization's members being out of reach.
+- `tests/browser/console/member_identity.spec.ts`: what the member's page shows before and after a sign-in, and dissociating a member whose account was recreated so they can sign in again.
 - `tests/browser/oidc/provider_recheck.spec.ts`: a day's tokens for a provider sign-in and 14 for a password, being let through within a day and sent back through the provider after it, and someone the provider turns away not being signed in again.
 - `tests/functional/identity_providers/id_token.spec.ts`: tokens signed with a key made in the test: one that holds up, and one refused for each check.

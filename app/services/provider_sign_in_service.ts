@@ -5,6 +5,8 @@ import MemberIdentity from '#models/member_identity'
 import type IdentityProvider from '#models/identity_provider'
 import { MemberStatus } from '#values/member_status'
 import { MemberSignInMethod } from '#values/member_sign_in_method'
+import { MemberIdentityOrigin } from '#values/member_identity_origin'
+import { DateTime } from 'luxon'
 
 type Profile = {
   subject: string
@@ -43,7 +45,7 @@ export default class ProviderSignInService {
         .first()
 
       if (identity) {
-        return this.#returning(identity.member, profile)
+        return this.#returning(identity, profile)
       }
       if (!profile.email) {
         return { refusal: 'no_email' }
@@ -76,7 +78,7 @@ export default class ProviderSignInService {
           status: MemberStatus.ACTIVE,
           signInMethod: MemberSignInMethod.PROVIDER,
         })
-        await this.#tie(created, identityProvider, profile.subject)
+        await this.#tie(created, identityProvider, profile, MemberIdentityOrigin.JOINED)
         return { member: created, how: 'created' }
       }
 
@@ -102,16 +104,19 @@ export default class ProviderSignInService {
       member.status = MemberStatus.ACTIVE
       member.fullName ??= profile.name
       await member.save()
-      await this.#tie(member, identityProvider, profile.subject)
+      await this.#tie(member, identityProvider, profile, MemberIdentityOrigin.MATCHED_BY_EMAIL)
       return { member, how: 'matched_by_email' }
     })
   }
 
   /**
    * A member who has signed in before. Their name and email follow the
-   * provider's, unless another member already has the email.
+   * provider's, unless another member already has the email. Their
+   * identity keeps the email the provider sent either way, for the admin
+   * to see.
    */
-  async #returning(member: Member, profile: Profile): Promise<Outcome> {
+  async #returning(identity: MemberIdentity, profile: Profile): Promise<Outcome> {
+    const { member } = identity
     if (member.status === MemberStatus.SUSPENDED) {
       return { refusal: 'suspended' }
     }
@@ -129,16 +134,28 @@ export default class ProviderSignInService {
     }
     await member.save()
 
+    identity.email = profile.email ?? identity.email
+    identity.lastSignedInAt = DateTime.now()
+    await identity.save()
+
     return { member, how: 'returning' }
   }
 
-  #tie(member: Member, identityProvider: IdentityProvider, subject: string) {
+  #tie(
+    member: Member,
+    identityProvider: IdentityProvider,
+    profile: Profile,
+    origin: MemberIdentityOrigin
+  ) {
     return MemberIdentity.create(
       {
         organizationId: identityProvider.organizationId,
         identityProviderId: identityProvider.id,
         memberId: member.id,
-        subject,
+        subject: profile.subject,
+        email: profile.email,
+        origin,
+        lastSignedInAt: DateTime.now(),
       },
       { client: member.$trx }
     )

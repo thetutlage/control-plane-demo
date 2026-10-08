@@ -192,6 +192,18 @@ const routes = {
     tokens: [{"old":"/w/:org/members/:member/sessions","type":0,"val":"w","end":""},{"old":"/w/:org/members/:member/sessions","type":1,"val":"org","end":""},{"old":"/w/:org/members/:member/sessions","type":0,"val":"members","end":""},{"old":"/w/:org/members/:member/sessions","type":1,"val":"member","end":""},{"old":"/w/:org/members/:member/sessions","type":0,"val":"sessions","end":""}],
     types: placeholder as Registry['member_sessions.destroy']['types'],
   },
+  'members.password_resets.store': {
+    methods: ["POST"],
+    pattern: '/w/:org/members/:member/password-resets',
+    tokens: [{"old":"/w/:org/members/:member/password-resets","type":0,"val":"w","end":""},{"old":"/w/:org/members/:member/password-resets","type":1,"val":"org","end":""},{"old":"/w/:org/members/:member/password-resets","type":0,"val":"members","end":""},{"old":"/w/:org/members/:member/password-resets","type":1,"val":"member","end":""},{"old":"/w/:org/members/:member/password-resets","type":0,"val":"password-resets","end":""}],
+    types: placeholder as Registry['members.password_resets.store']['types'],
+  },
+  'members.identities.destroy': {
+    methods: ["DELETE"],
+    pattern: '/w/:org/members/:member/identities/:identity',
+    tokens: [{"old":"/w/:org/members/:member/identities/:identity","type":0,"val":"w","end":""},{"old":"/w/:org/members/:member/identities/:identity","type":1,"val":"org","end":""},{"old":"/w/:org/members/:member/identities/:identity","type":0,"val":"members","end":""},{"old":"/w/:org/members/:member/identities/:identity","type":1,"val":"member","end":""},{"old":"/w/:org/members/:member/identities/:identity","type":0,"val":"identities","end":""},{"old":"/w/:org/members/:member/identities/:identity","type":1,"val":"identity","end":""}],
+    types: placeholder as Registry['members.identities.destroy']['types'],
+  },
   'roles.index': {
     methods: ["GET","HEAD"],
     pattern: '/w/:org/roles',
@@ -317,6 +329,30 @@ const routes = {
     pattern: '/sign-in/:signInId/provider/callback',
     tokens: [{"old":"/sign-in/:signInId/provider/callback","type":0,"val":"sign-in","end":""},{"old":"/sign-in/:signInId/provider/callback","type":1,"val":"signInId","end":""},{"old":"/sign-in/:signInId/provider/callback","type":0,"val":"provider","end":""},{"old":"/sign-in/:signInId/provider/callback","type":0,"val":"callback","end":""}],
     types: placeholder as Registry['sign_in_with_provider']['types'],
+  },
+  'password_resets.create': {
+    methods: ["GET","HEAD"],
+    pattern: '/password-resets/create',
+    tokens: [{"old":"/password-resets/create","type":0,"val":"password-resets","end":""},{"old":"/password-resets/create","type":0,"val":"create","end":""}],
+    types: placeholder as Registry['password_resets.create']['types'],
+  },
+  'password_resets.store': {
+    methods: ["POST"],
+    pattern: '/password-resets',
+    tokens: [{"old":"/password-resets","type":0,"val":"password-resets","end":""}],
+    types: placeholder as Registry['password_resets.store']['types'],
+  },
+  'password_resets.show': {
+    methods: ["GET","HEAD"],
+    pattern: '/password-resets/:token',
+    tokens: [{"old":"/password-resets/:token","type":0,"val":"password-resets","end":""},{"old":"/password-resets/:token","type":1,"val":"token","end":""}],
+    types: placeholder as Registry['password_resets.show']['types'],
+  },
+  'password_resets.update': {
+    methods: ["PUT","PATCH"],
+    pattern: '/password-resets/:token',
+    tokens: [{"old":"/password-resets/:token","type":0,"val":"password-resets","end":""},{"old":"/password-resets/:token","type":1,"val":"token","end":""}],
+    types: placeholder as Registry['password_resets.update']['types'],
   },
 } as const satisfies Record<string, AdonisEndpoint>
 

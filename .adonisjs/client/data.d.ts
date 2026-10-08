@@ -11,6 +11,7 @@ import type AppMemberTransformer from '#transformers/app_member_transformer'
 import type AppTransformer from '#transformers/app_transformer'
 import type EnvironmentTransformer from '#transformers/environment_transformer'
 import type IdentityProviderTransformer from '#transformers/identity_provider_transformer'
+import type MemberIdentityTransformer from '#transformers/member_identity_transformer'
 import type MemberTransformer from '#transformers/member_transformer'
 import type OidcSessionTransformer from '#transformers/oidc_session_transformer'
 import type OrganizationTransformer from '#transformers/organization_transformer'
@@ -39,6 +40,10 @@ export namespace Data {
   export type IdentityProvider = InferData<IdentityProviderTransformer>
   export namespace IdentityProvider {
     export type Variants = InferVariants<IdentityProviderTransformer>
+  }
+  export type MemberIdentity = InferData<MemberIdentityTransformer>
+  export namespace MemberIdentity {
+    export type Variants = InferVariants<MemberIdentityTransformer>
   }
   export type Member = InferData<MemberTransformer>
   export namespace Member {

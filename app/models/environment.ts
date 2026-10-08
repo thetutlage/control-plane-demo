@@ -74,12 +74,19 @@ export default class Environment extends EnvironmentSchema {
   }
 
   /**
-   * The URL of this environment's OpenID issuer, on a subdomain of the
-   * console's own URL. Apps are configured with it, and it is the `iss` of
-   * every token the environment issues.
+   * The origin of this environment's issuer host, on a subdomain of the
+   * console's own URL. Its sign-in and password pages are under it.
+   */
+  issuerOrigin(organizationSlug: string) {
+    return `${consoleUrl.protocol}//${this.issuerSubdomain(organizationSlug)}.${consoleUrl.host}`
+  }
+
+  /**
+   * The URL of this environment's OpenID issuer. Apps are configured with
+   * it, and it is the `iss` of every token the environment issues.
    */
   issuerUrl(organizationSlug: string) {
-    return `${consoleUrl.protocol}//${this.issuerSubdomain(organizationSlug)}.${consoleUrl.host}/oauth`
+    return `${this.issuerOrigin(organizationSlug)}/oauth`
   }
 
   /**

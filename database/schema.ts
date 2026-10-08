@@ -9,6 +9,7 @@ import { DateTime } from 'luxon'
 import type { ActorType } from '#values/actor_type'
 import type { EnvironmentKind } from '#values/environment_kind'
 import type { IdentityProviderKind } from '#values/identity_provider_kind'
+import type { MemberIdentityOrigin } from '#values/member_identity_origin'
 import type { MemberSignInMethod } from '#values/member_sign_in_method'
 import type { MemberStatus } from '#values/member_status'
 
@@ -154,18 +155,24 @@ export class IdentityProviderSchema extends BaseModel {
 }
 
 export class MemberIdentitySchema extends BaseModel {
-  static $columns = ['createdAt', 'id', 'identityProviderId', 'memberId', 'organizationId', 'subject', 'updatedAt'] as const
+  static $columns = ['createdAt', 'email', 'id', 'identityProviderId', 'lastSignedInAt', 'memberId', 'organizationId', 'origin', 'subject', 'updatedAt'] as const
   $columns = MemberIdentitySchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column()
+  declare email: string | null
+  @column()
   declare id: number
   @column()
   declare identityProviderId: number
+  @column.dateTime()
+  declare lastSignedInAt: DateTime | null
   @column()
   declare memberId: number
   @column()
   declare organizationId: number
+  @column()
+  declare origin: MemberIdentityOrigin
   @column()
   declare subject: string
   @column.dateTime({ autoCreate: true, autoUpdate: true })
@@ -313,6 +320,21 @@ export class OrganizationSchema extends BaseModel {
   declare slug: string
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
+}
+
+export class PasswordResetTokenSchema extends BaseModel {
+  static $columns = ['createdAt', 'expiresAt', 'hash', 'id', 'tokenableId'] as const
+  $columns = PasswordResetTokenSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.dateTime()
+  declare expiresAt: DateTime
+  @column()
+  declare hash: string
+  @column()
+  declare id: number
+  @column()
+  declare tokenableId: number
 }
 
 export class PermissionCatalogSchema extends BaseModel {

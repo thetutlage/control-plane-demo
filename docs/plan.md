@@ -180,7 +180,7 @@ _Decided 2026-10-07; how a member signs in made an admin's choice 2026-10-08._
 
 Where an admin sets it:
 
-- **Adding a member:** the admin picks one. With no provider connected it is a password, and the choice isn't shown. The member sets their own password from an email; the admin never types one (from step 4; until then the admin types it).
+- **Adding a member:** the admin picks one. With no provider connected it is a password, and the choice isn't shown. The member sets their own password from an email; the admin never types one.
 - **On a member's page:** for that member.
 - **Right after connecting a provider:** the last step asks "Who signs in with it? Everyone, or I'll choose". Connecting alone changes nobody, so a mistake in the setup locks nobody out.
 - **On the Authentication page, later:** how many members still sign in with a password, and an action to switch the ones selected.
@@ -229,16 +229,17 @@ _An earlier version tied a member to the provider on their first provider sign-i
 1. Sign-in settings in the console: the provider's details. _Built 2026-10-08 ([guide](guides/identity-provider.md)): rules 1 (the URL), 8 and the events of rule 10. The saved provider isn't used for sign-in yet._
 2. The OIDC driver and the sign-in, creating the member on first sign-in. _Part A built 2026-10-08: the driver on Ally, requests to the provider (rule 8, now for every provider URL) and ID token verification (rule 4)._ _Part B built 2026-10-08: the three routes, the forwarding callback (rules 1, 2, 3 and 9) and finding the member (rule 5). Both the provider's button and the password form show until step 3. Not yet tried against a real provider._
 3. How each member signs in, as the admin's setting: the choice when adding a member and on their page, switching members over when a provider is connected, the setting for people who weren't added, clearing ties when the provider is replaced, and the daily re-check. _Built 2026-10-08. Two things wait for mail (step 4): a member switched to a password, or left on one when the provider is removed, has no way to set a password yet._
-4. Mail: the email a member sets their password from, password reset, and the notice a provider member gets. Removing a provider is finished here, since it emails the members it switches to a password.
-5. Waiting members in the console, and a default role per app.
-6. TOTP for members who sign in with a password.
+4. Mail: the email a member sets their password from, password reset, and the notice a provider member gets. Removing a provider is finished here, since it emails the members it switches to a password. _Built 2026-10-08 ([guide](guides/passwords.md)), on `@adonisjs/mail` and persona's `withManagedPassword`. Left for housekeeping: a mail queue that survives a restart, and rate limits by IP on the password and reset forms._
+5. On a member's page: their account at the provider, and "Reset sign-in link" for one tied to the wrong account. _Built 2026-10-08, as "Dissociate this account" ([guide](guides/identity-provider.md#a-members-account-at-the-provider)). Narrowed the same day. A member's page already says whether they have set a password and when they last signed in, so there is no separate list of waiting members. The page of refused sign-ins moved to the audit log, and the default role per app to the access work; see "Later"._
+6. TOTP for members who sign in with a password. _Skipped for now (2026-10-08); password members sign in with a password alone until it is built._
 7. Real providers (Google Workspace, Entra, Okta), with a setup guide for each. This settles which claims Entra needs configured (it sends no email for staff by default) and what sets Okta's `email_verified`.
 
 Later, each its own step:
 
 - **One-click Google and Microsoft,** through one Backlit app registered at each, in place of pasted credentials (rules 6 and 7). Needs their verification of us: a real domain, a privacy policy, and a Microsoft partner account. Okta stays on pasted credentials.
 - **Console users signing in with Google,** from the flow's social-auth pack. Never through an organization's own provider (see the domain rule above).
-- **The console page for refused sign-ins,** with "Reset sign-in link" for an email that is tied to another account (part of step 5).
+- **The console page for refused sign-ins,** built on the audit log, which is where `ProviderSignInRefused` gets stored. A table of its own now would be duplicated then.
+- **A default role per app,** with the access work around catalogue sync. Until then, someone who joins through "People my provider lets through can join without being added" has no access to any app until an admin gives them a role, and the setting says so.
 
 ### Audit events
 

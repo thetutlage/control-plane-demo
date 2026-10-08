@@ -172,6 +172,7 @@ export default class IdentityProvidersController {
     await identityProvider.delete()
     for (const member of members) {
       await member.signInWith(MemberSignInMethod.PASSWORD)
+      await member.sendPasswordSetup()
       await events.MemberSignInMethodChanged.dispatch(member, auth.getUserOrFail())
     }
     await events.IdentityProviderRemoved.dispatch(identityProvider, auth.getUserOrFail())
@@ -179,7 +180,7 @@ export default class IdentityProvidersController {
     session.flash(
       'success',
       members.length
-        ? `Removed your identity provider. ${members.length} ${members.length === 1 ? 'member now signs' : 'members now sign'} in with a password.`
+        ? `Removed your identity provider. ${members.length} ${members.length === 1 ? 'member now signs' : 'members now sign'} in with a password, and got an email to set one.`
         : 'Removed your identity provider.'
     )
     return response.redirect().toRoute('identity_providers.index', { org: organization.slug })

@@ -1,5 +1,6 @@
 import { assert } from '@japa/assert'
 import app from '@adonisjs/core/services/app'
+import mail from '@adonisjs/mail/services/main'
 import type { Config } from '@japa/runner/types'
 import { pluginAdonisJS } from '@japa/plugin-adonisjs'
 import { dbAssertions } from '@adonisjs/lucid/plugins/db'
@@ -42,6 +43,17 @@ export const runnerHooks: Required<Pick<Config, 'setup' | 'teardown'>> = {
  * Learn more - https://japa.dev/docs/test-suites#lifecycle-hooks
  */
 export const configureSuite: Config['configureSuite'] = (suite) => {
+  /**
+   * No test sends real email. A test that checks the mail calls
+   * `mail.fake()` itself and gets a mailer of its own.
+   */
+  suite.onTest((test) => {
+    test.setup(() => {
+      mail.fake()
+      return () => mail.restore()
+    })
+  })
+
   if (['browser', 'functional', 'e2e'].includes(suite.name)) {
     return suite.setup(() => testUtils.httpServer().start())
   }

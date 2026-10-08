@@ -1,15 +1,18 @@
 import { events } from '#generated/events'
+import mail from '@adonisjs/mail/services/main'
 import type { HttpContext } from '@adonisjs/core/http'
 import { MemberSignInMethod } from '#values/member_sign_in_method'
 import { createProviderMembersValidator } from '#validators/provider_member'
 import MemberTransformer from '#transformers/member_transformer'
 import IdentityProviderTransformer from '#transformers/identity_provider_transformer'
+import ProviderSignInNotification from '#mails/provider_sign_in_notification'
 
 /**
  * The members who sign in with the organization's identity provider. An
  * admin switches members to it, one or many, and switches a member back
  * to a password. Either way the member is signed out everywhere, so the
- * way they signed in before stops counting right away.
+ * way they signed in before stops counting right away, and is emailed
+ * how they sign in now.
  */
 export default class ProviderMembersController {
   /**
@@ -59,6 +62,7 @@ export default class ProviderMembersController {
       .where('sign_in_method', MemberSignInMethod.PASSWORD)
     for (const member of members) {
       await member.signInWith(MemberSignInMethod.PROVIDER)
+      await mail.sendLater(new ProviderSignInNotification(member, organization))
       await events.MemberSignInMethodChanged.dispatch(member, auth.getUserOrFail())
     }
 
@@ -72,7 +76,8 @@ export default class ProviderMembersController {
   }
 
   /**
-   * Switches one member back to a password
+   * Switches one member back to a password, and emails them a link to
+   * set it from
    */
   async destroy({ response, session, auth, params, organization }: HttpContext) {
     await organization
@@ -88,9 +93,13 @@ export default class ProviderMembersController {
       .firstOrFail()
 
     await member.signInWith(MemberSignInMethod.PASSWORD)
+    await member.sendPasswordSetup()
     await events.MemberSignInMethodChanged.dispatch(member, auth.getUserOrFail())
 
-    session.flash('success', `${member.email} now signs in with a password.`)
+    session.flash(
+      'success',
+      `${member.email} now signs in with a password. We emailed them a link to set it.`
+    )
     return response.redirect().back()
   }
 }

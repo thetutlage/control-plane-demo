@@ -379,6 +379,30 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/member_sessions_controller').default['destroy']>>>
     }
   }
+  'members.password_resets.store': {
+    methods: ["POST"]
+    pattern: '/w/:org/members/:member/password-resets'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue]
+      params: { org: ParamValue; member: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/member_password_resets_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/member_password_resets_controller').default['store']>>>
+    }
+  }
+  'members.identities.destroy': {
+    methods: ["DELETE"]
+    pattern: '/w/:org/members/:member/identities/:identity'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue, ParamValue]
+      params: { org: ParamValue; member: ParamValue; identity: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/member_identities_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/member_identities_controller').default['destroy']>>>
+    }
+  }
   'roles.index': {
     methods: ["GET","HEAD"]
     pattern: '/w/:org/roles'
@@ -629,6 +653,54 @@ export interface Registry {
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/sign_in_with_provider_controller').default['handle']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sign_in_with_provider_controller').default['handle']>>>
+    }
+  }
+  'password_resets.create': {
+    methods: ["GET","HEAD"]
+    pattern: '/password-resets/create'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/password_resets_controller').default['create']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/password_resets_controller').default['create']>>>
+    }
+  }
+  'password_resets.store': {
+    methods: ["POST"]
+    pattern: '/password-resets'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/member').requestPasswordResetValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/member').requestPasswordResetValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/password_resets_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/password_resets_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'password_resets.show': {
+    methods: ["GET","HEAD"]
+    pattern: '/password-resets/:token'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { token: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/password_resets_controller').default['show']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/password_resets_controller').default['show']>>>
+    }
+  }
+  'password_resets.update': {
+    methods: ["PUT","PATCH"]
+    pattern: '/password-resets/:token'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/member').setPasswordValidator)>>
+      paramsTuple: [ParamValue]
+      params: { token: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/member').setPasswordValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/password_resets_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/password_resets_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
 }

@@ -35,6 +35,8 @@ export type ScannedRoutes = {
     'members.store': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'members.show': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'member': ParamValue} }
     'member_sessions.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'member': ParamValue} }
+    'members.password_resets.store': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'member': ParamValue} }
+    'members.identities.destroy': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'member': ParamValue,'identity': ParamValue} }
     'roles.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'roles.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'roles.store': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
@@ -56,6 +58,10 @@ export type ScannedRoutes = {
     'sign_in.destroy': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
     'redirect_to_provider': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
     'sign_in_with_provider': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
+    'password_resets.create': { paramsTuple?: []; params?: {} }
+    'password_resets.store': { paramsTuple?: []; params?: {} }
+    'password_resets.show': { paramsTuple: [ParamValue]; params: {'token': ParamValue} }
+    'password_resets.update': { paramsTuple: [ParamValue]; params: {'token': ParamValue} }
   }
   GET: {
     'home': { paramsTuple?: []; params?: {} }
@@ -85,6 +91,8 @@ export type ScannedRoutes = {
     'identity_providers.members.create': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
     'sign_in.show': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
     'sign_in_with_provider': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
+    'password_resets.create': { paramsTuple?: []; params?: {} }
+    'password_resets.show': { paramsTuple: [ParamValue]; params: {'token': ParamValue} }
   }
   HEAD: {
     'home': { paramsTuple?: []; params?: {} }
@@ -114,6 +122,8 @@ export type ScannedRoutes = {
     'identity_providers.members.create': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
     'sign_in.show': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
     'sign_in_with_provider': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
+    'password_resets.create': { paramsTuple?: []; params?: {} }
+    'password_resets.show': { paramsTuple: [ParamValue]; params: {'token': ParamValue} }
   }
   POST: {
     'new_account.store': { paramsTuple?: []; params?: {} }
@@ -124,17 +134,20 @@ export type ScannedRoutes = {
     'app_secrets.store': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
     'app_members.store': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
     'members.store': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'members.password_resets.store': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'member': ParamValue} }
     'roles.store': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'identity_providers.store': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'identity_providers.members.store': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
     'sign_in.store': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
     'redirect_to_provider': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
+    'password_resets.store': { paramsTuple?: []; params?: {} }
   }
   DELETE: {
     'apps.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue} }
     'app_environments.destroy': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue} }
     'app_members.destroy': { paramsTuple: [ParamValue,ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue,'member': ParamValue} }
     'member_sessions.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'member': ParamValue} }
+    'members.identities.destroy': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'member': ParamValue,'identity': ParamValue} }
     'roles.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'role': ParamValue} }
     'identity_providers.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
     'identity_providers.members.destroy': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue,'member': ParamValue} }
@@ -145,11 +158,13 @@ export type ScannedRoutes = {
     'app_members.update': { paramsTuple: [ParamValue,ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue,'member': ParamValue} }
     'roles.update': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'role': ParamValue} }
     'identity_providers.update': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
+    'password_resets.update': { paramsTuple: [ParamValue]; params: {'token': ParamValue} }
   }
   PATCH: {
     'app_members.update': { paramsTuple: [ParamValue,ParamValue,ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue,'environment': ParamValue,'member': ParamValue} }
     'roles.update': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'role': ParamValue} }
     'identity_providers.update': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
+    'password_resets.update': { paramsTuple: [ParamValue]; params: {'token': ParamValue} }
   }
 }
 declare module '@adonisjs/core/types/http' {

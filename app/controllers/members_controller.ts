@@ -1,3 +1,4 @@
+import mail from '@adonisjs/mail/services/main'
 import type { HttpContext } from '@adonisjs/core/http'
 import type Organization from '#models/organization'
 import { MemberStatus } from '#values/member_status'
@@ -6,6 +7,8 @@ import { createMemberValidator } from '#validators/member'
 import MemberTransformer from '#transformers/member_transformer'
 import AppMemberTransformer from '#transformers/app_member_transformer'
 import OidcSessionTransformer from '#transformers/oidc_session_transformer'
+import MemberIdentityTransformer from '#transformers/member_identity_transformer'
+import ProviderSignInNotification from '#mails/provider_sign_in_notification'
 
 export default class MembersController {
   /**
@@ -42,15 +45,14 @@ export default class MembersController {
   }
 
   /**
-   * Adds an active member who can sign in right away: with the identity
-   * provider, or with the given password. Without a provider connected,
-   * it is always a password.
+   * Adds an active member and emails them how they sign in: with the
+   * identity provider, right away, or with a password they set from the
+   * email's link. Without a provider connected, it is always a password.
    */
   async store({ request, response, session, organization }: HttpContext) {
-    const { signsInWith, password, ...payload } = await request.validateUsing(
-      createMemberValidator,
-      { meta: { organizationId: organization.id } }
-    )
+    const { signsInWith, ...payload } = await request.validateUsing(createMemberValidator, {
+      meta: { organizationId: organization.id },
+    })
     const identityProvider = await organization.related('identityProviders').query().first()
     if (signsInWith === 'provider' && !identityProvider) {
       session.flash('error', 'Connect an identity provider before adding members who use it.')
@@ -60,23 +62,24 @@ export default class MembersController {
     const member = await organization.createMember({
       ...payload,
       status: MemberStatus.ACTIVE,
-      ...(signsInWith === 'provider'
-        ? { signInMethod: MemberSignInMethod.PROVIDER }
-        : { signInMethod: MemberSignInMethod.PASSWORD, password }),
+      signInMethod:
+        signsInWith === 'provider' ? MemberSignInMethod.PROVIDER : MemberSignInMethod.PASSWORD,
     })
 
-    session.flash(
-      'success',
-      signsInWith === 'provider'
-        ? `${member.email} can now sign in with your identity provider.`
-        : `${member.email} can now sign in.`
-    )
+    if (member.signInMethod === MemberSignInMethod.PROVIDER) {
+      await mail.sendLater(new ProviderSignInNotification(member, organization))
+      session.flash('success', `${member.email} can now sign in with your identity provider.`)
+    } else {
+      await member.sendPasswordSetup()
+      session.flash('success', `Emailed ${member.email} a link to set their password.`)
+    }
     return response.redirect().toRoute('members.index', { org: organization.slug })
   }
 
   /**
-   * The member, the browsers they're signed in on, and the apps they have
-   * access to, each tagged with its environment
+   * The member, their account at the identity provider once they have
+   * signed in through it, the browsers they're signed in on, and the apps
+   * they have access to, each tagged with its environment
    */
   async show({ inertia, params, organization }: HttpContext) {
     const member = await this.#findMember(organization, params.member)
@@ -93,9 +96,13 @@ export default class MembersController {
       .orderByRaw('last_signed_in_at desc nulls last')
 
     const identityProvider = await organization.related('identityProviders').query().first()
+    const identity = identityProvider
+      ? await identityProvider.related('identities').query().where('member_id', member.id).first()
+      : null
 
     return inertia.render('members/show', {
       identityProviderId: identityProvider?.id ?? null,
+      identity: identity ? MemberIdentityTransformer.transform(identity) : null,
       member: MemberTransformer.transform(member),
       sessions: OidcSessionTransformer.transform(sessions),
       apps: AppMemberTransformer.transform(apps).useVariant('forMember'),

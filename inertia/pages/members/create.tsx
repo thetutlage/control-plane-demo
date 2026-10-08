@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import Page from '~/components/page'
 import type { InertiaProps } from '~/types'
 import ConsoleLayout from '~/layouts/console'
@@ -8,18 +7,16 @@ type PageProps = InertiaProps<{ hasIdentityProvider: boolean }>
 
 /**
  * Adds a member. With an identity provider connected, the admin chooses
- * how the member signs in, and only a password member gets a password.
+ * how the member signs in. A password member sets their own password from
+ * an email.
  */
 export default function MembersCreate({ hasIdentityProvider, organization }: PageProps) {
   const routeParams = { org: organization?.slug ?? '' }
-  const [signsInWith, setSignsInWith] = useState<'provider' | 'password'>(
-    hasIdentityProvider ? 'provider' : 'password'
-  )
 
   return (
     <Page
       title="Add member"
-      description="Add someone who signs in to your apps. They can sign in right away, in every environment."
+      description="Add someone who signs in to your apps, in every environment. We email them how to sign in."
     >
       <Form route="members.store" routeParams={routeParams} options={{ preserveScroll: true }}>
         {({ errors, processing }) => (
@@ -61,55 +58,25 @@ export default function MembersCreate({ hasIdentityProvider, organization }: Pag
                 <legend className="field__label">Signs in with</legend>
                 <div className="checks">
                   <label className="check">
-                    <input
-                      type="radio"
-                      name="signsInWith"
-                      value="provider"
-                      checked={signsInWith === 'provider'}
-                      onChange={() => setSignsInWith('provider')}
-                    />
+                    <input type="radio" name="signsInWith" value="provider" defaultChecked />
                     Your identity provider
                     <span className="check__hint">They never have a password here.</span>
                   </label>
                   <label className="check">
-                    <input
-                      type="radio"
-                      name="signsInWith"
-                      value="password"
-                      checked={signsInWith === 'password'}
-                      onChange={() => setSignsInWith('password')}
-                    />
-                    A password
+                    <input type="radio" name="signsInWith" value="password" />A password
                     <span className="check__hint">
-                      For someone who isn&apos;t in your identity provider.
+                      For someone who isn&apos;t in your identity provider. We email them a link to
+                      set it.
                     </span>
                   </label>
                 </div>
                 {errors.signsInWith && <span className="field__error">{errors.signsInWith}</span>}
               </fieldset>
             ) : (
-              <input type="hidden" name="signsInWith" value="password" />
-            )}
-
-            {signsInWith === 'password' && (
-              <div className="field">
-                <label className="field__label" htmlFor="password">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  className="field__input"
-                  autoComplete="new-password"
-                  aria-describedby="passwordHint"
-                  aria-invalid={errors.password ? 'true' : 'false'}
-                />
-                <span id="passwordHint" className="field__hint">
-                  8 to 32 characters. Share it with them yourself.
-                </span>
-                {errors.password && <span className="field__error">{errors.password}</span>}
-              </div>
+              <>
+                <input type="hidden" name="signsInWith" value="password" />
+                <p className="field__hint">We email them a link to set their password.</p>
+              </>
             )}
 
             <div className="form__actions">

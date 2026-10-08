@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Head, usePage } from '@inertiajs/react'
-import { Form } from '@adonisjs/inertia/react'
+import { Form, Link } from '@adonisjs/inertia/react'
 import type { InertiaProps } from '~/types'
 import SignInLayout from '~/layouts/sign_in'
 
@@ -115,6 +115,11 @@ export default function SignInShow({
           </div>
         )}
       </Form>
+      <p className="auth__foot">
+        <Link route="password_resets.create" qs={{ sign_in: signInId }}>
+          Forgot password?
+        </Link>
+      </p>
     </>
   )
 }

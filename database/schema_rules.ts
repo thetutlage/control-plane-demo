@@ -58,6 +58,11 @@ export default {
         post_logout_redirect_uris: { tsType: 'string[]', decorators: [{ name: '@column' }] },
       },
     },
+    member_identities: {
+      columns: {
+        origin: valueColumn('MemberIdentityOrigin', 'member_identity_origin'),
+      },
+    },
     identity_providers: {
       columns: {
         kind: valueColumn('IdentityProviderKind', 'identity_provider_kind'),
