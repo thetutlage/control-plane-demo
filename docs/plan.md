@@ -206,7 +206,7 @@ _Decided 2026-10-07; staff and guests redefined 2026-10-08._
 **Steps:**
 
 1. Sign-in settings in the console: the provider's details. _Built 2026-10-08 ([guide](guides/identity-provider.md)): rules 1 (the URL), 8 and the events of rule 10. The saved provider isn't used for sign-in yet._
-2. The OIDC driver and the sign-in, creating the member on first sign-in. _Part A built 2026-10-08: the driver on Ally, requests to the provider (rule 8, now for every provider URL) and ID token verification (rule 4). Part B is the flow: the routes, the forwarding callback and matching the member._
+2. The OIDC driver and the sign-in, creating the member on first sign-in. _Part A built 2026-10-08: the driver on Ally, requests to the provider (rule 8, now for every provider URL) and ID token verification (rule 4)._ _Part B built 2026-10-08: the three routes, the forwarding callback (rules 1, 2, 3 and 9) and finding the member (rule 5). Both the provider's button and the password form show until step 3. Not yet tried against a real provider._
 3. Passwords off for members who sign in through the provider, and the daily re-check for staff.
 4. Invites with roles, as staff or as a guest, with mail set up.
 5. Waiting members in the console, and a default role per app.

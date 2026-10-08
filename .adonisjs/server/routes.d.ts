@@ -11,6 +11,7 @@ export type ScannedRoutes = {
     'session.store': { paramsTuple?: []; params?: {} }
     'session.destroy': { paramsTuple?: []; params?: {} }
     'organizations.index': { paramsTuple?: []; params?: {} }
+    'sign_in_callbacks.show': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'overview.show': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'apps.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'apps.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
@@ -50,12 +51,15 @@ export type ScannedRoutes = {
     'sign_in.show': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
     'sign_in.store': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
     'sign_in.destroy': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
+    'redirect_to_provider': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
+    'sign_in_with_provider': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
   }
   GET: {
     'home': { paramsTuple?: []; params?: {} }
     'new_account.create': { paramsTuple?: []; params?: {} }
     'session.create': { paramsTuple?: []; params?: {} }
     'organizations.index': { paramsTuple?: []; params?: {} }
+    'sign_in_callbacks.show': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'overview.show': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'apps.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'apps.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
@@ -76,12 +80,14 @@ export type ScannedRoutes = {
     'identity_providers.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'identity_providers.edit': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
     'sign_in.show': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
+    'sign_in_with_provider': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
   }
   HEAD: {
     'home': { paramsTuple?: []; params?: {} }
     'new_account.create': { paramsTuple?: []; params?: {} }
     'session.create': { paramsTuple?: []; params?: {} }
     'organizations.index': { paramsTuple?: []; params?: {} }
+    'sign_in_callbacks.show': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'overview.show': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'apps.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'apps.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
@@ -102,6 +108,7 @@ export type ScannedRoutes = {
     'identity_providers.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'identity_providers.edit': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'provider': ParamValue} }
     'sign_in.show': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
+    'sign_in_with_provider': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
   }
   POST: {
     'new_account.store': { paramsTuple?: []; params?: {} }
@@ -115,6 +122,7 @@ export type ScannedRoutes = {
     'roles.store': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'identity_providers.store': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'sign_in.store': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
+    'redirect_to_provider': { paramsTuple: [ParamValue]; params: {'signInId': ParamValue} }
   }
   DELETE: {
     'apps.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'app': ParamValue} }

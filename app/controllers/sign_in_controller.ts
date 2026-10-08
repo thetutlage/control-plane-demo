@@ -1,5 +1,5 @@
-import { errors } from 'oidc-provider'
 import hash from '@adonisjs/core/services/hash'
+import { pendingSignIn } from '#oidc/pending_sign_in'
 import { MemberStatus } from '#values/member_status'
 import type { HttpContext } from '@adonisjs/core/http'
 import { memberLoginValidator } from '#validators/member'
@@ -18,7 +18,7 @@ import { EnvironmentKind } from '#values/environment_kind'
  */
 export default class SignInController {
   async show(ctx: HttpContext) {
-    const signIn = await this.#pendingSignIn(ctx)
+    const signIn = await pendingSignIn(ctx)
     const { issuer, inertia } = ctx
 
     const setup = await issuer.environment
@@ -28,14 +28,26 @@ export default class SignInController {
       .preload('app')
       .firstOrFail()
 
-    const page = signIn.prompt.name === 'consent' ? 'sign_in/no_access' : 'sign_in/show'
-    return inertia.render(page, {
+    const props = {
       signInId: signIn.uid,
       organizationName: issuer.environment.organization.name,
       environmentName: issuer.environment.name,
       isProduction: issuer.environment.kind === EnvironmentKind.PRODUCTION,
       appName: setup.app.name,
-    })
+    }
+    if (signIn.prompt.name === 'consent') {
+      return inertia.render('sign_in/no_access', props)
+    }
+
+    /**
+     * With an identity provider connected, the page offers it above the
+     * password form
+     */
+    const identityProvider = await issuer.environment.organization
+      .related('identityProviders')
+      .query()
+      .first()
+    return inertia.render('sign_in/show', { ...props, providerSignIn: identityProvider !== null })
   }
 
   /**
@@ -44,7 +56,7 @@ export default class SignInController {
    * refused sign-in, and shows it however it likes
    */
   async destroy(ctx: HttpContext) {
-    await this.#pendingSignIn(ctx)
+    await pendingSignIn(ctx)
     const { issuer, inertia, request, response } = ctx
 
     const returnTo = await issuer.provider.interactionResult(
@@ -63,7 +75,7 @@ export default class SignInController {
    * for a hash, so they take as long as a wrong password.
    */
   async store(ctx: HttpContext) {
-    await this.#pendingSignIn(ctx)
+    await pendingSignIn(ctx)
     const { issuer, inertia, request, response, session } = ctx
     const { email, password } = await request.validateUsing(memberLoginValidator)
 
@@ -98,20 +110,5 @@ export default class SignInController {
       { mergeWithLastSubmission: false }
     )
     return inertia.location(returnTo)
-  }
-
-  /**
-   * The paused request this page is for. `interactionDetails` finds it
-   * through a cookie oidc-provider set in this browser, and throws
-   * `SessionNotFound` when the cookie is missing or the sign-in has expired.
-   * The ID in the URL must be the same one, so a page left open from an
-   * older attempt cannot finish a newer one.
-   */
-  async #pendingSignIn({ issuer, request, response, params }: HttpContext) {
-    const signIn = await issuer.provider.interactionDetails(request.request, response.response)
-    if (signIn.uid !== params.signInId) {
-      throw new errors.SessionNotFound('the sign-in in the URL is not the one in progress')
-    }
-    return signIn
   }
 }

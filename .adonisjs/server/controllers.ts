@@ -15,7 +15,10 @@ export const controllers = {
   NewAccount: () => import('#controllers/new_account_controller'),
   Organizations: () => import('#controllers/organizations_controller'),
   Overview: () => import('#controllers/overview_controller'),
+  RedirectToProvider: () => import('#controllers/redirect_to_provider_controller'),
   Roles: () => import('#controllers/roles_controller'),
   Session: () => import('#controllers/session_controller'),
+  SignInCallbacks: () => import('#controllers/sign_in_callbacks_controller'),
   SignIn: () => import('#controllers/sign_in_controller'),
+  SignInWithProvider: () => import('#controllers/sign_in_with_provider_controller'),
 }

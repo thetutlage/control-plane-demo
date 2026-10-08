@@ -48,6 +48,12 @@ const routes = {
     tokens: [{"old":"/w","type":0,"val":"w","end":""}],
     types: placeholder as Registry['organizations.index']['types'],
   },
+  'sign_in_callbacks.show': {
+    methods: ["GET","HEAD"],
+    pattern: '/sign-in/callback/:org',
+    tokens: [{"old":"/sign-in/callback/:org","type":0,"val":"sign-in","end":""},{"old":"/sign-in/callback/:org","type":0,"val":"callback","end":""},{"old":"/sign-in/callback/:org","type":1,"val":"org","end":""}],
+    types: placeholder as Registry['sign_in_callbacks.show']['types'],
+  },
   'overview.show': {
     methods: ["GET","HEAD"],
     pattern: '/w/:org/overview',
@@ -281,6 +287,18 @@ const routes = {
     pattern: '/sign-in/:signInId',
     tokens: [{"old":"/sign-in/:signInId","type":0,"val":"sign-in","end":""},{"old":"/sign-in/:signInId","type":1,"val":"signInId","end":""}],
     types: placeholder as Registry['sign_in.destroy']['types'],
+  },
+  'redirect_to_provider': {
+    methods: ["POST"],
+    pattern: '/sign-in/:signInId/provider',
+    tokens: [{"old":"/sign-in/:signInId/provider","type":0,"val":"sign-in","end":""},{"old":"/sign-in/:signInId/provider","type":1,"val":"signInId","end":""},{"old":"/sign-in/:signInId/provider","type":0,"val":"provider","end":""}],
+    types: placeholder as Registry['redirect_to_provider']['types'],
+  },
+  'sign_in_with_provider': {
+    methods: ["GET","HEAD"],
+    pattern: '/sign-in/:signInId/provider/callback',
+    tokens: [{"old":"/sign-in/:signInId/provider/callback","type":0,"val":"sign-in","end":""},{"old":"/sign-in/:signInId/provider/callback","type":1,"val":"signInId","end":""},{"old":"/sign-in/:signInId/provider/callback","type":0,"val":"provider","end":""},{"old":"/sign-in/:signInId/provider/callback","type":0,"val":"callback","end":""}],
+    types: placeholder as Registry['sign_in_with_provider']['types'],
   },
 } as const satisfies Record<string, AdonisEndpoint>
 

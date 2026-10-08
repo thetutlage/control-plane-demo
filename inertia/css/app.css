@@ -1312,3 +1312,12 @@ fieldset.field {
   color: var(--subtle);
   font-size: 12px;
 }
+.signin__provider {
+  margin-top: 22px;
+}
+.signin__or {
+  margin: 16px 0 -8px;
+  color: var(--subtle);
+  font-size: 13px;
+  text-align: center;
+}

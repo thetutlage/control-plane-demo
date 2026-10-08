@@ -25,6 +25,16 @@ const PAGES = {
     message:
       "The app sent a sign-out request this page can't accept, so you may still be signed in. Go back to the app and try again, or contact its owner if this keeps happening.",
   },
+  refused: {
+    title: "We couldn't sign you in",
+    message:
+      "Your company's sign-in worked, but this account can't be used here. Ask whoever manages your company's apps.",
+  },
+  provider_unreachable: {
+    title: "We couldn't reach your company's sign-in",
+    message:
+      "Try again in a moment. If it keeps happening, ask whoever manages your company's apps.",
+  },
   server_error: {
     title: 'Something went wrong on our side',
     message: "Try again in a moment. If it keeps happening, contact the app's owner.",

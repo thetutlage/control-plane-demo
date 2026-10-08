@@ -2,7 +2,7 @@
 
 A company's staff sign in with the company's own identity provider: Google Workspace, Microsoft Entra, Okta, or anything that speaks OpenID Connect. The organization connects it once, on the console's **Authentication** page, and every environment uses it.
 
-**Not used for sign-in yet.** This guide covers connecting the provider. Members still sign in with a password ([Member login](member-login.md)) until the next steps are built. The model and its rules are in [the plan](../plan.md), under "Sign-in".
+Once a provider is connected, the sign-in page offers it above the password form ([Member login](member-login.md)). The model and its rules are in [the plan](../plan.md), under "Sign-in".
 
 ## Columns
 
@@ -26,7 +26,7 @@ Whoever the provider lets through is staff. There is no list of email domains: O
 https://<console host>/sign-in/callback/<organization slug>
 ```
 
-`organization.signInCallbackUrl()` builds it. The company registers this one URL at its provider, for every environment. The route itself comes with the sign-in step.
+`organization.signInCallbackUrl()` builds it. The company registers this one URL at its provider, for every environment.
 
 - **It is on the console host,** not an issuer host, so one URL covers development, staging and production.
 - **The organization's slug is in the path,** so every provider has its own redirect URI. That is how a client that talks to several providers tells their answers apart when the provider doesn't say who it is (RFC 9700 §4.4.2).
@@ -66,9 +66,34 @@ Every request to a provider goes through `ProviderRequestService` (`get`, `postF
 
 `new ProviderRequestService({ allowLocal: true })` accepts `http` and local addresses, for a provider running on the same machine in tests.
 
-## The sign-in driver
+## Signing in
 
-_Written, and not wired to a page yet. The round trip is tested with the sign-in flow._
+```
+Sign-in page   → POST acme--staging.<domain>/sign-in/<signInId>/provider
+               → the provider: its own password and MFA
+The provider   → GET <domain>/sign-in/callback/acme?code=…&state=…
+               → GET acme--staging.<domain>/sign-in/<signInId>/provider/callback?code=…&state=…
+               → /oauth/auth/<signInId>, and on to the app, as after a password
+```
+
+| Route                                      | Host    | Controller                       | Does                                                        |
+| ------------------------------------------ | ------- | -------------------------------- | ----------------------------------------------------------- |
+| `POST /sign-in/:signInId/provider`         | issuer  | `RedirectToProviderController`   | Sends the member to the provider                            |
+| `GET /sign-in/callback/:org`               | console | `SignInCallbacksController.show` | Forwards the provider's answer to the issuer host           |
+| `GET /sign-in/:signInId/provider/callback` | issuer  | `SignInWithProviderController`   | Verifies the answer, finds the member, finishes the sign-in |
+
+The two issuer routes are single-action controllers (`handle`), named after what they do. Their route names are `redirect_to_provider` and `sign_in_with_provider`.
+
+**Why three.** The redirect URI must be one fixed URL, but the cookies that finish a sign-in belong to one environment's issuer host. `oidc-provider` limits its sign-in cookie to paths under `/sign-in/<signInId>`, so both issuer routes live there.
+
+**The `state`** is signed (`encryption.getMessageVerifier()`, purpose `provider_sign_in`, 10 minutes) and names the environment and the sign-in. It does two jobs:
+
+- the console host's callback reads it to know where to forward. It checks the signature, and that the environment belongs to the organization in the path, then builds the target from our own records. It passes on only `code`, `state`, `error`, `error_description` and `iss`.
+- Ally keeps a copy in an encrypted cookie on the issuer host and compares the two when the member comes back, so an answer only works in the browser that asked.
+
+**Redirects here always use `.withQs(false)`.** `config/app.ts` makes every redirect carry the request's query string along, which would pass on parameters the callback is meant to drop, and leak the code into the next URL.
+
+### The driver
 
 `OidcDriver` (`app/identity_providers/oidc_driver.ts`) is an `@adonisjs/ally` driver for any OpenID Connect provider. It is created per request from the organization's provider row, not from `config/ally.ts`.
 
@@ -83,21 +108,44 @@ _Written, and not wired to a page yet. The round trip is tested with the sign-in
 
 It returns the member's permanent ID (`sub`), their email in lowercase, the name, and whether the provider calls the email verified: `true`, `false`, or `null` when it doesn't say, as Entra never does. The provider's userinfo endpoint is never called.
 
+A sign-in makes four requests to the provider: its configuration twice (leaving and coming back), its keys, and the code exchange. Nothing is cached.
+
 **Ally and Inertia.** Ally 6.3.1 lists Inertia 4 as an optional peer, and this app runs Inertia 5. It only calls `inertia.requestInfo()` and `inertia.location()`, which Inertia 5 has, so `package.json` has an `overrides` entry pointing Ally at the installed Inertia. Remove it once Ally's peer range includes Inertia 5.
+
+### Finding the member
+
+`member_identities` ties a member to the provider's permanent ID for them (`subject`). A member has one identity per provider, and an ID belongs to one member. `ProviderSignInService.admit()` decides:
+
+| What the provider says                             | Result                                                                                       |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| An ID we know                                      | That member. Their name and email follow the provider's, unless another member has the email |
+| A new ID, the email of a member with no identity   | Tied to that member. An invited member becomes active                                        |
+| A new ID, an email nobody has                      | A new active member, with no password and no access                                          |
+| A new ID, the email of a member tied to another ID | Refused: the address may have gone to a new person                                           |
+| No email, or `email_verified: false`               | Refused                                                                                      |
+| A suspended member                                 | Refused                                                                                      |
+
+- **Email is used once,** to pick up a member an admin had already added. After that only the ID counts.
+- **Every refusal shows the same page,** "We couldn't sign you in", with `sign_in_refused`. The reason goes to the log (`ProviderSignInException`) and to an event.
+- **Cancelling at the provider** returns to the sign-in page with "Sign-in was cancelled".
+- **A provider that can't be reached** shows "We couldn't reach your company's sign-in".
 
 ## Events
 
 Each change dispatches an event with the provider and the user who made it. Nothing listens yet; the audit log will.
 
-| Event                       | When                            |
-| --------------------------- | ------------------------------- |
-| `IdentityProviderConnected` | A provider is connected         |
-| `IdentityProviderChanged`   | Its details are saved           |
-| `IdentityProviderRemoved`   | It is removed (the row is gone) |
+| Event                        | When                                                                         |
+| ---------------------------- | ---------------------------------------------------------------------------- |
+| `IdentityProviderConnected`  | A provider is connected                                                      |
+| `IdentityProviderChanged`    | Its details are saved                                                        |
+| `IdentityProviderRemoved`    | It is removed (the row is gone)                                              |
+| `MemberSignedInWithProvider` | A member signed in through it: `returning`, `matched_by_email` or `created`  |
+| `ProviderSignInRefused`      | Someone the provider let through wasn't signed in, with the reason and email |
 
 ## Tests
 
 - `tests/browser/console/identity_provider.spec.ts`: connecting, the secret staying encrypted and off the page, refused issuer URLs, editing with and without a new secret, removing, one provider per organization, and another organization's provider being out of reach. It swaps the discovery service for `StubbedProviderDiscovery` (`tests/helpers/identity_providers.ts`), so no test touches the network.
 - `tests/functional/identity_providers/provider_discovery.spec.ts`: the real service against a provider on this machine, and every address and URL it must refuse.
 - `tests/functional/identity_providers/provider_request.spec.ts`: posting to a token endpoint, and the URLs a post must refuse.
+- `tests/browser/oidc/provider_sign_in.spec.ts`: the whole round trip against a real OpenID Connect provider running on the same machine (`setupOrganizationProvider` in `tests/helpers/fake_provider.ts`): each row of the table above, cancelling, a tampered `state`, another organization's path, and an answer opened in another browser.
 - `tests/functional/identity_providers/id_token.spec.ts`: tokens signed with a key made in the test: one that holds up, and one refused for each check.

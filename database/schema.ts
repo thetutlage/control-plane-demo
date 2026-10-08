@@ -150,6 +150,25 @@ export class IdentityProviderSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class MemberIdentitySchema extends BaseModel {
+  static $columns = ['createdAt', 'id', 'identityProviderId', 'memberId', 'organizationId', 'subject', 'updatedAt'] as const
+  $columns = MemberIdentitySchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare id: number
+  @column()
+  declare identityProviderId: number
+  @column()
+  declare memberId: number
+  @column()
+  declare organizationId: number
+  @column()
+  declare subject: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
 export class MemberSchema extends BaseModel {
   static $columns = ['actorId', 'createdAt', 'email', 'fullName', 'id', 'organizationId', 'password', 'status', 'updatedAt'] as const
   $columns = MemberSchema.$columns

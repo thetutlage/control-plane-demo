@@ -75,6 +75,10 @@ Members see one of two error pages, which look the same and share their wording 
 
 Errors are **rendered in the response to the failing request**, with its real status, never redirected to a separate error page. That keeps the status honest and needs no state across a redirect. Only form validation and wrong credentials redirect back to the form. `oidc-provider` errors below 500 are expected, and aren't reported as errors.
 
+## With an identity provider
+
+When the organization has connected its identity provider, the page shows **Continue with your company account** above the password form. That path is in [Identity provider](identity-provider.md#signing-in). It ends in the same `interactionResult` call, so access to the app, single sign-on and tokens work the same either way.
+
 ## Not built yet
 
 - Inviting members to choose their own password.

@@ -91,6 +91,18 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/organizations_controller').default['index']>>>
     }
   }
+  'sign_in_callbacks.show': {
+    methods: ["GET","HEAD"]
+    pattern: '/sign-in/callback/:org'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { org: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/sign_in_callbacks_controller').default['show']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sign_in_callbacks_controller').default['show']>>>
+    }
+  }
   'overview.show': {
     methods: ["GET","HEAD"]
     pattern: '/w/:org/overview'
@@ -557,6 +569,30 @@ export interface Registry {
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/sign_in_controller').default['destroy']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sign_in_controller').default['destroy']>>>
+    }
+  }
+  'redirect_to_provider': {
+    methods: ["POST"]
+    pattern: '/sign-in/:signInId/provider'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { signInId: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/redirect_to_provider_controller').default['handle']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/redirect_to_provider_controller').default['handle']>>>
+    }
+  }
+  'sign_in_with_provider': {
+    methods: ["GET","HEAD"]
+    pattern: '/sign-in/:signInId/provider/callback'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { signInId: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/sign_in_with_provider_controller').default['handle']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sign_in_with_provider_controller').default['handle']>>>
     }
   }
 }

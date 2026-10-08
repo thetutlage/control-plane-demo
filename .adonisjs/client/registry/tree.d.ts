@@ -15,6 +15,9 @@ export interface ApiDefinition {
   organizations: {
     index: typeof routes['organizations.index']
   }
+  signInCallbacks: {
+    show: typeof routes['sign_in_callbacks.show']
+  }
   overview: {
     show: typeof routes['overview.show']
   }
@@ -76,4 +79,6 @@ export interface ApiDefinition {
     store: typeof routes['sign_in.store']
     destroy: typeof routes['sign_in.destroy']
   }
+  redirectToProvider: typeof routes['redirect_to_provider']
+  signInWithProvider: typeof routes['sign_in_with_provider']
 }

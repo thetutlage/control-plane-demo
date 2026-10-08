@@ -89,8 +89,8 @@ export default function IdentityProvidersIndex({
           </header>
 
           <p className="notice">
-            Saved, and not used yet. Members sign in with an email and password until sign-in with
-            your provider is switched on.
+            Anyone your provider lets through can sign in. They get no access to an app until you
+            give them a role on it.
           </p>
 
           <dl className="kv">

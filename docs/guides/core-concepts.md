@@ -28,6 +28,7 @@ Organization ── Acme
 | Role                 | `roles`               | A named list of permission keys, used by every environment.                                                         |
 | Signing key          | `signing_keys`        | The key an environment's issuer signs tokens with.                                                                  |
 | Identity provider    | `identity_providers`  | The company's own provider (Google Workspace, Entra, Okta), which its staff sign in with. One per organization.     |
+| Member identity      | `member_identities`   | A member's account at the identity provider, by the provider's permanent ID for them.                               |
 
 ## Users are not members
 

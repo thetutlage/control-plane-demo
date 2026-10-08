@@ -9,6 +9,7 @@ type PageProps = InertiaProps<{
   environmentName: string
   isProduction: boolean
   appName: string
+  providerSignIn: boolean
 }>
 
 export default function SignInShow({
@@ -17,6 +18,7 @@ export default function SignInShow({
   environmentName,
   isProduction,
   appName,
+  providerSignIn,
 }: PageProps) {
   return (
     <>
@@ -28,6 +30,23 @@ export default function SignInShow({
       )}
       <h1 className="auth__title">Sign in to {organizationName}</h1>
       <p className="auth__sub">to continue to {appName}</p>
+
+      {providerSignIn && (
+        <>
+          <Form
+            route="redirect_to_provider"
+            routeParams={{ signInId }}
+            className="signin__provider"
+          >
+            {({ processing }) => (
+              <button type="submit" className="btn btn--primary btn--block" disabled={processing}>
+                {processing ? 'One moment…' : 'Continue with your company account'}
+              </button>
+            )}
+          </Form>
+          <p className="signin__or">or sign in with a password</p>
+        </>
+      )}
 
       <Form route="sign_in.store" routeParams={{ signInId }}>
         {({ errors, processing }) => (
@@ -42,7 +61,7 @@ export default function SignInShow({
                 type="email"
                 className="field__input"
                 autoComplete="username"
-                autoFocus
+                autoFocus={!providerSignIn}
                 aria-invalid={errors.email ? 'true' : 'false'}
               />
               {errors.email && <span className="field__error">{errors.email}</span>}
@@ -65,7 +84,7 @@ export default function SignInShow({
 
             <button
               type="submit"
-              className="btn btn--primary btn--block"
+              className={`btn ${providerSignIn ? 'btn--secondary' : 'btn--primary'} btn--block`}
               disabled={processing}
               style={{ marginTop: 4 }}
             >

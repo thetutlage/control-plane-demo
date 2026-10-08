@@ -32,6 +32,15 @@ router
   .use(middleware.auth())
 
 /**
+ * The redirect URI an organization registers at its identity provider. It
+ * forwards the provider's answer to the issuer host that started the
+ * sign-in.
+ */
+router
+  .get('sign-in/callback/:org', [controllers.SignInCallbacks, 'show'])
+  .where('org', router.matchers.slug())
+
+/**
  * Console pages of one organization, under `/w/:org`. Apps, members and
  * roles belong to the organization. An app's setup in one environment
  * sits under `apps/:app/environments/:environment`, where the environment
@@ -100,6 +109,9 @@ router
     router.get('sign-in/:signInId', [controllers.SignIn, 'show']).as('sign_in.show')
     router.post('sign-in/:signInId', [controllers.SignIn, 'store']).as('sign_in.store')
     router.delete('sign-in/:signInId', [controllers.SignIn, 'destroy']).as('sign_in.destroy')
+
+    router.post('sign-in/:signInId/provider', [controllers.RedirectToProvider])
+    router.get('sign-in/:signInId/provider/callback', [controllers.SignInWithProvider])
   })
   .domain(`:issuer.${new URL(env.get('APP_URL')).hostname}`)
   .use(middleware.issuer())

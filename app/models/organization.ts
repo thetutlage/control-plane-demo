@@ -2,6 +2,7 @@ import env from '#start/env'
 import db from '@adonisjs/lucid/services/db'
 import { hasMany, hasOne, manyToMany } from '@adonisjs/lucid/orm'
 import type { HasMany, HasOne, ManyToMany } from '@adonisjs/lucid/types/relations'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { OrganizationSchema } from '#database/schema'
 import { ActorType } from '#values/actor_type'
 import User from '#models/user'
@@ -60,7 +61,7 @@ export default class Organization extends OrganizationSchema {
   async createMember(
     values: Pick<Member, 'email' | 'fullName' | 'status'> & { password?: string }
   ) {
-    return db.transaction(async (trx) => {
+    const create = async (trx: TransactionClientContract) => {
       const actor = await Actor.create(
         { organizationId: this.id, type: ActorType.MEMBER },
         { client: trx }
@@ -69,6 +70,12 @@ export default class Organization extends OrganizationSchema {
         { ...values, organizationId: this.id, actorId: actor.id },
         { client: trx }
       )
-    })
+    }
+
+    /**
+     * Joins the transaction the organization was loaded in, when there is
+     * one
+     */
+    return this.$trx ? create(this.$trx) : db.transaction(create)
   }
 }
