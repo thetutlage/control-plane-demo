@@ -43,6 +43,7 @@ export type ScannedRoutes = {
     'roles.edit': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'role': ParamValue} }
     'roles.update': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'role': ParamValue} }
     'roles.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'role': ParamValue} }
+    'audit_logs.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'environments.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'identity_providers.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'identity_providers.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
@@ -84,6 +85,7 @@ export type ScannedRoutes = {
     'roles.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'roles.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'roles.edit': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'role': ParamValue} }
+    'audit_logs.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'environments.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'identity_providers.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'identity_providers.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
@@ -115,6 +117,7 @@ export type ScannedRoutes = {
     'roles.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'roles.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'roles.edit': { paramsTuple: [ParamValue,ParamValue]; params: {'org': ParamValue,'role': ParamValue} }
+    'audit_logs.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'environments.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'identity_providers.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'identity_providers.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }

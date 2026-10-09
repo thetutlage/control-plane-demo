@@ -240,6 +240,12 @@ const routes = {
     tokens: [{"old":"/w/:org/roles/:role","type":0,"val":"w","end":""},{"old":"/w/:org/roles/:role","type":1,"val":"org","end":""},{"old":"/w/:org/roles/:role","type":0,"val":"roles","end":""},{"old":"/w/:org/roles/:role","type":1,"val":"role","end":""}],
     types: placeholder as Registry['roles.destroy']['types'],
   },
+  'audit_logs.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/w/:org/audit-logs',
+    tokens: [{"old":"/w/:org/audit-logs","type":0,"val":"w","end":""},{"old":"/w/:org/audit-logs","type":1,"val":"org","end":""},{"old":"/w/:org/audit-logs","type":0,"val":"audit-logs","end":""}],
+    types: placeholder as Registry['audit_logs.index']['types'],
+  },
   'environments.index': {
     methods: ["GET","HEAD"],
     pattern: '/w/:org/settings/environments',

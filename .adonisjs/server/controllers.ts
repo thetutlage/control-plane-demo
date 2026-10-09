@@ -8,6 +8,7 @@ export const controllers = {
   AppMembers: () => import('#controllers/app_members_controller'),
   AppSecrets: () => import('#controllers/app_secrets_controller'),
   Apps: () => import('#controllers/apps_controller'),
+  AuditLogs: () => import('#controllers/audit_logs_controller'),
   Environments: () => import('#controllers/environments_controller'),
   ForwardProviderAnswer: () => import('#controllers/forward_provider_answer_controller'),
   IdentityProviders: () => import('#controllers/identity_providers_controller'),
