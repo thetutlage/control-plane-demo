@@ -1,5 +1,4 @@
 import hash from '@adonisjs/core/services/hash'
-import Member from '#models/member'
 import { appOf, pendingSignIn } from '#oidc/pending_sign_in'
 import { MemberStatus } from '#values/member_status'
 import { MemberSignInMethod } from '#values/member_sign_in_method'
@@ -17,11 +16,15 @@ import { EnvironmentKind } from '#values/environment_kind'
  * no grant is created for them and oidc-provider asks for consent instead
  * (`loadExistingGrant` in `createProvider`). The page then says they don't
  * have access.
+ *
+ * Only refusals are recorded in the audit log from here. A sign-in that
+ * works is recorded when the app is handed its code, which also covers
+ * members who were never shown this page (`OidcIssuerMiddleware`).
  */
 export default class SignInController {
   async show(ctx: HttpContext) {
     const signIn = await pendingSignIn(ctx)
-    const { issuer, inertia, audit } = ctx
+    const { issuer, inertia } = ctx
     const app = await appOf(issuer.environment, signIn)
 
     const props = {
@@ -32,16 +35,6 @@ export default class SignInController {
       appName: app.name,
     }
     if (signIn.prompt.name === 'consent') {
-      /**
-       * Recorded each time the page is shown, so reloading it records
-       * it again
-       */
-      const member = signIn.session
-        ? await Member.findActive(issuer.environment, signIn.session.accountId)
-        : null
-      if (member) {
-        audit.record('sign_in.access_denied', member, app, issuer.environment)
-      }
       return inertia.render('sign_in/no_access', props)
     }
 
@@ -143,7 +136,6 @@ export default class SignInController {
       { login: { accountId: String(member.actorId) } },
       { mergeWithLastSubmission: false }
     )
-    audit.record('sign_in.succeeded', member, app, issuer.environment, 'password')
     return inertia.location(returnTo)
   }
 }

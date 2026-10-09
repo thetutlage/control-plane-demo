@@ -364,7 +364,10 @@ await db.transaction(async (trx) => {
 - **Events the collector can't write are logged in full** by the reporter, to be put back by hand. The request still succeeds.
 - **There is no process-wide scope and no queue here,** since nothing in the control plane may take the path that can lose events. Commands and jobs build a scope of their own when the first one needs it.
 - **Tests assert on the rows.** There is no fake: the app's tests run against the real database.
-- **Requests `oidc-provider` handles under `/oauth` never reach the router,** so they have no scope yet.
+- **Requests `oidc-provider` handles under `/oauth` never reach the router.** `OidcIssuerMiddleware` gives them a scope of their own and records on it, inline: an app handed a code (`sign_in.succeeded`), a member refused an app, and an app's token or authorization request being refused, with the app as the actor. _Built 2026-10-09._ Each records straight onto the scope, because the member and the client are already loaded by then, through our own `findAccount` and storage adapter. Refused requests naming a client we don't know are left out. A known app's client ID is public, so failed requests for it can be sent by anyone and each writes an event; rate limits in housekeeping bound that.
+- **A member signing out is not recorded, for now.** It is the one request where `oidc-provider` never loads the member, so it needs a lookup a listener can't wait for.
+- **Tried and dropped for these events:** noting them in a list and loading the member and app again afterwards (a second lookup of what the request already had), then a separate recorder class, then a separate function with a made-up event for access denied and a variable shared between two callbacks for sign-out. Each added a hop to follow; the recording now sits in the middleware and reads top to bottom.
+- **`sign_in.succeeded` is recorded when the app gets its code,** not when a password is submitted. It then covers a member who is already signed in and goes to a second app without seeing a sign-in page. It is about once per app per browser every 1 to 14 days, not every time the app is opened, which we never see. A separate "app opened" event was considered and dropped: it would have said the same thing.
 
 **In the SDK.** How other SDKs send events, read 2026-10-09:
 
@@ -383,7 +386,6 @@ None lets an app commit events with its own data. WorkOS tells its customers to 
 
 **Still to settle:**
 
-- how sign-ins, sign-outs and refreshes that `oidc-provider` handles become events;
 - how long events are kept, and what is erased from them when a member or organization is deleted;
 - the pages: an explorer, a member's and an app's events, refused sign-ins, and export.
 

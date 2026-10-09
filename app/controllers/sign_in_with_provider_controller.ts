@@ -100,16 +100,16 @@ export default class SignInWithProviderController {
     const returnTo = await issuer.provider.interactionResult(
       request.request,
       response.response,
-      { login: { accountId: String(result.member.actorId), amr: [PROVIDER_AMR] } },
+      {
+        login: { accountId: String(result.member.actorId), amr: [PROVIDER_AMR] },
+
+        /**
+         * Kept with the sign-in for the audit event recorded when the
+         * app is handed its code (`OidcIssuerMiddleware`)
+         */
+        how: result.how,
+      },
       { mergeWithLastSubmission: false }
-    )
-    audit.record(
-      'sign_in.succeeded',
-      result.member,
-      app,
-      issuer.environment,
-      'provider',
-      result.how
     )
 
     /**

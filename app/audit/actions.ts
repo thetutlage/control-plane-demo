@@ -17,7 +17,7 @@ import { MemberSignInMethod } from '#values/member_sign_in_method'
 export const s = defineSubjects({
   user: (user: User) => ({ id: user.id, label: user.email }),
   member: (member: Member) => ({ id: member.id, label: member.email }),
-  app: (app: App) => ({ id: app.id, label: app.name }),
+  app: (app: AppRef) => ({ id: app.id, label: app.name }),
   role: (role: Role) => ({ id: role.id, label: role.name }),
   identityProvider: (provider: IdentityProvider) => ({ id: provider.id, label: provider.issuer }),
 })
@@ -40,6 +40,12 @@ const urls = (
   redirectUris: setup.redirectUris,
   postLogoutRedirectUris: setup.postLogoutRedirectUris,
 })
+
+/**
+ * What an app's events need of it. The requests oidc-provider handles
+ * know the app by these two only, from its client.
+ */
+type AppRef = Pick<App, 'id' | 'name'>
 
 type RoleDetails = Pick<Role, 'name' | 'description' | 'permissions'>
 type ProviderDetails = Pick<IdentityProvider, 'issuer' | 'clientId' | 'admitsNewcomers'>
@@ -196,19 +202,29 @@ export const actions = defineActions({
   */
 
   /**
+   * A member was signed in to an app: the app was handed a code for
+   * them. It happens when the app has no session of its own for the
+   * member, not each time they open it. `signedInWith` is `session` when
+   * they were already signed in here and weren't asked for anything.
    * `how` is set for a sign-in through the provider: `returning`,
-   * `matched_by_email` or `created`
+   * `matched_by_email` or `created`.
    */
   'sign_in.succeeded': (
     member: Member,
-    app: App,
+    app: AppRef,
     environment: Environment,
-    signedInWith: 'password' | 'provider',
+    signedInWith: 'password' | 'provider' | 'session',
     how: string | null = null
   ) => ({
     actor: s.member(member),
     subjects: [s.member(member), s.app(app)],
-    summary: `${member.email} signed in to ${app.name} in ${environment.name} with ${signedInWith === 'provider' ? 'the identity provider' : 'a password'}`,
+    summary: `${member.email} signed in to ${app.name} in ${environment.name}${
+      {
+        password: ' with a password',
+        provider: ' with the identity provider',
+        session: ', already signed in',
+      }[signedInWith]
+    }`,
     data: { method: signedInWith, ...(how ? { how } : {}) },
   }),
 
@@ -217,7 +233,7 @@ export const actions = defineActions({
    * one. Nobody is the actor: who was at the keyboard isn't known.
    */
   'sign_in.refused': (
-    app: App,
+    app: AppRef,
     environment: Environment,
     signedInWith: 'password' | 'provider',
     reason: string,
@@ -231,9 +247,43 @@ export const actions = defineActions({
   }),
 
   /**
-   * A signed-in member opened an app they have no access to
+   * An app's request for tokens was refused: a wrong client secret, or a
+   * code or refresh token that was expired or already used. A used one
+   * coming back can mean it was stolen. The app is the actor; no member
+   * is named, since the request didn't prove whose it was.
    */
-  'sign_in.access_denied': (member: Member, app: App, environment: Environment) => ({
+  'sign_in.token_request_refused': (
+    app: AppRef,
+    environment: Environment,
+    refusal: { error: string; description: string | null; grantType: string | null }
+  ) => ({
+    actor: s.app(app),
+    subjects: [s.app(app)],
+    summary: `A token request from ${app.name} in ${environment.name} was refused: ${refusal.error}`,
+    data: refusal,
+  }),
+
+  /**
+   * A sign-in an app started was refused before anyone was asked to sign
+   * in, such as for a redirect URI that isn't registered. It is what to
+   * look at when an app "can't sign in".
+   */
+  'sign_in.authorization_request_refused': (
+    app: AppRef,
+    environment: Environment,
+    refusal: { error: string; description: string | null; redirectUri: string | null }
+  ) => ({
+    actor: s.app(app),
+    subjects: [s.app(app)],
+    summary: `A sign-in started by ${app.name} in ${environment.name} was refused: ${refusal.error}`,
+    data: refusal,
+  }),
+
+  /**
+   * A member who proved who they are was not let into an app, because
+   * they have no access to it
+   */
+  'sign_in.access_denied': (member: Member, app: AppRef, environment: Environment) => ({
     actor: s.member(member),
     subjects: [s.member(member), s.app(app)],
     summary: `${member.email} has no access to ${app.name} in ${environment.name}`,

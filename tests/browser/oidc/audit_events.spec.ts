@@ -11,11 +11,14 @@ import ResetPasswordNotification from '#mails/reset_password_notification'
 import {
   appCallback,
   authorizeUrl,
+  exchangeCode,
   giveAccess,
   MEMBER,
   setupApp,
   setupMember,
   signIn,
+  tokenRequest,
+  visitIssuer,
 } from '#tests/helpers/oidc'
 
 /**
@@ -100,7 +103,9 @@ test.group('Sign-in audit events', (group) => {
     assert.notInclude(JSON.stringify(refused), 'not-the-password', 'a password is never recorded')
   })
 
-  test('a member with no access to the app is recorded as denied', async ({ browserContext }) => {
+  test('a member with no access to the app is recorded as denied, once, and not as signed in', async ({
+    browserContext,
+  }) => {
     const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
     const client = await setupApp(production)
     await setupMember(organization)
@@ -109,13 +114,119 @@ test.group('Sign-in audit events', (group) => {
     await page.goto(authorizeUrl(organization, production, client))
     await signIn(page, MEMBER.email, MEMBER.password)
     await page.assertVisible(page.getByText("You don't have access to Invoices"))
+    await page.reload()
+    await page.assertVisible(page.getByText("You don't have access to Invoices"))
 
-    await assertRecorded(organization, 'sign_in.succeeded', { count: 1 })
+    await assertRecorded(organization, 'sign_in.succeeded', { count: 0 })
     await assertRecorded(organization, 'sign_in.access_denied', {
       count: 1,
       actor: MEMBER.email,
       subjects: [`member: ${MEMBER.email}`, 'app: Invoices'],
+      summary: `${MEMBER.email} has no access to Invoices in Production`,
     })
+  })
+
+  test('a member already signed in is recorded for the second app too, without a sign-in page', async ({
+    browserContext,
+    assert,
+  }) => {
+    const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
+    const invoices = await setupApp(production, 'invoices')
+    const payroll = await setupApp(production, 'payroll')
+    await giveAccess(await setupMember(organization), invoices, payroll)
+
+    await visitIssuer(browserContext, organization, production, invoices)
+    await visitIssuer(browserContext, organization, production, payroll)
+
+    const events = await assertRecorded(organization, 'sign_in.succeeded', { count: 2 })
+    await assertRecorded(organization, 'sign_in.succeeded', {
+      subjects: [`member: ${MEMBER.email}`, 'app: Invoices'],
+      data: { method: 'password' },
+    })
+    await assertRecorded(organization, 'sign_in.succeeded', {
+      subjects: [`member: ${MEMBER.email}`, 'app: Payroll'],
+      summary: `${MEMBER.email} signed in to Payroll in Production, already signed in`,
+      data: { method: 'session' },
+    })
+    assert.isString(events[1].context.requestId)
+    assert.equal(events[1].environmentId, production.id)
+  })
+
+  test('a token request an app gets wrong is recorded, with the app as the actor', async ({
+    browserContext,
+    assert,
+  }) => {
+    const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
+    const invoices = await setupApp(production, 'invoices')
+    await giveAccess(await setupMember(organization), invoices)
+    const code = await visitIssuer(browserContext, organization, production, invoices)
+
+    const wrongSecret = await exchangeCode(organization, production, invoices, code, {
+      secret: 'not-the-secret',
+    })
+    const first = await exchangeCode(organization, production, invoices, code)
+    const usedTwice = await exchangeCode(organization, production, invoices, code)
+    const unknownApp = await tokenRequest(
+      organization,
+      production,
+      { clientId: 'nobody-we-know', secret: 'whatever' },
+      { grant_type: 'authorization_code', code: 'a-code' }
+    )
+
+    assert.equal(wrongSecret.body.error, 'invalid_client')
+    assert.equal(first.status, 200)
+    assert.equal(usedTwice.body.error, 'invalid_grant')
+    assert.equal(unknownApp.body.error, 'invalid_client')
+
+    const refused = await assertRecorded(organization, 'sign_in.token_request_refused', {
+      count: 2,
+      actor: 'Invoices',
+      subjects: ['app: Invoices'],
+      summary: 'A token request from Invoices in Production was refused: invalid_client',
+      data: { error: 'invalid_client', grantType: 'authorization_code' },
+    })
+    await assertRecorded(organization, 'sign_in.token_request_refused', {
+      data: { error: 'invalid_grant', grantType: 'authorization_code' },
+    })
+    const stored = JSON.stringify(refused)
+    assert.notInclude(stored, 'not-the-secret')
+    assert.notInclude(stored, code)
+    assert.equal(refused[0].actor?.type, 'app')
+    assert.equal(refused[0].environmentId, production.id)
+  })
+
+  test('a sign-in an app starts wrongly is recorded, and an ordinary refusal is not', async ({
+    browserContext,
+  }) => {
+    const { organization, production } = await setupOnboardedOrganization({ slug: 'acme' })
+    const invoices = await setupApp(production, 'invoices')
+    await setupMember(organization)
+
+    const page = await browserContext.newPage()
+    const wrong = new URL(authorizeUrl(organization, production, invoices))
+    wrong.searchParams.set('redirect_uri', 'https://evil.test/callback')
+    await page.goto(wrong.toString())
+    await page.assertVisible(page.getByText('invalid_redirect_uri', { exact: true }))
+
+    await assertRecorded(organization, 'sign_in.authorization_request_refused', {
+      count: 1,
+      actor: 'Invoices',
+      subjects: ['app: Invoices'],
+      data: { error: 'invalid_redirect_uri', redirectUri: 'https://evil.test/callback' },
+    })
+
+    /**
+     * A member with no access going back to the app is `access_denied`
+     * to the app, which is not the app getting anything wrong
+     */
+    const denied = appCallback(page, invoices.redirectUris[0])
+    await page.goto(authorizeUrl(organization, production, invoices))
+    await signIn(page, MEMBER.email, MEMBER.password)
+    await page.getByRole('button', { name: /back/i }).click()
+    await denied
+
+    await assertRecorded(organization, 'sign_in.authorization_request_refused', { count: 1 })
+    await assertRecorded(organization, 'sign_in.access_denied', { count: 1 })
   })
 
   test('asking for a reset link and setting the password are recorded, for members only', async ({

@@ -2,8 +2,6 @@ import type Provider from 'oidc-provider'
 import { errors } from '@adonisjs/lucid'
 import Environment from '#models/environment'
 import env from '#start/env'
-import Member from '#models/member'
-import AppMember from '#models/app_member'
 import OidcStorageAdapter from '#oidc/storage_adapter'
 import { createProvider } from '#oidc/create_provider'
 import type { HttpContext } from '@adonisjs/core/http'
@@ -32,33 +30,16 @@ export default class IssuerMiddleware {
       throw new errors.E_ROW_NOT_FOUND()
     }
 
+    /**
+     * The sign-in pages only read a pending sign-in and finish it, which
+     * needs none of the callbacks `OidcIssuerMiddleware` gives its
+     * provider
+     */
     const provider = createProvider({
       issuer: environment.issuerUrl(environment.organization.slug),
       jwks: environment.signingKeys.map((key) => key.toJwk()),
       cookieKeys: [env.get('APP_KEY').release()],
       adapter: (model) => new OidcStorageAdapter(model, environment),
-      findAccount: async (_ctx, actorId) => {
-        const member = await Member.findActive(environment, actorId)
-        if (!member) {
-          return undefined
-        }
-
-        return {
-          accountId: actorId,
-          claims: () => ({
-            sub: actorId,
-            name: member.fullName ?? undefined,
-            email: member.email,
-          }),
-        }
-      },
-      admit: async (actorId, clientId) => {
-        const appMember = await AppMember.findForSignIn(environment, actorId, clientId)
-        await appMember?.recordSignIn()
-        return appMember !== null
-      },
-      permissionsFor: (actorId, clientId) =>
-        AppMember.permissionsFor(environment, actorId, clientId),
     })
 
     ctx.issuer = { environment, provider }

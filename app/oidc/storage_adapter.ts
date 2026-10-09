@@ -146,13 +146,15 @@ export default class OidcStorageAdapter implements Adapter {
 
   /**
    * Clients are not stored by oidc-provider: they are the apps set up in
-   * the environment, and every app gets the same settings.
+   * the environment, and every app gets the same settings. The client
+   * also says which app it is, for the audit log.
    */
   async #findClient(clientId: string): Promise<AdapterPayload | undefined> {
     const setup = await this.#environment
       .related('appEnvironments')
       .query()
       .where('client_id', clientId)
+      .preload('app')
       .first()
 
     if (!setup) {
@@ -160,6 +162,8 @@ export default class OidcStorageAdapter implements Adapter {
     }
 
     return {
+      app_id: setup.appId,
+      app_name: setup.app.name,
       client_id: setup.clientId,
       client_secret: setup.secret,
       redirect_uris: setup.redirectUris,

@@ -87,6 +87,10 @@ export type CreateProviderInput = {
   adapter: AdapterFactory
 
   /**
+   * The three callbacks below are called only while oidc-provider handles
+   * a request under `/oauth`. A provider that just reads and finishes a
+   * pending sign-in, for the sign-in pages, leaves them out.
+   *
    * Finds the member who signed in by their actor ID, or returns undefined
    * when they can no longer sign in.
    *
@@ -95,20 +99,32 @@ export type CreateProviderInput = {
    * objects use that name; everything we write calls it `actorId`, a
    * string here because oidc-provider passes it as one.
    */
-  findAccount: FindAccount
+  findAccount?: FindAccount
 
   /**
    * Lets a member into the app of a client, on every visit to the issuer:
    * notes the sign-in and resolves to true when they have access to the
-   * app, or resolves to false when they have none
+   * app, or resolves to false when they have none. It is given the
+   * request's context, which holds the member and the client.
    */
-  admit: (actorId: string, clientId: string) => Promise<boolean>
+  admit?: (actorId: string, clientId: string, ctx: KoaContextWithOIDC) => Promise<boolean>
 
   /**
    * The permission keys a member holds on the app of a client, for its
    * access tokens
    */
-  permissionsFor: (actorId: string, clientId: string) => Promise<string[]>
+  permissionsFor?: (actorId: string, clientId: string) => Promise<string[]>
+}
+
+/**
+ * Stands in for a callback the provider was made without, and says so if
+ * oidc-provider ever calls it. Without it, a missing `findAccount` would
+ * fall back to oidc-provider's own, which accepts anyone.
+ */
+function notGiven(name: string) {
+  return (): never => {
+    throw new Error(`This oidc-provider instance was created without "${name}"`)
+  }
 }
 
 /**
@@ -118,9 +134,20 @@ export type CreateProviderInput = {
  * current keys and settings (plan §8).
  */
 export function createProvider(input: CreateProviderInput) {
+  const {
+    findAccount = notGiven('findAccount'),
+    admit = notGiven('admit'),
+    permissionsFor = notGiven('permissionsFor'),
+  } = input
+
   const provider = new Provider(input.issuer, {
     adapter: input.adapter,
-    findAccount: input.findAccount,
+    findAccount,
+
+    /**
+     * What the storage adapter adds to a client to say which app it is
+     */
+    extraClientMetadata: { properties: ['app_id', 'app_name'] },
     jwks: { keys: input.jwks },
     cookies: { keys: input.cookieKeys },
 
@@ -181,7 +208,7 @@ export function createProvider(input: CreateProviderInput) {
         return undefined
       }
 
-      return { permissions: await input.permissionsFor(token.accountId, token.clientId) }
+      return { permissions: await permissionsFor(token.accountId, token.clientId) }
     },
 
     /**
@@ -279,7 +306,7 @@ export function createProvider(input: CreateProviderInput) {
      */
     async loadExistingGrant(ctx: KoaContextWithOIDC) {
       const { session, client, params } = ctx.oidc
-      if (!(await input.admit(session!.accountId!, client!.clientId))) {
+      if (!(await admit(session!.accountId!, client!.clientId, ctx))) {
         return undefined
       }
 

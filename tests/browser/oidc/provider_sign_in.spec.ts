@@ -188,10 +188,9 @@ test.group('Sign-in with the identity provider', (group) => {
       actor: 'designer@gmail.com',
       subjects: ['member: designer@gmail.com'],
     })
-    await assertRecorded(organization, 'sign_in.succeeded', {
-      data: { method: 'provider', how: 'created' },
-    })
+    await assertRecorded(organization, 'sign_in.succeeded', { count: 0 })
     await assertRecorded(organization, 'sign_in.access_denied', {
+      count: 1,
       actor: 'designer@gmail.com',
       subjects: ['member: designer@gmail.com', 'app: Invoices'],
     })

@@ -59,14 +59,34 @@ If that write fails, the request still succeeds and the events are logged in ful
 | Category        | Actions                                                                                                                                                                                                                        |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `access`        | `member_added`, `member_joined`, `granted`, `roles_changed`, `revoked`, `role_created`, `role_changed`, `role_deleted`, `sign_in_method_changed`, `identity_dissociated`, `signed_out_everywhere`, `password_setup_sent`       |
-| `sign_in`       | `succeeded`, `refused`, `access_denied`, `password_set`, `password_reset_requested`                                                                                                                                            |
+| `sign_in`       | `succeeded`, `refused`, `access_denied`, `token_request_refused`, `authorization_request_refused`, `password_set`, `password_reset_requested`                                                                                  |
 | `configuration` | `organization_created`, `app_created`, `app_deleted`, `app_set_up`, `app_setup_changed`, `app_setup_removed`, `client_secret_rotated`, `identity_provider_connected`, `identity_provider_changed`, `identity_provider_removed` |
 
 - **A refused sign-in keeps the real reason.** The page says "Email or password is incorrect" for every failure; the event says `unknown_email`, `wrong_password`, `not_active`, `signs_in_with_the_provider` or `no_password_set`, or the provider's reason. The member is a subject when the email or the provider's ID named one.
-- **`sign_in.access_denied` is recorded each time the "You don't have access" page is shown,** so reloading it records it again.
+- **`sign_in.succeeded` means an app was handed a code for the member.** That happens when the app has no session of its own for them: a first visit, after a sign-out, or once its session with us has run out. It is not every time they open the app, which we never see. Its `method` is `password`, `provider`, or `session` when they were already signed in here and weren't asked for anything.
+- **`sign_in.access_denied` is recorded once,** when a member who proved who they are is refused the app. They get no `sign_in.succeeded`.
 - **Removing a provider** records the removal and one `access.sign_in_method_changed` per member it switches, in one batch.
 
-Not recorded yet: sign-outs, and anything else `oidc-provider` handles under `/oauth` without reaching the router. Token refreshes won't be. Console users signing in to the console aren't either: at login there is no organization to file the event under.
+- **A request an app gets wrong has the app as its actor.** `sign_in.token_request_refused` is a wrong client secret, or a code or refresh token that was expired or already used; a used one coming back can mean it was stolen. `sign_in.authorization_request_refused` is a sign-in the app started wrongly, such as with a redirect URI that isn't registered. Neither names a member, and neither stores the secret, the code or the token.
+
+Not recorded: a member signing out, left out for now; token exchanges and refreshes that work, which are frequent and repeat what `sign_in.succeeded` said; and console users signing in to the console, since at login there is no organization to file the event under.
+
+## Events from oidc-provider
+
+Four events come from inside `oidc-provider`, on requests under `/oauth` that never reach the router. `OidcIssuerMiddleware` builds a provider instance per request, gives the request an audit scope of its own, and records on it right there:
+
+| Recorded                                | From                                                                                                                   |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `sign_in.succeeded`                     | `authorization.success`                                                                                                |
+| `sign_in.access_denied`                 | The `admit` callback, when it answers no                                                                               |
+| `sign_in.token_request_refused`         | `grant.error`                                                                                                          |
+| `sign_in.authorization_request_refused` | `authorization.error`, except `access_denied`, `login_required` and `interaction_required`, which are ordinary answers |
+
+- **Each records straight onto the request's scope.** By then `oidc-provider` has loaded the member and the client through our own callbacks: `findAccount` returns the member on the account, and the storage adapter adds the app's ID and name to the client (`app_id`, `app_name`, declared as extra client metadata).
+- **A request naming a client we don't know has no app, and is left out.** Anyone can send those.
+- **The scope is written once `oidc-provider` has handled the request and before it answers,** from a Koa middleware added with `provider.use`.
+- **How the member got in** is read from `oidc.result`, which holds what the sign-in page submitted and is missing when they weren't asked for anything. The provider sign-in adds `how` to it (`returning`, `matched_by_email`, `created`).
+- **An app's client ID is public,** so anyone who knows it can send token requests that fail, and each writes an event. Rate limits on the issuer's endpoints, part of housekeeping, are what bound that.
 
 ## Reading
 

@@ -1,9 +1,6 @@
-import { Collector, Scope } from '#auditlogs/index'
-import { actions } from '#audit/actions'
-import { auditStore, reportUnwritten } from '#audit/store'
+import { requestScope, type AuditScope } from '#audit/scope'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
-import type { LucidStoreOptions } from '#auditlogs/src/stores/lucid'
 
 declare module '@adonisjs/core/http' {
   interface HttpContext {
@@ -12,7 +9,7 @@ declare module '@adonisjs/core/http' {
      * when the request ends; events that must be saved with a change go
      * through `audit.batch()`, flushed in the change's transaction.
      */
-    audit: Scope<typeof actions, LucidStoreOptions>
+    audit: AuditScope
   }
 }
 
@@ -26,11 +23,7 @@ declare module '@adonisjs/core/http' {
  */
 export default class AuditMiddleware {
   async handle(ctx: HttpContext, next: NextFn) {
-    ctx.audit = new Scope(actions, new Collector(auditStore, { reporter: reportUnwritten }), {
-      requestId: ctx.request.id(),
-      ip: ctx.request.ip(),
-      userAgent: ctx.request.header('user-agent') ?? null,
-    })
+    ctx.audit = requestScope(ctx)
 
     await next()
     await ctx.audit.flush()
