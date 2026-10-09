@@ -1,4 +1,4 @@
-import { events } from '#generated/events'
+import { auditedTransaction } from '#audit/transaction'
 import type { HttpContext } from '@adonisjs/core/http'
 import MemberIdentity from '#models/member_identity'
 
@@ -12,7 +12,7 @@ export default class MemberIdentitiesController {
    * everywhere. Their next sign-in through the provider is matched by
    * email again, for when their account there was deleted and recreated.
    */
-  async destroy({ response, session, auth, params, organization }: HttpContext) {
+  async destroy({ response, session, auth, audit, params, organization }: HttpContext) {
     const member = await organization
       .related('members')
       .query()
@@ -23,9 +23,11 @@ export default class MemberIdentitiesController {
       .where('member_id', member.id)
       .firstOrFail()
 
-    await identity.delete()
-    await member.signOutEverywhere()
-    await events.MemberIdentityDissociated.dispatch(member, identity.subject, auth.getUserOrFail())
+    await auditedTransaction(audit, async (trx, batch) => {
+      await identity.useTransaction(trx).delete()
+      await member.useTransaction(trx).signOutEverywhere()
+      batch.record('access.identity_dissociated', auth.getUserOrFail(), member, identity.subject)
+    })
 
     session.flash(
       'success',

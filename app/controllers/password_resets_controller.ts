@@ -1,5 +1,5 @@
 import { Secret } from '@adonisjs/core/helpers'
-import { events } from '#generated/events'
+import { auditedTransaction } from '#audit/transaction'
 import mail from '@adonisjs/mail/services/main'
 import type { HttpContext } from '@adonisjs/core/http'
 import Member from '#models/member'
@@ -64,7 +64,7 @@ export default class PasswordResetsController {
    * once a minute. The answer is the same for every email, so the form
    * never reveals who is a member or how they sign in.
    */
-  async store({ issuer, request, response, session }: HttpContext) {
+  async store({ issuer, request, response, session, audit }: HttpContext) {
     const { email } = await request.validateUsing(requestPasswordResetValidator)
     const { environment } = issuer
 
@@ -81,6 +81,7 @@ export default class PasswordResetsController {
       await mail.sendLater(
         new ResetPasswordNotification(member, environment.organization, environment, token)
       )
+      audit.record('sign_in.password_reset_requested', member, environment)
     }
 
     session.flash('success', 'If that email signs in with a password, we sent it a link.')
@@ -110,16 +111,18 @@ export default class PasswordResetsController {
    * password.
    */
   async update(ctx: HttpContext) {
-    const { request, response, session, params } = ctx
+    const { request, response, session, params, audit } = ctx
     const { password } = await request.validateUsing(setPasswordValidator)
 
     const member = await this.#memberFor(ctx)
     if (member) {
-      member.password = password
-      await member.save()
-      await member.clearPasswordResetTokens()
-      await member.signOutEverywhere()
-      await events.MemberPasswordSet.dispatch(member)
+      await auditedTransaction(audit, async (trx, batch) => {
+        member.password = password
+        await member.useTransaction(trx).save()
+        await member.clearPasswordResetTokens()
+        await member.signOutEverywhere()
+        batch.record('sign_in.password_set', member)
+      })
       session.flash('passwordSet', true)
     }
 

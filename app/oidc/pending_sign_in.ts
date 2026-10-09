@@ -1,5 +1,6 @@
 import { errors } from 'oidc-provider'
 import type { HttpContext } from '@adonisjs/core/http'
+import type Environment from '#models/environment'
 
 /**
  * The paused request a sign-in page is for. `interactionDetails` finds it
@@ -15,4 +16,21 @@ export async function pendingSignIn({ issuer, request, response, params }: HttpC
     throw new errors.SessionNotFound('the sign-in in the URL is not the one in progress')
   }
   return signIn
+}
+
+/**
+ * The app a pending sign-in is for: the one whose client started it, in
+ * the issuer's environment
+ */
+export async function appOf(
+  environment: Environment,
+  signIn: Awaited<ReturnType<typeof pendingSignIn>>
+) {
+  const setup = await environment
+    .related('appEnvironments')
+    .query()
+    .where('client_id', String(signIn.params.client_id))
+    .preload('app')
+    .firstOrFail()
+  return setup.app
 }

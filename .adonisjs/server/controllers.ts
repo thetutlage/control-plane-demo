@@ -9,6 +9,7 @@ export const controllers = {
   AppSecrets: () => import('#controllers/app_secrets_controller'),
   Apps: () => import('#controllers/apps_controller'),
   Environments: () => import('#controllers/environments_controller'),
+  ForwardProviderAnswer: () => import('#controllers/forward_provider_answer_controller'),
   IdentityProviders: () => import('#controllers/identity_providers_controller'),
   MemberIdentities: () => import('#controllers/member_identities_controller'),
   MemberPasswordResets: () => import('#controllers/member_password_resets_controller'),
@@ -22,7 +23,6 @@ export const controllers = {
   RedirectToProvider: () => import('#controllers/redirect_to_provider_controller'),
   Roles: () => import('#controllers/roles_controller'),
   Session: () => import('#controllers/session_controller'),
-  SignInCallbacks: () => import('#controllers/sign_in_callbacks_controller'),
   SignIn: () => import('#controllers/sign_in_controller'),
   SignInWithProvider: () => import('#controllers/sign_in_with_provider_controller'),
 }

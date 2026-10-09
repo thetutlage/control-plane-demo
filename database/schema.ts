@@ -110,6 +110,50 @@ export class AppSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class AuditEventRefSchema extends BaseModel {
+  static $columns = ['eventId', 'label', 'position', 'refId', 'role', 'type'] as const
+  $columns = AuditEventRefSchema.$columns
+  @column()
+  declare eventId: string
+  @column()
+  declare label: string
+  @column()
+  declare position: number
+  @column()
+  declare refId: string
+  @column()
+  declare role: 'actor' | 'subject'
+  @column()
+  declare type: string
+}
+
+export class AuditEventSchema extends BaseModel {
+  static $columns = ['action', 'batchId', 'category', 'context', 'createdAt', 'data', 'environmentId', 'id', 'occurredAt', 'organizationId', 'summary'] as const
+  $columns = AuditEventSchema.$columns
+  @column()
+  declare action: string
+  @column()
+  declare batchId: string | null
+  @column()
+  declare category: string
+  @column()
+  declare context: Record<string, unknown>
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare data: Record<string, unknown>
+  @column()
+  declare environmentId: number | null
+  @column()
+  declare id: string
+  @column.dateTime()
+  declare occurredAt: DateTime
+  @column()
+  declare organizationId: number
+  @column()
+  declare summary: string
+}
+
 export class EnvironmentSchema extends BaseModel {
   static $columns = ['createdAt', 'id', 'kind', 'name', 'organizationId', 'slug', 'updatedAt'] as const
   $columns = EnvironmentSchema.$columns

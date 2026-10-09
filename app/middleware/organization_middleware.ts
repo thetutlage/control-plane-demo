@@ -12,7 +12,8 @@ declare module '@adonisjs/core/http' {
  * Resolves the `:org` route param among the signed-in user's own
  * organizations, with its environments. A slug of an organization the user
  * does not belong to is a 404, even when that organization exists.
- * Everything a console page reads is reached through this organization.
+ * Everything a console page reads is reached through this organization,
+ * and audit events recorded from here on belong to it.
  *
  * Must run after the auth middleware.
  */
@@ -25,6 +26,7 @@ export default class OrganizationMiddleware {
       .where('slug', ctx.params.org)
       .preload('environments', (query) => query.orderBy('kind', 'asc'))
       .firstOrFail()
+    ctx.audit = ctx.audit.with({ organizationId: ctx.organization.id })
 
     return next()
   }

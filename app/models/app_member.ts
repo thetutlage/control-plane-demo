@@ -88,10 +88,11 @@ export default class AppMember extends AppMemberSchema {
   /**
    * Takes the member's access away: they can't sign in to the app in this
    * environment, and their grants for it are revoked, so the app signs
-   * them out at its next refresh
+   * them out at its next refresh. Joins the transaction the app member
+   * was loaded in or given, when there is one.
    */
   async revoke() {
-    await db.transaction(async (trx) => {
+    await (this.$trx ?? db).transaction(async (trx) => {
       const clientIds = trx
         .from('app_environments')
         .where('environment_id', this.environmentId)

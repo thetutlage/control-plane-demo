@@ -15,14 +15,14 @@ const ANSWER = ['code', 'state', 'error', 'error_description', 'iss']
  * the issuer host that started the sign-in, which holds the cookies
  * needed to finish it (`SignInWithProviderController`).
  */
-export default class SignInCallbacksController {
+export default class ForwardProviderAnswerController {
   /**
    * Forwards to the environment named in the signed `state`, when it
    * belongs to the organization in the path. The target is built from
    * our own records, never from the request, so this can't be used to
    * send a browser anywhere else (RFC 9700 §2.1).
    */
-  async show({ request, response, inertia, params }: HttpContext) {
+  async handle({ request, response, inertia, params }: HttpContext) {
     const state = encryption
       .getMessageVerifier()
       .unsign<{ environmentId: number; signInId: string }>(

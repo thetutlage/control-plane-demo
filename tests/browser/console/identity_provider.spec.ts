@@ -1,7 +1,6 @@
 import { test } from '@japa/runner'
 import type { Page } from 'playwright'
-import { events } from '#generated/events'
-import emitter from '@adonisjs/core/services/emitter'
+import { assertRecorded } from '#tests/helpers/audit'
 import testUtils from '@adonisjs/core/services/test_utils'
 import IdentityProvider from '#models/identity_provider'
 import ProviderDiscoveryService from '#services/provider_discovery_service'
@@ -33,7 +32,6 @@ test.group('Console identity provider', (group) => {
     browserContext,
   }) => {
     swap(ProviderDiscoveryService, () => new StubbedProviderDiscovery())
-    using fakeEmitter = emitter.fake([events.IdentityProviderConnected])
     const acme = await setupOnboardedOrganization({ slug: 'acme' })
 
     await browserContext.loginAs(acme.user)
@@ -69,9 +67,17 @@ test.group('Console identity provider', (group) => {
     assert.notInclude(identityProvider.clientSecret, PROVIDER.clientSecret)
     assert.equal(identityProvider.secret, PROVIDER.clientSecret)
 
-    fakeEmitter.assertEmitted(events.IdentityProviderConnected, ({ data }) => {
-      return data.identityProvider.id === identityProvider.id && data.user.id === acme.user.id
-    })
+    const [connected] = await assertRecorded(
+      acme.organization,
+      'configuration.identity_provider_connected',
+      {
+        count: 1,
+        actor: acme.user.email,
+        subjects: [`identityProvider: ${PROVIDER.issuer}`],
+        data: { issuer: PROVIDER.issuer, clientId: PROVIDER.clientId },
+      }
+    )
+    assert.notInclude(JSON.stringify(connected.data), PROVIDER.clientSecret)
   })
 
   test('the redirect URI is on the console host, with the organization in its path', async ({
@@ -117,7 +123,6 @@ test.group('Console identity provider', (group) => {
     browserContext,
   }) => {
     swap(ProviderDiscoveryService, () => new StubbedProviderDiscovery())
-    using fakeEmitter = emitter.fake([events.IdentityProviderChanged])
     const acme = await setupOnboardedOrganization({ slug: 'acme' })
     const identityProvider = await setupConnectedProvider(acme.organization)
 
@@ -136,7 +141,10 @@ test.group('Console identity provider', (group) => {
     await identityProvider.refresh()
     assert.equal(identityProvider.clientId, '0oa9z8y7x6')
     assert.equal(identityProvider.secret, PROVIDER.clientSecret)
-    fakeEmitter.assertEmitted(events.IdentityProviderChanged)
+    await assertRecorded(acme.organization, 'configuration.identity_provider_changed', {
+      count: 1,
+      data: { secretReplaced: false, tiesCleared: 0 },
+    })
   })
 
   test('editing with a new secret replaces it', async ({
@@ -168,7 +176,6 @@ test.group('Console identity provider', (group) => {
     db,
     browserContext,
   }) => {
-    using fakeEmitter = emitter.fake([events.IdentityProviderRemoved])
     const acme = await setupOnboardedOrganization({ slug: 'acme' })
     await setupConnectedProvider(acme.organization)
 
@@ -182,8 +189,10 @@ test.group('Console identity provider', (group) => {
       page.getByText('Members sign in with an email and password', { exact: true })
     )
     await db.assertEmpty('identity_providers')
-    fakeEmitter.assertEmitted(events.IdentityProviderRemoved, ({ data }) => {
-      return data.identityProvider.issuer === PROVIDER.issuer
+    await assertRecorded(acme.organization, 'configuration.identity_provider_removed', {
+      count: 1,
+      actor: acme.user.email,
+      data: { issuer: PROVIDER.issuer, membersSwitched: 0 },
     })
   })
 

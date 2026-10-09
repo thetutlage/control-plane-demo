@@ -1,5 +1,6 @@
 import hash from '@adonisjs/core/services/hash'
-import { pendingSignIn } from '#oidc/pending_sign_in'
+import Member from '#models/member'
+import { appOf, pendingSignIn } from '#oidc/pending_sign_in'
 import { MemberStatus } from '#values/member_status'
 import { MemberSignInMethod } from '#values/member_sign_in_method'
 import type { HttpContext } from '@adonisjs/core/http'
@@ -20,23 +21,27 @@ import { EnvironmentKind } from '#values/environment_kind'
 export default class SignInController {
   async show(ctx: HttpContext) {
     const signIn = await pendingSignIn(ctx)
-    const { issuer, inertia } = ctx
-
-    const setup = await issuer.environment
-      .related('appEnvironments')
-      .query()
-      .where('client_id', String(signIn.params.client_id))
-      .preload('app')
-      .firstOrFail()
+    const { issuer, inertia, audit } = ctx
+    const app = await appOf(issuer.environment, signIn)
 
     const props = {
       signInId: signIn.uid,
       organizationName: issuer.environment.organization.name,
       environmentName: issuer.environment.name,
       isProduction: issuer.environment.kind === EnvironmentKind.PRODUCTION,
-      appName: setup.app.name,
+      appName: app.name,
     }
     if (signIn.prompt.name === 'consent') {
+      /**
+       * Recorded each time the page is shown, so reloading it records
+       * it again
+       */
+      const member = signIn.session
+        ? await Member.findActive(issuer.environment, signIn.session.accountId)
+        : null
+      if (member) {
+        audit.record('sign_in.access_denied', member, app, issuer.environment)
+      }
       return inertia.render('sign_in/no_access', props)
     }
 
@@ -82,13 +87,15 @@ export default class SignInController {
   /**
    * Checks the member's credentials within the issuer's organization and
    * finishes the sign-in. A member set to sign in with the identity
-   * provider is refused here, whatever password they have. Every failure gets the same message, so the page
-   * never reveals whether an email has an account. Unknown emails still pay
-   * for a hash, so they take as long as a wrong password.
+   * provider is refused here, whatever password they have. Every failure
+   * gets the same message, so the page never reveals whether an email has
+   * an account; the audit log keeps the real reason. Unknown emails still
+   * pay for a hash, so they take as long as a wrong password.
    */
   async store(ctx: HttpContext) {
-    await pendingSignIn(ctx)
-    const { issuer, inertia, request, response, session } = ctx
+    const signIn = await pendingSignIn(ctx)
+    const { issuer, inertia, request, response, session, audit } = ctx
+    const app = await appOf(issuer.environment, signIn)
     const { email, password } = await request.validateUsing(memberLoginValidator)
 
     const member = await issuer.environment.organization
@@ -109,6 +116,17 @@ export default class SignInController {
     }
 
     if (!member || !signedIn) {
+      const reason = !member
+        ? 'unknown_email'
+        : member.status !== MemberStatus.ACTIVE
+          ? 'not_active'
+          : member.signInMethod !== MemberSignInMethod.PASSWORD
+            ? 'signs_in_with_the_provider'
+            : !member.password
+              ? 'no_password_set'
+              : 'wrong_password'
+      audit.record('sign_in.refused', app, issuer.environment, 'password', reason, email, member)
+
       session.flash('error', 'Email or password is incorrect')
       return response.redirect().back()
     }
@@ -125,6 +143,7 @@ export default class SignInController {
       { login: { accountId: String(member.actorId) } },
       { mergeWithLastSubmission: false }
     )
+    audit.record('sign_in.succeeded', member, app, issuer.environment, 'password')
     return inertia.location(returnTo)
   }
 }

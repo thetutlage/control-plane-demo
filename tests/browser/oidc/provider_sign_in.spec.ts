@@ -1,7 +1,6 @@
 import { test } from '@japa/runner'
 import type { Page } from 'playwright'
-import { events } from '#generated/events'
-import emitter from '@adonisjs/core/services/emitter'
+import { assertRecorded } from '#tests/helpers/audit'
 import testUtils from '@adonisjs/core/services/test_utils'
 import Member from '#models/member'
 import MemberIdentity from '#models/member_identity'
@@ -45,7 +44,6 @@ test.group('Sign-in with the identity provider', (group) => {
     browserContext,
   }) => {
     swap(ProviderRequestService, reachLocalProvider)
-    using fakeEmitter = emitter.fake([events.MemberSignedInWithProvider])
     const { organization, staging } = await setupOnboardedOrganization({ slug: 'acme' })
     const provider = await setupOrganizationProvider(organization)
     const client = await setupApp(staging)
@@ -73,14 +71,18 @@ test.group('Sign-in with the identity provider', (group) => {
     const identity = await MemberIdentity.findByOrFail('memberId', sara.id)
     assert.equal(identity.subject, SARA.sub)
     assert.equal(identity.identityProviderId, provider.identityProvider.id)
-    fakeEmitter.assertEmitted(events.MemberSignedInWithProvider, ({ data }) => {
-      return data.member.id === sara.id && data.how === 'matched_by_email'
+    await assertRecorded(organization, 'sign_in.succeeded', {
+      count: 1,
+      actor: 'sara@acme.test',
+      subjects: ['member: sara@acme.test', 'app: Invoices'],
+      summary: 'sara@acme.test signed in to Invoices in Staging with the identity provider',
+      data: { method: 'provider', how: 'matched_by_email' },
     })
+    await assertRecorded(organization, 'access.member_joined', { count: 0 })
   })
 
   test('someone no admin added is refused', async ({ swap, db, browserContext }) => {
     swap(ProviderRequestService, reachLocalProvider)
-    using fakeEmitter = emitter.fake([events.ProviderSignInRefused])
     const { organization, staging } = await setupOnboardedOrganization({ slug: 'acme' })
     await setupOrganizationProvider(organization)
     const client = await setupApp(staging)
@@ -91,8 +93,16 @@ test.group('Sign-in with the identity provider', (group) => {
 
     await page.assertVisible(page.getByRole('heading', { name: "We couldn't sign you in" }))
     await db.assertEmpty('members')
-    fakeEmitter.assertEmitted(events.ProviderSignInRefused, ({ data }) => {
-      return data.reason === 'not_a_member' && data.email === 'sara@acme.test'
+    /**
+     * Stored although the request ended on the error page: the request's
+     * audit scope is written after a throw too
+     */
+    await assertRecorded(organization, 'sign_in.refused', {
+      count: 1,
+      actor: null,
+      subjects: ['app: Invoices'],
+      summary: 'Sign-in to Invoices in Staging was refused for sara@acme.test',
+      data: { method: 'provider', reason: 'not_a_member', email: 'sara@acme.test' },
     })
   })
 
@@ -103,7 +113,6 @@ test.group('Sign-in with the identity provider', (group) => {
     browserContext,
   }) => {
     swap(ProviderRequestService, reachLocalProvider)
-    using fakeEmitter = emitter.fake([events.ProviderSignInRefused])
     const { organization, staging } = await setupOnboardedOrganization({ slug: 'acme' })
     await setupOrganizationProvider(organization, { admitsNewcomers: true })
     const client = await setupApp(staging)
@@ -123,8 +132,9 @@ test.group('Sign-in with the identity provider', (group) => {
     await sara.refresh()
     assert.equal(sara.signInMethod, MemberSignInMethod.PASSWORD)
     await db.assertEmpty('member_identities')
-    fakeEmitter.assertEmitted(events.ProviderSignInRefused, ({ data }) => {
-      return data.reason === 'signs_in_with_a_password'
+    await assertRecorded(organization, 'sign_in.refused', {
+      subjects: ['app: Invoices', 'member: sara@acme.test'],
+      data: { reason: 'signs_in_with_a_password' },
     })
   })
 
@@ -157,7 +167,6 @@ test.group('Sign-in with the identity provider', (group) => {
     browserContext,
   }) => {
     swap(ProviderRequestService, reachLocalProvider)
-    using fakeEmitter = emitter.fake([events.MemberSignedInWithProvider])
     const { organization, staging } = await setupOnboardedOrganization({ slug: 'acme' })
     const provider = await setupOrganizationProvider(organization, { admitsNewcomers: true })
     const client = await setupApp(staging)
@@ -174,8 +183,17 @@ test.group('Sign-in with the identity provider', (group) => {
     assert.isNull(member.password)
     assert.equal(member.signInMethod, MemberSignInMethod.PROVIDER)
     await db.assertHas('member_identities', { member_id: member.id, subject: '00u-dev' })
-    fakeEmitter.assertEmitted(events.MemberSignedInWithProvider, ({ data }) => {
-      return data.member.id === member.id && data.how === 'created'
+    await assertRecorded(organization, 'access.member_joined', {
+      count: 1,
+      actor: 'designer@gmail.com',
+      subjects: ['member: designer@gmail.com'],
+    })
+    await assertRecorded(organization, 'sign_in.succeeded', {
+      data: { method: 'provider', how: 'created' },
+    })
+    await assertRecorded(organization, 'sign_in.access_denied', {
+      actor: 'designer@gmail.com',
+      subjects: ['member: designer@gmail.com', 'app: Invoices'],
     })
   })
 
@@ -186,7 +204,6 @@ test.group('Sign-in with the identity provider', (group) => {
     browserContext,
   }) => {
     swap(ProviderRequestService, reachLocalProvider)
-    using fakeEmitter = emitter.fake([events.MemberSignedInWithProvider])
     const { organization, staging } = await setupOnboardedOrganization({ slug: 'acme' })
     const provider = await setupOrganizationProvider(organization)
     const client = await setupApp(staging)
@@ -215,8 +232,9 @@ test.group('Sign-in with the identity provider', (group) => {
     assert.equal(sara.fullName, 'Sara Lee')
     await db.assertCount('members', 1)
     await db.assertCount('member_identities', 1)
-    fakeEmitter.assertEmitted(events.MemberSignedInWithProvider, ({ data }) => {
-      return data.how === 'returning'
+    await assertRecorded(organization, 'sign_in.succeeded', {
+      actor: 'sara@acme.test',
+      data: { method: 'provider', how: 'returning' },
     })
   })
 
@@ -226,7 +244,6 @@ test.group('Sign-in with the identity provider', (group) => {
     browserContext,
   }) => {
     swap(ProviderRequestService, reachLocalProvider)
-    using fakeEmitter = emitter.fake([events.ProviderSignInRefused])
     const { organization, staging } = await setupOnboardedOrganization({ slug: 'acme' })
     const provider = await setupOrganizationProvider(organization)
     const client = await setupApp(staging)
@@ -252,8 +269,9 @@ test.group('Sign-in with the identity provider', (group) => {
     await page.assertVisible(page.getByText('sign_in_refused', { exact: true }))
     await db.assertCount('member_identities', 1)
     await db.assertMissing('member_identities', { subject: SARA.sub })
-    fakeEmitter.assertEmitted(events.ProviderSignInRefused, ({ data }) => {
-      return data.reason === 'email_belongs_to_another_account' && data.email === 'sara@acme.test'
+    await assertRecorded(organization, 'sign_in.refused', {
+      subjects: ['app: Invoices', 'member: sara@acme.test'],
+      data: { reason: 'email_belongs_to_another_account', email: 'sara@acme.test' },
     })
   })
 
@@ -268,7 +286,6 @@ test.group('Sign-in with the identity provider', (group) => {
     ])
     .run(async ({ swap, db, browserContext }, { account, reason }) => {
       swap(ProviderRequestService, reachLocalProvider)
-      using fakeEmitter = emitter.fake([events.ProviderSignInRefused])
       const { organization, staging } = await setupOnboardedOrganization({ slug: 'acme' })
       const provider = await setupOrganizationProvider(organization)
       const client = await setupApp(staging)
@@ -280,7 +297,7 @@ test.group('Sign-in with the identity provider', (group) => {
 
       await page.assertVisible(page.getByRole('heading', { name: "We couldn't sign you in" }))
       await db.assertEmpty('members')
-      fakeEmitter.assertEmitted(events.ProviderSignInRefused, ({ data }) => data.reason === reason)
+      await assertRecorded(organization, 'sign_in.refused', { data: { reason } })
     })
 
   test('a suspended member is refused', async ({ swap, db, browserContext }) => {

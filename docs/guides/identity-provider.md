@@ -78,11 +78,11 @@ The provider   → GET <domain>/sign-in/callback/acme?code=…&state=…
                → /oauth/auth/<signInId>, and on to the app, as after a password
 ```
 
-| Route                                      | Host    | Controller                       | Does                                                        |
-| ------------------------------------------ | ------- | -------------------------------- | ----------------------------------------------------------- |
-| `POST /sign-in/:signInId/provider`         | issuer  | `RedirectToProviderController`   | Sends the member to the provider                            |
-| `GET /sign-in/callback/:org`               | console | `SignInCallbacksController.show` | Forwards the provider's answer to the issuer host           |
-| `GET /sign-in/:signInId/provider/callback` | issuer  | `SignInWithProviderController`   | Verifies the answer, finds the member, finishes the sign-in |
+| Route                                      | Host    | Controller                        | Does                                                        |
+| ------------------------------------------ | ------- | --------------------------------- | ----------------------------------------------------------- |
+| `POST /sign-in/:signInId/provider`         | issuer  | `RedirectToProviderController`    | Sends the member to the provider                            |
+| `GET /sign-in/callback/:org`               | console | `ForwardProviderAnswerController` | Forwards the provider's answer to the issuer host           |
+| `GET /sign-in/:signInId/provider/callback` | issuer  | `SignInWithProviderController`    | Verifies the answer, finds the member, finishes the sign-in |
 
 The two issuer routes are single-action controllers (`handle`), named after what they do. Their route names are `redirect_to_provider` and `sign_in_with_provider`.
 
@@ -129,7 +129,7 @@ A sign-in makes four requests to the provider: its configuration twice (leaving 
 | A suspended member                                                    | Refused                                                                                                                      |
 
 - **Email is used once,** to pick up a member an admin had already added. After that only the ID counts.
-- **Every refusal shows the same page,** "We couldn't sign you in", with `sign_in_refused`. The reason goes to the log (`ProviderSignInException`) and to an event.
+- **Every refusal shows the same page,** "We couldn't sign you in", with `sign_in_refused`. The reason goes to the log (`ProviderSignInException`) and to the audit log, as `sign_in.refused`.
 - **Cancelling at the provider** returns to the sign-in page with "Sign-in was cancelled".
 - **A provider that can't be reached** shows "We couldn't reach your company's sign-in".
 
@@ -167,7 +167,7 @@ Before their first sign-in, the panel says they will be matched by email.
 
 **Dissociate this account** (`DELETE /w/:org/members/:member/identities/:identity`, `MemberIdentitiesController.destroy`) deletes that one member's row and signs them out everywhere. They stay a member set to the provider, with the same roles, and their next sign-in is matched by email again. It is for an account that was deleted and recreated at the provider: the new ID is refused because the email is tied to the old one. The confirmation says that whoever the provider next sends with that email becomes this member. Nobody else is affected.
 
-Once dissociated, the page reads as if the member had never signed in. That an admin did it is only in the `MemberIdentityDissociated` event, for the audit log.
+Once dissociated, the page reads as if the member had never signed in. That an admin did it is in the audit log, as `access.identity_dissociated`.
 
 ## The daily re-check
 
@@ -191,19 +191,9 @@ Google accepts `http://localhost` redirect URIs, so a real Workspace works again
 
 When a sign-in is refused, the reason is in the server log, on a line starting "Sign-in through the identity provider failed".
 
-## Events
+## Audit events
 
-Each change dispatches an event with the provider and the user who made it. Nothing listens yet; the audit log will.
-
-| Event                        | When                                                                                                         |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `IdentityProviderConnected`  | A provider is connected                                                                                      |
-| `IdentityProviderChanged`    | Its details are saved                                                                                        |
-| `IdentityProviderRemoved`    | It is removed (the row is gone)                                                                              |
-| `MemberSignedInWithProvider` | A member signed in through it: `returning`, `matched_by_email` or `created`                                  |
-| `ProviderSignInRefused`      | Someone the provider let through wasn't signed in, with the reason and email                                 |
-| `MemberIdentityDissociated`  | An admin dissociated a member from their account at the provider, with the ID that was removed               |
-| `MemberSignInMethodChanged`  | An admin changed how a member signs in: on the page above, on the member's page, or by removing the provider |
+Every change here and every sign-in through the provider is recorded in the [audit log](audit-log.md): connecting, changing and removing the provider, switching a member's sign-in method, dissociating an account, someone joining through the provider, and each sign-in or refusal with its reason.
 
 ## Tests
 

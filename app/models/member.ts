@@ -87,6 +87,9 @@ export default class Member extends compose(
    * added them or switched them to a password. The link is on the
    * production issuer's host and works for 3 days, since nobody is
    * waiting at a sign-in page for it. Links sent earlier stop working.
+   *
+   * Inside a transaction, the link is made in it and the email goes out
+   * once it commits, so nobody is emailed a link that was rolled back.
    */
   async sendPasswordSetup() {
     const organization = await Organization.findOrFail(this.organizationId)
@@ -98,7 +101,14 @@ export default class Member extends compose(
 
     await this.clearPasswordResetTokens()
     const token = await Member.passwordResetTokens.create(this, { expiresIn: '3 days' })
-    await mail.sendLater(new SetPasswordNotification(this, organization, production, token))
+    const send = () =>
+      mail.sendLater(new SetPasswordNotification(this, organization, production, token))
+
+    if (this.$trx) {
+      this.$trx.after('commit', send)
+    } else {
+      await send()
+    }
   }
 
   /**
@@ -106,10 +116,11 @@ export default class Member extends compose(
    * environment: their sessions and grants go, and the grants' codes and
    * refresh tokens with them (foreign keys). Apps fail their next refresh,
    * and the next visit to an issuer asks for the password. Access tokens
-   * already issued work until they expire.
+   * already issued work until they expire. Joins the transaction the
+   * member was loaded in or given, when there is one.
    */
   async signOutEverywhere() {
-    await db.transaction(async (trx) => {
+    await (this.$trx ?? db).transaction(async (trx) => {
       await trx.from('oidc_sessions').where('actor_id', this.actorId).delete()
       await trx.from('oidc_grants').where('actor_id', this.actorId).delete()
     })

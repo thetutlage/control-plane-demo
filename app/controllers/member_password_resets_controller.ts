@@ -1,4 +1,4 @@
-import { events } from '#generated/events'
+import { auditedTransaction } from '#audit/transaction'
 import type { HttpContext } from '@adonisjs/core/http'
 import { MemberSignInMethod } from '#values/member_sign_in_method'
 
@@ -11,7 +11,7 @@ export default class MemberPasswordResetsController {
    * sent before stop working. A member who signs in with the identity
    * provider has no password to set.
    */
-  async store({ response, session, auth, params, organization }: HttpContext) {
+  async store({ response, session, auth, audit, params, organization }: HttpContext) {
     const member = await organization
       .related('members')
       .query()
@@ -23,8 +23,10 @@ export default class MemberPasswordResetsController {
       return response.redirect().back()
     }
 
-    await member.sendPasswordSetup()
-    await events.MemberPasswordSetupSent.dispatch(member, auth.getUserOrFail())
+    await auditedTransaction(audit, async (trx, batch) => {
+      await member.useTransaction(trx).sendPasswordSetup()
+      batch.record('access.password_setup_sent', auth.getUserOrFail(), member)
+    })
 
     session.flash('success', `Emailed ${member.email} a link to set their password.`)
     return response.redirect().back()

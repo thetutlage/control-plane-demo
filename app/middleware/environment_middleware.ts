@@ -12,7 +12,8 @@ declare module '@adonisjs/core/http' {
 /**
  * Resolves the `:environment` route param among the current organization's
  * environments, for pages about one environment (an app's setup there).
- * A slug of another organization's environment is a 404.
+ * A slug of another organization's environment is a 404. Audit events
+ * recorded from here on belong to the environment.
  *
  * Must run after the organization middleware.
  */
@@ -26,6 +27,7 @@ export default class EnvironmentMiddleware {
     }
 
     ctx.environment = environment
+    ctx.audit = ctx.audit.with({ environmentId: environment.id })
     return next()
   }
 }

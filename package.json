@@ -24,6 +24,7 @@
     "#mails/*": "./app/mails/*.js",
     "#services/*": "./app/services/*.js",
     "#oidc/*": "./app/oidc/*.js",
+    "#audit/*": "./app/audit/*.js",
     "#identity_providers/*": "./app/identity_providers/*.js",
     "#listeners/*": "./app/listeners/*.js",
     "#events/*": "./app/events/*.js",
@@ -37,7 +38,8 @@
     "#database/*": "./database/*.js",
     "#tests/*": "./tests/*.js",
     "#start/*": "./start/*.js",
-    "#config/*": "./config/*.js"
+    "#config/*": "./config/*.js",
+    "#auditlogs/*": "./auditlogs/*.js"
   },
   "devDependencies": {
     "@adonisjs/assembler": "^8.5.2",

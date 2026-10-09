@@ -67,8 +67,9 @@ App ── an internal app: name, slug
 PermissionCatalog ── the company's master catalogue (JSONB), hash,
                      git SHA, synced_at
 Role ── a named set of catalogue keys (JSONB), can span apps
-AdminAuditEvent ── (ClickHouse) console actions by users, tagged with the
-                   environment when one applies
+AuditEvent ── access, sign-in and configuration events (PostgreSQL),
+              each with several subjects, tagged with the environment
+              when one applies. See "Audit events"
 
 ── Environment level: runtime and access ──
 Environment ── kind: development | staging | production
@@ -83,8 +84,8 @@ Environment ── kind: development | staging | production
                (app_member_roles). No app member, no sign-in
   Sessions, grants, codes, refresh tokens ── oidc-provider's records
   SigningKey ── the keys this environment's issuer signs with
-  AuditEvent ── (ClickHouse) actor, action, target, app, ip, user_agent,
-                metadata
+  Activity events ── (ClickHouse) what the organization's apps send
+                     through the SDK
 ```
 
 **Users and members are different people, or different roles of the same person.**
@@ -205,7 +206,7 @@ _An earlier version tied a member to the provider on their first provider sign-i
 - **Why one provider.** Companies with two office suites usually sign in through one; a second provider mostly arrives with an acquisition. No public data covers companies of 50 to 500 people, so ask prospects: "Where do your staff sign in today, and is there anyone who signs in somewhere else?" The table has no one-per-organization rule and the console's URLs carry the provider's ID, so a second provider later is another row, not a redesign.
 - **One provider for every environment.** _(Researched 2026-10-08.)_ The provider answers "is this Sara from Acme?", which is the same in staging and production; what differs per environment is access, and that is already separate. Some larger companies run a second copy of their provider for testing (Okta sells a "Preview Sandbox"), and WorkOS scopes connections to one environment, which is the repeated setup we set out to avoid. If a deal needs it, a provider can later be limited to chosen environments, with its own redirect URI (`/sign-in/callback/acme/preview`).
 - **The provider must be reachable from the internet.** After the member signs in, our server calls the provider for the result, and it refuses private addresses (rule 8). Google Workspace, Entra and Okta always are. A company running its own provider behind a firewall has to expose it or wait for a self-hosted Backlit, which the plan sets aside.
-- **Signing out here doesn't sign the member out of the provider.** Sign-out ends our session and every app's tokens in that browser. The provider's own session stays, so the button signs them straight back in while it lasts. _Not decided: whether to also send them through the provider's sign-out. Okta, Entra and Google differ on supporting it._
+- **Signing out here doesn't sign the member out of the provider.** Sign-out ends our session and every app's tokens in that browser. The provider's own session stays, so the button signs them straight back in while it lasts. _Decided 2026-10-08: this is fine as it is. Sending them through the provider's sign-out too was the alternative; Okta, Entra and Google differ on supporting it._
 - **A day between re-checks, fixed for now.** A setting for it comes with session length per app (Release 2).
 - **The console page is called Authentication,** not "Sign-in", which read as the page where members sign in, and not "Identity provider", since the page will also hold session lengths and the second factor for password members. Clerk and WorkOS use the same word.
 - **Built on `@adonisjs/ally`,** (`^6.3.1`; npm's `latest` tag points at the AdonisJS 6 line) with one generic OIDC driver that adds discovery and ID token verification, created per request from the organization's provider. Chosen over `openid-client`: the flow stays in AdonisJS idiom, Ally already does the redirect, state, PKCE and code exchange, and its Google driver serves console users later. What Ally lacks for OpenID Connect is small and ours: reading the provider's configuration, a nonce, and verifying the ID token with `jose`. Its HTTP client is replaced with ours, so every request to a provider gets rule 8. TOTP comes from the flow's two-factor pack (`withTotpManagement` on `Member`).
@@ -238,15 +239,155 @@ Later, each its own step:
 
 - **One-click Google and Microsoft,** through one Backlit app registered at each, in place of pasted credentials (rules 6 and 7). Needs their verification of us: a real domain, a privacy policy, and a Microsoft partner account. Okta stays on pasted credentials.
 - **Console users signing in with Google,** from the flow's social-auth pack. Never through an organization's own provider (see the domain rule above).
-- **The console page for refused sign-ins,** built on the audit log, which is where `ProviderSignInRefused` gets stored. A table of its own now would be duplicated then.
+- **The console page for refused sign-ins,** built on the audit log, where refusals are stored as `sign_in.refused`. A table of its own now would be duplicated then.
 - **A default role per app,** with the access work around catalogue sync. Until then, someone who joins through "People my provider lets through can join without being added" has no access to any app until an admin gives them a role, and the setting says so.
 
 ### Audit events
 
-- **Storage:** two ClickHouse tables, `audit_events` (app activity, per environment) and `admin_audit_events` (console actions, per organization). Both are partitioned by month and sorted by tenant first, so every query reads one tenant's slice.
-- **Ingest:** apps and the SDK send events in batches to a dedicated ingest endpoint with a documented JSON contract. It writes straight to ClickHouse using async inserts, which batch on the server, so there is no queue in between. The endpoint can later move to a Go service without changing the contract.
-- **Reads:** the console reads through one module that always filters by organization and environment.
-- **Schema:** plain `.sql` migrations in `database/clickhouse/migrations/`, run by a small `ace` command. The AdonisJS app owns the schema; the ingest service only writes.
+_Designed 2026-10-09. Nothing is built yet._ It became urgent because access changes leave no record today: giving or removing app access, assigning roles, editing a role, rotating a secret and signing a member out everywhere write nothing, and the nine events from the sign-in work are dispatched with nothing listening.
+
+**What an event is.** A named action, who did it, what it was about, and what changed. It is written once and never edited.
+
+- **Named actions, not row diffs.** "Ada gave Sara the Approver role on Invoices", not "a row was inserted in `app_member_roles`". The Laravel and Rails audit packages mostly hook the ORM and store a diff; that answers a different question.
+- **Several subjects per event.** A role assignment is about the member, the role, the app and the environment. A member's page, an app's page and a role's page then each show their own events from the same data. WorkOS (`targets`) and Okta (`target`) both use a list; Spatie's and `audited`'s single subject is the limit to avoid.
+- **Everything known at the time is on the event:** the actor's name and email as they were, IP, browser, organization, environment, and the before and after. It reads without lookups and survives the member being deleted.
+- **Refusals are events too:** a refused sign-in is as much a record as a successful one.
+- **The ID and `occurred_at` are set when the event is created,** not when it is written. A retried write then carries the same IDs, so a store can drop duplicates. IDs are UUID version 7, which sort by creation time.
+
+**Four categories,** taken from the action's name (`access.role_assigned`):
+
+| Category      | What goes in it                                                                                                                 | Volume | Store      |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------ | ---------- |
+| Access        | Who can do what changed: app access, role assignments, a role's permissions, the sign-in method, a dissociated provider account | Small  | PostgreSQL |
+| Sign-in       | Signed in, refused, signed out, password set or reset                                                                           | Small  | PostgreSQL |
+| Configuration | Apps, environments, the identity provider, client secrets, signing keys                                                         | Small  | PostgreSQL |
+| Activity      | What the company's own apps send through the SDK                                                                                | Large  | ClickHouse |
+
+- **Why two stores.** The first three are read as "this member's events, newest first", an index lookup PostgreSQL answers in milliseconds at any size and ClickHouse is weakest at. They must never be lost, and an admin expects to see one the moment they make the change. Activity is the opposite: large, sent in batches, with no transaction of ours to join, and filtered and counted over long ranges. Google Cloud (Admin Activity against Data Access) and AWS CloudTrail (management against data events) make the same split.
+- **No single list mixes all four.** Category tabs replace it, so nothing merges two stores by time.
+- **Volumes are estimates,** for a 500-person customer: tens of access events a day, a few thousand sign-ins, 100,000 or more activity events.
+
+**How events relate.** There are no links from one event to another. A member's page filtered to Access and Sign-in already reads as the story (refused, dissociated by an admin, signed in, matched by email). Shared IDs group the rest, as Okta does with `transaction.id` and its session IDs:
+
+- the **scope's context**, such as the request's or job's ID, stamped on every event recorded through it;
+- the **batch's ID** (one unit of work, such as removing a provider and switching each of its members);
+- the **sign-in's ID**, tying "sent to the provider" to "refused" or "signed in".
+
+Wide logs in Stripe's sense (one line per request, written at its end) don't carry over: an audit event is a fact at a moment and can't be widened later.
+
+**A catalogue of actions.** Every action is declared once, in one file that reads top to bottom. `defineSubjects` gives a function per kind of thing that turns a value into a reference (`type`, `id`, `label`). `defineActions` lists the actions, each a plain function from whatever it needs to the event: its actor, its subjects, a sentence, and any data. `record` takes the parameters of the action it names, so a wrong name, a missing argument or a wrong type is a compile error.
+
+```ts
+const s = defineSubjects({
+  user: (user: User) => ({ id: user.id, label: user.email }),
+  member: (member: Member) => ({ id: member.id, label: member.email }),
+  app: (app: App) => ({ id: app.id, label: app.name }),
+})
+
+const actions = defineActions({
+  'access.role_assigned': (
+    admin: User,
+    member: Member,
+    app: App,
+    before: string[],
+    after: string[]
+  ) => ({
+    actor: s.user(admin),
+    subjects: [s.member(member), s.app(app)],
+    summary: `${admin.email} changed the roles of ${member.email} on ${app.name}`,
+    data: { before, after },
+  }),
+})
+
+batch.record('access.role_assigned', admin, member, app, before, after)
+```
+
+- **The sentence is written by the action and stored as text.** There are no templates to render. It says what was true then, so it stays right after a rename or a deletion, and it can't be reworded or translated later.
+- **The actor is passed like everything else,** and has the same shape as a subject. It has its own slot because "what did Ada do" and "what was done to Ada" are different questions. Null means the system did it.
+- **An action can take two subjects of the same kind,** and leave one out with a condition.
+- **`data` is free.** The console shows it as keys and values, the same for every action.
+- **Tried and dropped:** a catalogue declaring subjects, data fields and a sentence template per action through builders (too much machinery), subjects keyed by kind (no two of the same kind), and actions as loose functions with no catalogue (nothing central to read).
+
+**The module.** A separate package, with stores as providers, so PostgreSQL and ClickHouse are two implementations of one contract. Five units, each with one job:
+
+| Unit          | Job                                                                  | Lifetime                    | Flush                                                         |
+| ------------- | -------------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------- |
+| **Store**     | Writes and reads events in one database                              | The process                 |                                                               |
+| **Queue**     | A writer that lives forever                                          | The process                 | Its own rules (a size, an interval, shutdown), or by hand     |
+| **Collector** | A writer that has an end                                             | A request, a command, a job | By hand, by whoever knows the end                             |
+| **Scope**     | Stamps events with its context and hands them to its writer          | Whatever its creator wants  | None of its own                                               |
+| **Batch**     | Events that belong together, made from a scope, carrying its context | A sign-in, a transaction    | By hand, by whoever made it, optionally through a transaction |
+
+```ts
+// One for the process
+const audit = new Scope(actions, new Queue(store), { pid: process.pid })
+
+// One per request, flushed by the middleware when the request ends
+const scope = audit.child(new Collector(store), { requestId: request.id() })
+scope.record('sign_in.refused', app, email, member)
+
+// Events that must be written with a change
+const batch = scope.batch()
+await db.transaction(async (trx) => {
+  await appMember.syncRoles(roleIds, trx)
+  batch.record('access.role_assigned', admin, member, app, before, after)
+  await batch.flush({ client: trx })
+})
+```
+
+- **A scope holds no events and never flushes a batch.** Its events can be spread over calls that outlive it by minutes or hours, so it can't know when a batch is done.
+- **Only the queue has flushing rules.** A collector and a batch have no timer, so neither can keep itself alive.
+- **A queue and a collector never throw from a flush.** They take a reporter, which is told the error and handed the events. Nobody awaits the queue's own writes, and a request that has done its work shouldn't fail on its log. The queue keeps the events for its next write; the collector lets go of them.
+- **A batch does throw.** Flushed in a transaction, a swallowed failure would leave PostgreSQL with an aborted transaction that "commits" as a rollback, and the app thinking the change was saved.
+- **A request scope uses a collector, not the queue,** or the queue outlives the request. This is guidance, not a rule.
+- **The core knows nothing about transactions.** `flush(options)` passes its options to the store; the PostgreSQL store accepts a query client and does one multi-row insert on it. Lucid has no "before commit" hook (only `on('commit')` and `after('commit' | 'rollback')`), so nothing can attach itself to a transaction unasked.
+- **Flushing last inside the transaction** avoids both failures WorkOS names: the change saved with no event, and an event for a change that rolled back.
+- **Writers take the store when constructed.** A batch reaches it through its scope's writer.
+- **Unflushed batches are not reported.** A batch is left unflushed legitimately whenever its transaction fails before the flush, so a warning would mostly be noise. To revisit if a forgotten flush ever bites.
+
+**The PostgreSQL store** (`auditlogs/src/stores/lucid.ts`, migration 28).
+
+- **Two tables.** `audit_events` has one row per event. `audit_event_refs` has one row per thing an event involves: the actor, then each subject. "Everything involving Sara, as actor or subject" is one index lookup there, and the `role` column narrows it to one side. A JSON array of subjects with a GIN index would be one table, but PostgreSQL can't read it newest-first from the index, so a busy member's page would slow as it grew.
+- **Refs point at nothing.** The label is the record, and events outlive what they describe. Only the organization and environment are foreign keys, on the events table, so deleting an organization deletes its events.
+- **The tenant comes from the scope's context.** The store is told which context keys have columns (`organizationId`, `environmentId`); the rest of the context is JSON. The core has no idea of tenants.
+- **An event already stored is skipped with its refs,** so writing a batch again changes nothing.
+
+**Stores only write. Reading is the app's.** Events are read through `organization.auditEvents` and `environment.auditEvents`, like everything else in the console, so a tenant can't be handed another's events. `AuditEvent` has two scopes: `involving(thing, role?)` and `page(limit, cursor?)`.
+
+- **The event's ID is the order and the paging cursor.** Pages are newest first with no totals, since counting every match is what makes a log slow.
+- **Tried and dropped:** a `query` method on the store contract, the same for every store. It was a small query language beside Lucid, nothing forced a caller to pass the organization, and the Laravel packages' drivers only write for the same reason. Activity events in ClickHouse get a reader of their own.
+
+**In the control plane.** Access and configuration changes go through a batch flushed in the change's transaction, so a change can't exist without its record. Events with no transaction (a refused sign-in) go to the request's collector, written before the response. The event classes dispatched today are replaced by these calls.
+
+- **The catalogue** is `app/audit/actions.ts`, and the store `app/audit/store.ts`.
+- **`AuditMiddleware`** gives every routed request a scope on `ctx.audit`, with the request's ID, IP and browser, and flushes its collector when the request ends. No `try/finally` is needed: the framework catches an error at each level of the middleware stack, so `next()` returns even when the handler threw. The organization, environment and issuer middleware add the tenant with `audit.with()`.
+- **Events the collector can't write are logged in full** by the reporter, to be put back by hand. The request still succeeds.
+- **There is no process-wide scope and no queue here,** since nothing in the control plane may take the path that can lose events. Commands and jobs build a scope of their own when the first one needs it.
+- **Tests assert on the rows.** There is no fake: the app's tests run against the real database.
+- **Requests `oidc-provider` handles under `/oauth` never reach the router,** so they have no scope yet.
+
+**In the SDK.** How other SDKs send events, read 2026-10-09:
+
+| SDK                           | Buffering                                                               | If the process crashes                       |
+| ----------------------------- | ----------------------------------------------------------------------- | -------------------------------------------- |
+| WorkOS audit logs (Node)      | None: one request per event, no retry, an idempotency key added for you | Lost unless the caller retries               |
+| PostHog (Node)                | 20 events or 5 seconds, 100 per batch, queue capped at 10,000           | Queued events are lost; `shutdown()` flushes |
+| OpenTelemetry batch processor | Queue of 2,048, every 5 seconds, 512 per batch                          | Lost; a full queue drops                     |
+
+None lets an app commit events with its own data. WorkOS tells its customers to build that themselves: an outbox table written in the action's transaction, a worker draining it with retries, a stable idempotency key, and an alert on the age of the oldest undelivered row. Our SDK offers both, with the same units:
+
+- **Buffered,** the default: a scope on the queue. A crash can lose the last few seconds.
+- **With the app's transaction:** a batch flushed through the app's transaction into an outbox table in the app's own database. The SDK ships the migration and the worker, and our ingest endpoint drops duplicates by event ID. It needs an adapter per way of talking to a database; which comes first is decided with the SDK.
+
+**Order of work.** The module's core is in `auditlogs/`, with nothing from the app or the framework in it, so it lifts out later (_built 2026-10-09: the catalogue, the four units, an in-memory store, and the PostgreSQL store with its two tables_). The wiring and the whole catalogue are built too: 26 actions across access, sign-in and configuration, replacing the nine event classes from the sign-in work ([guide](guides/audit-log.md)). Next come the pages. The ClickHouse store and the ingest endpoint come with the SDK, the only thing that produces activity events.
+
+**Still to settle:**
+
+- how sign-ins, sign-outs and refreshes that `oidc-provider` handles become events;
+- how long events are kept, and what is erased from them when a member or organization is deleted;
+- the pages: an explorer, a member's and an app's events, refused sign-ins, and export.
+
+**Sources:** [WorkOS audit logs](https://workos.com/docs/audit-logs) and ["When the action succeeds and the audit write doesn't"](https://workos.com/blog/audit-log-write-reliability); [Okta System Log query](https://developer.okta.com/docs/reference/system-log-query/); [GitHub's audit log](https://docs.github.com/en/organizations/keeping-your-organization-secure/managing-security-settings-for-your-organization/reviewing-the-audit-log-for-your-organization); [Google Cloud Audit Logs](https://docs.cloud.google.com/logging/docs/audit); [AWS CloudTrail concepts](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-concepts.html); [Stripe's canonical log lines](https://stripe.com/blog/canonical-log-lines); [Laravel Auditing drivers](https://laravel-auditing.com/guide/audit-drivers.html) and [resolvers](https://laravel-auditing.com/guide/audit-resolvers.html); [Spatie activitylog batches](https://spatie.be/docs/laravel-activitylog/v4/advanced-usage/batch-logs); [audited](https://github.com/collectiveidea/audited); [Rails `EventReporter`](https://api.rubyonrails.org/v8.1.3/classes/ActiveSupport/EventReporter.html); [PostHog Node](https://posthog.com/docs/libraries/node); [OpenTelemetry trace SDK](https://opentelemetry.io/docs/specs/otel/trace/sdk/); [auditlog.dev](https://www.auditlog.dev/).
 
 ## 4. Agent identity: research notes
 
@@ -263,7 +404,7 @@ The research is in [research/agent-auth.md](research/agent-auth.md) (2026-10-05)
 | D3  | OAuth/OIDC engine                                              | **Decided: `oidc-provider`, with a new instance per request.** See §8.                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | D4  | Permission model                                               | **Decided: one master catalogue of static permissions**, kept in one company repo and synced once for the organization. Roles span apps; members hold several roles per app, per environment, and an app's token carries the union of their keys. See §3.                                                                                                                                                                                                                                                 |
 | D5  | SDK shape                                                      | **Decided: one framework-agnostic TypeScript package, with no framework adapters.** Its functions take plain inputs (token string, callback URL, cookie values) and return plain results. The docs show a short wiring example for each popular framework.                                                                                                                                                                                                                                                |
-| D6  | Databases                                                      | **Revised 2026-10-07: PostgreSQL for everything in Release 1,** audit events included. The ingest contract in §3 stays, so audit events can move to ClickHouse when volume asks for it.                                                                                                                                                                                                                                                                                                                   |
+| D6  | Databases                                                      | **Revised 2026-10-09: PostgreSQL for everything except what apps send.** Access, sign-in and configuration events stay in PostgreSQL, written with the change they describe. Activity events from the SDK go to ClickHouse from the start, since their volume is the only large one (§3, "Audit events"). The 2026-10-07 revision had put all audit events in PostgreSQL for Release 1.                                                                                                                   |
 | D7  | Audit tamper-evidence                                          | **Decided: none in v1.** Events are append-only and only the ingest path writes them, which matches WorkOS, Okta, Auth0 and GitHub. Archiving, exports and integrity digests come later if customers ask.                                                                                                                                                                                                                                                                                                 |
 | D8  | Environments                                                   | **Decided: definitions shared, runtime and access per environment.** Apps, members, the catalogue and roles are created once for the organization. Each environment has its own app setups (credentials, URLs), access (member × app × role), issuer, keys, sessions and audit. Revised 2026-10-05 from full isolation (§3).                                                                                                                                                                              |
 | D9  | Environment limits                                             | **Decided:** dev, staging, and prod by default, with the number of environments set by plan. Billing counts active **prod** members only. Later: short-lived preview environments per pull request.                                                                                                                                                                                                                                                                                                       |
@@ -284,14 +425,14 @@ _Decided 2026-10-07. Where this and the milestones below disagree, this wins._
 | Goal        | Sign up, integrate one app in 15 minutes, and tick login, RBAC and audit                                                         | Pass a security review and beat "just use Okta"                                       |
 | Sign-in     | The company's identity provider over OIDC (Google Workspace, Entra, Okta); a password with TOTP for members an admin sets to one | SAML, SCIM, identity provider groups mapped to roles (opt-in), session length per app |
 | Access      | Catalogue sync, typed `can()`, roles                                                                                             | Access reviews, expiring grants, a "who has access to what" report                    |
-| Audit       | Ingest, explorer, console self-audit, CSV export (PostgreSQL)                                                                    | Streaming to a SIEM, retention policies                                               |
+| Audit       | Console self-audit and its pages (PostgreSQL); ingest of app activity (ClickHouse); CSV export                                   | Streaming to a SIEM, retention policies                                               |
 | SDK         | TypeScript, with wiring docs for three frameworks                                                                                | Revocation push; a second language if deals ask                                       |
 | Trust       | Key rotation, expired-row cleanup, sign-in rate limits, encrypted secrets                                                        | SOC 2, custom login domains, status page                                              |
 | Being found | Landing page, docs, pricing, comparisons (Okta directly, Cloudflare Access, WorkOS, Keycloak)                                    | Agents: MCP sign-in for internal apps, agents as actors in the audit log              |
 
-**Release 1 build order:** sign-in with the company's identity provider (steps in §3, "Sign-in"), catalogue sync, the SDK, audit, housekeeping, the public site.
+**Release 1 build order:** sign-in with the company's identity provider (steps in §3, "Sign-in"), audit for the control plane's own events (§3, "Audit events"; moved up 2026-10-08), catalogue sync, the SDK with activity events, housekeeping, the public site.
 
-**Cut from Release 1:** member passkeys, SMS codes, access rules from identity provider attributes, several identity providers per organization, the benchmark harness, load tests, device management, several secrets per client, billing (invoiced by hand), ClickHouse.
+**Cut from Release 1:** member passkeys, SMS codes, access rules from identity provider attributes, several identity providers per organization, the benchmark harness, load tests, device management, several secrets per client, billing (invoiced by hand). ClickHouse was on this list until 2026-10-09; it is back in, for activity events only (D6).
 
 ### Milestones
 

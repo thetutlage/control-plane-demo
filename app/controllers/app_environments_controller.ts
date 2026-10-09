@@ -1,6 +1,8 @@
 import type App from '#models/app'
 import type Environment from '#models/environment'
 import type Organization from '#models/organization'
+import { setupUrls } from '#audit/actions'
+import { auditedTransaction } from '#audit/transaction'
 import type { HttpContext } from '@adonisjs/core/http'
 import { EnvironmentKind } from '#values/environment_kind'
 import { appEnvironmentValidator } from '#validators/app'
@@ -99,7 +101,8 @@ export default class AppEnvironmentsController {
    * Sets the app up in the environment, with a new client ID and secret. A
    * production secret is flashed so the tab can show it this once.
    */
-  async store({ request, response, session, params, organization, environment }: HttpContext) {
+  async store(ctx: HttpContext) {
+    const { request, response, session, params, organization, environment, auth, audit } = ctx
     const app = await this.#findApp(organization, params.app)
     if (await this.#setup(app, environment).first()) {
       session.flash('error', `${app.name} is already set up in ${environment.name}.`)
@@ -110,10 +113,14 @@ export default class AppEnvironmentsController {
     const payload = await request.validateUsing(appEnvironmentValidator, {
       meta: { isProduction },
     })
-    const setup = await environment.setUpApp(app, {
-      appUrl: payload.appUrl,
-      redirectUris: payload.redirectUris,
-      postLogoutRedirectUris: payload.postLogoutRedirectUris ?? [],
+    const setup = await auditedTransaction(audit, async (trx, batch) => {
+      const created = await environment.useTransaction(trx).setUpApp(app, {
+        appUrl: payload.appUrl,
+        redirectUris: payload.redirectUris,
+        postLogoutRedirectUris: payload.postLogoutRedirectUris ?? [],
+      })
+      batch.record('configuration.app_set_up', auth.getUserOrFail(), app, environment, created)
+      return created
     })
 
     if (isProduction) {
@@ -135,19 +142,36 @@ export default class AppEnvironmentsController {
   }
 
   /**
-   * Saves the setup's URLs. Its credentials don't change.
+   * Saves the setup's URLs. Its credentials don't change. Saving them
+   * unchanged records nothing.
    */
-  async update({ request, response, session, params, organization, environment }: HttpContext) {
+  async update(ctx: HttpContext) {
+    const { request, response, session, params, organization, environment, auth, audit } = ctx
     const app = await this.#findApp(organization, params.app)
     const setup = await this.#setup(app, environment).firstOrFail()
     const payload = await request.validateUsing(appEnvironmentValidator, {
       meta: { isProduction: environment.kind === EnvironmentKind.PRODUCTION },
     })
 
+    const before = setupUrls(setup)
     setup.appUrl = payload.appUrl
     setup.redirectUris = payload.redirectUris
     setup.postLogoutRedirectUris = payload.postLogoutRedirectUris ?? []
-    await setup.save()
+    const after = setupUrls(setup)
+
+    await auditedTransaction(audit, async (trx, batch) => {
+      await setup.useTransaction(trx).save()
+      if (JSON.stringify(before) !== JSON.stringify(after)) {
+        batch.record(
+          'configuration.app_setup_changed',
+          auth.getUserOrFail(),
+          app,
+          environment,
+          before,
+          after
+        )
+      }
+    })
 
     session.flash('success', `Saved ${app.name}.`)
     return this.#toTab(response, organization, app, environment)
@@ -158,10 +182,14 @@ export default class AppEnvironmentsController {
    * there go with it, through the foreign keys, so members are signed out
    * of it at their next refresh.
    */
-  async destroy({ response, session, params, organization, environment }: HttpContext) {
+  async destroy(ctx: HttpContext) {
+    const { response, session, params, organization, environment, auth, audit } = ctx
     const app = await this.#findApp(organization, params.app)
     const setup = await this.#setup(app, environment).firstOrFail()
-    await setup.delete()
+    await auditedTransaction(audit, async (trx, batch) => {
+      await setup.useTransaction(trx).delete()
+      batch.record('configuration.app_setup_removed', auth.getUserOrFail(), app, environment)
+    })
 
     session.flash('success', `Removed ${app.name}. Members were signed out of it.`)
     return this.#toTab(response, organization, app, environment)

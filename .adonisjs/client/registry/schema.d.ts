@@ -91,7 +91,7 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/organizations_controller').default['index']>>>
     }
   }
-  'sign_in_callbacks.show': {
+  'forward_provider_answer': {
     methods: ["GET","HEAD"]
     pattern: '/sign-in/callback/:org'
     types: {
@@ -99,8 +99,8 @@ export interface Registry {
       paramsTuple: [ParamValue]
       params: { org: ParamValue }
       query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/sign_in_callbacks_controller').default['show']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sign_in_callbacks_controller').default['show']>>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/forward_provider_answer_controller').default['handle']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/forward_provider_answer_controller').default['handle']>>>
     }
   }
   'overview.show': {

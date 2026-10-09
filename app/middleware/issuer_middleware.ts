@@ -22,7 +22,8 @@ declare module '@adonisjs/core/http' {
 /**
  * Resolves the environment from the issuer host, for the sign-in pages.
  * They need its oidc-provider instance to read and finish the pending
- * sign-in. A host that is not an issuer is a 404.
+ * sign-in. A host that is not an issuer is a 404. Audit events recorded
+ * on these pages belong to the environment and its organization.
  */
 export default class IssuerMiddleware {
   async handle(ctx: HttpContext, next: NextFn) {
@@ -61,6 +62,10 @@ export default class IssuerMiddleware {
     })
 
     ctx.issuer = { environment, provider }
+    ctx.audit = ctx.audit.with({
+      organizationId: environment.organizationId,
+      environmentId: environment.id,
+    })
     return next()
   }
 }

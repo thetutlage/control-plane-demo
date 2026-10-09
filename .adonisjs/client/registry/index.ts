@@ -48,11 +48,11 @@ const routes = {
     tokens: [{"old":"/w","type":0,"val":"w","end":""}],
     types: placeholder as Registry['organizations.index']['types'],
   },
-  'sign_in_callbacks.show': {
+  'forward_provider_answer': {
     methods: ["GET","HEAD"],
     pattern: '/sign-in/callback/:org',
     tokens: [{"old":"/sign-in/callback/:org","type":0,"val":"sign-in","end":""},{"old":"/sign-in/callback/:org","type":0,"val":"callback","end":""},{"old":"/sign-in/callback/:org","type":1,"val":"org","end":""}],
-    types: placeholder as Registry['sign_in_callbacks.show']['types'],
+    types: placeholder as Registry['forward_provider_answer']['types'],
   },
   'overview.show': {
     methods: ["GET","HEAD"],

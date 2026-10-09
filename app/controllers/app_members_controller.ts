@@ -3,6 +3,7 @@ import type Environment from '#models/environment'
 import type Organization from '#models/organization'
 import type { HttpContext } from '@adonisjs/core/http'
 import AppMember from '#models/app_member'
+import { auditedTransaction } from '#audit/transaction'
 import RoleTransformer from '#transformers/role_transformer'
 import AppTransformer from '#transformers/app_transformer'
 import MemberTransformer from '#transformers/member_transformer'
@@ -89,7 +90,8 @@ export default class AppMembersController {
    * Gives the member access to the app in the environment, with the
    * chosen roles. They can sign in right away.
    */
-  async store({ request, response, session, params, organization, environment }: HttpContext) {
+  async store(ctx: HttpContext) {
+    const { request, response, session, params, organization, environment, auth, audit } = ctx
     const app = await this.#findApp(organization, environment, params.app)
     const payload = await request.validateUsing(createAppMemberValidator, {
       meta: { organizationId: organization.id },
@@ -111,13 +113,20 @@ export default class AppMembersController {
       return this.#toTab(response, organization, app, environment)
     }
 
-    const appMember = await AppMember.create({
-      organizationId: organization.id,
-      environmentId: environment.id,
-      actorId: member.actorId,
-      appId: app.id,
+    const roles = await organization.related('roles').query().whereIn('id', payload.roleIds)
+    await auditedTransaction(audit, async (trx, batch) => {
+      const appMember = await AppMember.create(
+        {
+          organizationId: organization.id,
+          environmentId: environment.id,
+          actorId: member.actorId,
+          appId: app.id,
+        },
+        { client: trx }
+      )
+      await appMember.syncRoles(payload.roleIds)
+      batch.record('access.granted', auth.getUserOrFail(), member, app, environment, roles)
     })
-    await appMember.syncRoles(payload.roleIds)
 
     session.flash('success', `${member.email} can now sign in to ${app.name}.`)
     return this.#toTab(response, organization, app, environment)
@@ -139,15 +148,38 @@ export default class AppMembersController {
 
   /**
    * Changes the member's roles on the app. Members already signed in keep
-   * their session; new tokens carry the new roles.
+   * their session; new tokens carry the new roles. The change and its
+   * audit event are saved together, and saving the same roles again
+   * records nothing.
    */
-  async update({ request, response, session, params, organization, environment }: HttpContext) {
+  async update(ctx: HttpContext) {
+    const { request, response, session, params, organization, environment, auth, audit } = ctx
     const app = await this.#findApp(organization, environment, params.app)
     const appMember = await this.#findAppMember(organization, environment, app, params.member)
     const payload = await request.validateUsing(updateAppMemberValidator, {
       meta: { organizationId: organization.id },
     })
-    await appMember.syncRoles(payload.roleIds)
+
+    const before = appMember.roles
+    const after = await organization.related('roles').query().whereIn('id', payload.roleIds)
+    const changed =
+      before.length !== after.length ||
+      after.some(({ id }) => !before.some((role) => role.id === id))
+
+    await auditedTransaction(audit, async (trx, batch) => {
+      await appMember.useTransaction(trx).syncRoles(payload.roleIds)
+      if (changed) {
+        batch.record(
+          'access.roles_changed',
+          auth.getUserOrFail(),
+          appMember.member,
+          app,
+          environment,
+          before,
+          after
+        )
+      }
+    })
 
     session.flash('success', `Saved ${appMember.member.email}'s roles on ${app.name}.`)
     return this.#toTab(response, organization, app, environment)
@@ -157,10 +189,22 @@ export default class AppMembersController {
    * Takes the member's access away: they can't sign in to the app in this
    * environment any more, and are signed out of it at its next refresh
    */
-  async destroy({ response, session, params, organization, environment }: HttpContext) {
+  async destroy(ctx: HttpContext) {
+    const { response, session, params, organization, environment, auth, audit } = ctx
     const app = await this.#findApp(organization, environment, params.app)
     const appMember = await this.#findAppMember(organization, environment, app, params.member)
-    await appMember.revoke()
+
+    await auditedTransaction(audit, async (trx, batch) => {
+      await appMember.useTransaction(trx).revoke()
+      batch.record(
+        'access.revoked',
+        auth.getUserOrFail(),
+        appMember.member,
+        app,
+        environment,
+        appMember.roles
+      )
+    })
 
     session.flash('success', `${appMember.member.email} no longer has access to ${app.name}.`)
     return this.#toTab(response, organization, app, environment)

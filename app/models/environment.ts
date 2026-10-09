@@ -7,6 +7,7 @@ import Organization from '#models/organization'
 import type App from '#models/app'
 import AppEnvironment from '#models/app_environment'
 import SigningKey from '#models/signing_key'
+import AuditEvent from '#models/audit_event'
 
 const consoleUrl = new URL(env.get('APP_URL'))
 
@@ -22,6 +23,13 @@ export default class Environment extends EnvironmentSchema {
 
   @hasMany(() => SigningKey)
   declare signingKeys: HasMany<typeof SigningKey>
+
+  /**
+   * What the audit log recorded in this environment, such as sign-ins.
+   * Events about the organization as a whole aren't among them.
+   */
+  @hasMany(() => AuditEvent)
+  declare auditEvents: HasMany<typeof AuditEvent>
 
   /**
    * Whether a host is shaped like an issuer host: a subdomain of the

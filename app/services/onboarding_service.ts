@@ -1,4 +1,5 @@
 import db from '@adonisjs/lucid/services/db'
+import type { QueryClientContract } from '@adonisjs/lucid/types/database'
 import User from '#models/user'
 import Organization from '#models/organization'
 import { EnvironmentKind } from '#values/environment_kind'
@@ -16,17 +17,21 @@ const DEFAULT_ENVIRONMENTS = [
 /**
  * Signs someone up for the control plane: creates their user account, their
  * first organization with its default environments (each with a signing
- * key), and links the two, all or nothing.
+ * key), and links the two, all or nothing. Joins the given transaction,
+ * when there is one.
  */
 export default class OnboardingService {
-  async onboard(signup: {
-    organizationName: string
-    organizationSlug: string
-    fullName: string | null
-    email: string
-    password: string
-  }): Promise<{ user: User; organization: Organization }> {
-    return db.transaction(async (trx) => {
+  async onboard(
+    signup: {
+      organizationName: string
+      organizationSlug: string
+      fullName: string | null
+      email: string
+      password: string
+    },
+    client: QueryClientContract = db.connection()
+  ): Promise<{ user: User; organization: Organization }> {
+    return client.transaction(async (trx) => {
       const user = await User.create(
         { fullName: signup.fullName, email: signup.email, password: signup.password },
         { client: trx }

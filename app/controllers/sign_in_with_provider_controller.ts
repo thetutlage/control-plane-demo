@@ -1,8 +1,9 @@
 import { inject } from '@adonisjs/core'
-import { events } from '#generated/events'
+import type Member from '#models/member'
+import { auditedTransaction } from '#audit/transaction'
 import type { HttpContext } from '@adonisjs/core/http'
 import { PROVIDER_AMR } from '#oidc/create_provider'
-import { pendingSignIn } from '#oidc/pending_sign_in'
+import { appOf, pendingSignIn } from '#oidc/pending_sign_in'
 import { driverFor } from '#identity_providers/driver_for'
 import ProviderSignInService from '#services/provider_sign_in_service'
 import ProviderRequestService from '#services/provider_request_service'
@@ -29,16 +30,26 @@ export default class SignInWithProviderController {
     requests: ProviderRequestService,
     providerSignIn: ProviderSignInService
   ) {
-    await pendingSignIn(ctx)
-    const { issuer, request, response, session, params } = ctx
+    const signIn = await pendingSignIn(ctx)
+    const { issuer, request, response, session, params, audit } = ctx
+    const app = await appOf(issuer.environment, signIn)
     const identityProvider = await issuer.environment.organization
       .related('identityProviders')
       .query()
       .firstOrFail()
     const driver = await driverFor(ctx, identityProvider, { discovery, requests })
 
-    const refuse = async (reason: string, email: string | null = null): Promise<never> => {
-      await events.ProviderSignInRefused.dispatch(identityProvider, reason, email)
+    /**
+     * The refusal is recorded, then the member sees the error page. The
+     * request's audit scope is written when the request ends, also after
+     * a throw.
+     */
+    const refuse = (
+      reason: string,
+      email: string | null = null,
+      member: Member | null = null
+    ): never => {
+      audit.record('sign_in.refused', app, issuer.environment, 'provider', reason, email, member)
       throw new ProviderSignInException('refused', reason)
     }
 
@@ -71,17 +82,34 @@ export default class SignInWithProviderController {
       .then((user) => user.original)
       .catch((error: Error) => refuse(error.message))
 
-    const result = await providerSignIn.admit(identityProvider, profile)
+    /**
+     * Someone who joins becomes a member in the same transaction as the
+     * event that says so
+     */
+    const result = await auditedTransaction(audit, async (trx, batch) => {
+      const outcome = await providerSignIn.admit(identityProvider, profile, trx)
+      if (!('refusal' in outcome) && outcome.how === 'created') {
+        batch.record('access.member_joined', outcome.member)
+      }
+      return outcome
+    })
     if ('refusal' in result) {
-      return refuse(result.refusal, profile.email)
+      return refuse(result.refusal, profile.email, result.member ?? null)
     }
-    await events.MemberSignedInWithProvider.dispatch(result.member, identityProvider, result.how)
 
     const returnTo = await issuer.provider.interactionResult(
       request.request,
       response.response,
       { login: { accountId: String(result.member.actorId), amr: [PROVIDER_AMR] } },
       { mergeWithLastSubmission: false }
+    )
+    audit.record(
+      'sign_in.succeeded',
+      result.member,
+      app,
+      issuer.environment,
+      'provider',
+      result.how
     )
 
     /**

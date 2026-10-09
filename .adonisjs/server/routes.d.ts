@@ -11,7 +11,7 @@ export type ScannedRoutes = {
     'session.store': { paramsTuple?: []; params?: {} }
     'session.destroy': { paramsTuple?: []; params?: {} }
     'organizations.index': { paramsTuple?: []; params?: {} }
-    'sign_in_callbacks.show': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'forward_provider_answer': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'overview.show': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'apps.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'apps.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
@@ -68,7 +68,7 @@ export type ScannedRoutes = {
     'new_account.create': { paramsTuple?: []; params?: {} }
     'session.create': { paramsTuple?: []; params?: {} }
     'organizations.index': { paramsTuple?: []; params?: {} }
-    'sign_in_callbacks.show': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'forward_provider_answer': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'overview.show': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'apps.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'apps.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
@@ -99,7 +99,7 @@ export type ScannedRoutes = {
     'new_account.create': { paramsTuple?: []; params?: {} }
     'session.create': { paramsTuple?: []; params?: {} }
     'organizations.index': { paramsTuple?: []; params?: {} }
-    'sign_in_callbacks.show': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
+    'forward_provider_answer': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'overview.show': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'apps.index': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }
     'apps.create': { paramsTuple: [ParamValue]; params: {'org': ParamValue} }

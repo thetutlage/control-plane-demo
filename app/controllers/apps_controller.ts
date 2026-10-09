@@ -1,3 +1,4 @@
+import { auditedTransaction } from '#audit/transaction'
 import type { HttpContext } from '@adonisjs/core/http'
 import { createAppValidator } from '#validators/app'
 import AppTransformer from '#transformers/app_transformer'
@@ -26,11 +27,15 @@ export default class AppsController {
    * Registers the app, then opens its first environment (development), so
    * it can be set up there
    */
-  async store({ request, response, session, organization }: HttpContext) {
+  async store({ request, response, session, organization, auth, audit }: HttpContext) {
     const payload = await request.validateUsing(createAppValidator, {
       meta: { organizationId: organization.id },
     })
-    const app = await organization.related('apps').create(payload)
+    const app = await auditedTransaction(audit, async (trx, batch) => {
+      const created = await organization.useTransaction(trx).related('apps').create(payload)
+      batch.record('configuration.app_created', auth.getUserOrFail(), created)
+      return created
+    })
 
     session.flash('success', `${app.name} is registered. Set it up in an environment next.`)
     return response.redirect().toRoute('app_environments.show', {
@@ -61,9 +66,12 @@ export default class AppsController {
    * history go with it, through the foreign keys, so members are signed out
    * of it at their next refresh.
    */
-  async destroy({ response, session, params, organization }: HttpContext) {
+  async destroy({ response, session, params, organization, auth, audit }: HttpContext) {
     const app = await organization.related('apps').query().where('slug', params.app).firstOrFail()
-    await app.delete()
+    await auditedTransaction(audit, async (trx, batch) => {
+      await app.useTransaction(trx).delete()
+      batch.record('configuration.app_deleted', auth.getUserOrFail(), app)
+    })
 
     session.flash('success', `Deleted ${app.name}. Members were signed out of it.`)
     return response.redirect().toRoute('apps.index', { org: organization.slug })

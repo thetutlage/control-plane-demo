@@ -1,7 +1,6 @@
 import { test } from '@japa/runner'
 import type { Browser } from 'playwright'
-import { events } from '#generated/events'
-import emitter from '@adonisjs/core/services/emitter'
+import { assertRecorded } from '#tests/helpers/audit'
 import testUtils from '@adonisjs/core/services/test_utils'
 import MemberIdentity from '#models/member_identity'
 import type Environment from '#models/environment'
@@ -176,7 +175,6 @@ test.group('Console member identity', (group) => {
     browserContext,
   }) => {
     swap(ProviderRequestService, () => new ProviderRequestService({ allowLocal: true }))
-    using fakeEmitter = emitter.fake([events.MemberIdentityDissociated])
     const acme = await setupOnboardedOrganization({ slug: 'acme' })
     const provider = await setupOrganizationProvider(acme.organization)
     const client = await setupApp(acme.production)
@@ -222,10 +220,11 @@ test.group('Console member identity', (group) => {
     await db.assertEmpty('oidc_sessions')
     await sara.refresh()
     assert.equal(sara.signInMethod, MemberSignInMethod.PROVIDER)
-    fakeEmitter.assertEmitted(events.MemberIdentityDissociated, ({ data }) => {
-      return (
-        data.member.id === sara.id && data.subject === SARA.sub && data.user.id === acme.user.id
-      )
+    await assertRecorded(acme.organization, 'access.identity_dissociated', {
+      count: 1,
+      actor: acme.user.email,
+      subjects: ['member: sara@acme.test'],
+      data: { providerId: SARA.sub },
     })
 
     assert.isTrue(await signInAgain())

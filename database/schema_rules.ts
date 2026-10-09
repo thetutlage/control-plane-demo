@@ -58,6 +58,17 @@ export default {
         post_logout_redirect_uris: { tsType: 'string[]', decorators: [{ name: '@column' }] },
       },
     },
+    audit_events: {
+      columns: {
+        data: { tsType: 'Record<string, unknown>', decorators: [{ name: '@column' }] },
+        context: { tsType: 'Record<string, unknown>', decorators: [{ name: '@column' }] },
+      },
+    },
+    audit_event_refs: {
+      columns: {
+        role: { tsType: "'actor' | 'subject'", decorators: [{ name: '@column' }] },
+      },
+    },
     member_identities: {
       columns: {
         origin: valueColumn('MemberIdentityOrigin', 'member_identity_origin'),

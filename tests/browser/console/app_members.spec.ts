@@ -115,6 +115,68 @@ test.group('Console app members', (group) => {
     )
   })
 
+  test('changing a member’s roles is recorded in the audit log, with the change', async ({
+    visit,
+    route,
+    browserContext,
+    assert,
+  }) => {
+    const acme = await setupOnboardedOrganization({ slug: 'acme' })
+    const setup = await setupApp(acme.production)
+    const member = await setupMember(acme.organization)
+    await giveAccess(member, setup)
+    const finance = await acme.organization
+      .related('roles')
+      .create({ name: 'Finance', description: null, permissions: [] })
+
+    await browserContext.loginAs(acme.user)
+    const params = { org: 'acme', app: 'invoices', environment: 'production' }
+    const page = await visit(route('app_environments.show', params))
+    await page.getByRole('link', { name: 'Edit roles', exact: true }).click()
+    await page.getByRole('checkbox', { name: 'Finance', exact: true }).check()
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await page.assertPath(route('app_environments.show', params))
+
+    const events = await acme.organization.related('auditEvents').query().preload('refs')
+    assert.lengthOf(events, 1)
+    const [event] = events
+    assert.equal(event.action, 'access.roles_changed')
+    assert.equal(event.category, 'access')
+    assert.equal(
+      event.summary,
+      `${acme.user.email} changed the roles of ${MEMBER.email} on Invoices in Production`
+    )
+    assert.equal(event.environmentId, acme.production.id)
+    assert.deepEqual(event.data, { before: ['Member'], after: ['Finance', 'Member'] })
+    assert.deepInclude(event.actor!.serialize(), { type: 'user', refId: String(acme.user.id) })
+    assert.deepEqual(
+      event.subjects.map(({ type, label }) => `${type}: ${label}`),
+      [`member: ${MEMBER.email}`, 'app: Invoices', 'role: Finance']
+    )
+    assert.isNotNull(event.batchId)
+    assert.isString(event.context.requestId)
+    assert.isString(event.context.ip)
+    assert.isString(event.context.userAgent)
+    assert.notProperty(event.context, 'organizationId', 'the tenant is in columns')
+
+    /**
+     * The member's own events and the role's include it; saving the same
+     * roles again records nothing
+     */
+    const involving = (type: string, id: number) =>
+      acme.organization
+        .related('auditEvents')
+        .query()
+        .withScopes((scopes) => scopes.involving({ type, id }))
+    assert.lengthOf(await involving('member', member.id), 1)
+    assert.lengthOf(await involving('role', finance.id), 1)
+
+    await page.getByRole('link', { name: 'Edit roles', exact: true }).click()
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await page.assertPath(route('app_environments.show', params))
+    assert.lengthOf(await acme.organization.related('auditEvents').query(), 1)
+  })
+
   test('removing a member’s access signs them out of the app, in that environment only', async ({
     visit,
     route,

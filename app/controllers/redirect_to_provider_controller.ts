@@ -9,7 +9,7 @@ import ProviderDiscoveryService from '#services/provider_discovery_service'
 /**
  * Sends a member from the issuer's sign-in page to the organization's
  * identity provider. They come back through the console host's callback
- * (`SignInCallbacksController`) to `SignInWithProviderController`.
+ * (`ForwardProviderAnswerController`) to `SignInWithProviderController`.
  */
 export default class RedirectToProviderController {
   /**

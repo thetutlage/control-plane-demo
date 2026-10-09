@@ -37,7 +37,7 @@ router
  * sign-in.
  */
 router
-  .get('sign-in/callback/:org', [controllers.SignInCallbacks, 'show'])
+  .get('sign-in/callback/:org', [controllers.ForwardProviderAnswer])
   .where('org', router.matchers.slug())
 
 /**

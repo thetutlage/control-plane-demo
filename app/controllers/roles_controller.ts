@@ -1,3 +1,4 @@
+import { auditedTransaction } from '#audit/transaction'
 import type { HttpContext } from '@adonisjs/core/http'
 import type Organization from '#models/organization'
 import { roleValidator } from '#validators/role'
@@ -45,7 +46,7 @@ export default class RolesController {
    * Creates the role with keys from the catalogue. A role may have none:
    * it still decides who can sign in to an app.
    */
-  async store({ request, response, session, organization }: HttpContext) {
+  async store({ request, response, session, organization, auth, audit }: HttpContext) {
     const catalog = await this.#catalog(organization)
     const payload = await request.validateUsing(roleValidator, {
       meta: {
@@ -53,10 +54,17 @@ export default class RolesController {
         allowedKeys: catalog ? Object.keys(catalog.permissions) : [],
       },
     })
-    const role = await organization.related('roles').create({
-      name: payload.name,
-      description: payload.description,
-      permissions: payload.permissions ?? [],
+    const role = await auditedTransaction(audit, async (trx, batch) => {
+      const created = await organization
+        .useTransaction(trx)
+        .related('roles')
+        .create({
+          name: payload.name,
+          description: payload.description,
+          permissions: payload.permissions ?? [],
+        })
+      batch.record('access.role_created', auth.getUserOrFail(), created)
+      return created
     })
 
     session.flash('success', `Created ${role.name}.`)
@@ -79,9 +87,10 @@ export default class RolesController {
 
   /**
    * Saves the role. Keys it holds that have left the catalogue may stay;
-   * only catalogue keys may be added.
+   * only catalogue keys may be added. Saving it unchanged records
+   * nothing.
    */
-  async update({ request, response, session, params, organization }: HttpContext) {
+  async update({ request, response, session, params, organization, auth, audit }: HttpContext) {
     const role = await this.#findRole(organization, params.role)
     const catalog = await this.#catalog(organization)
     const payload = await request.validateUsing(roleValidator, {
@@ -92,10 +101,23 @@ export default class RolesController {
       },
     })
 
+    const details = () => ({
+      name: role.name,
+      description: role.description,
+      permissions: [...role.permissions].sort(),
+    })
+    const before = details()
     role.name = payload.name
     role.description = payload.description
     role.permissions = payload.permissions ?? []
-    await role.save()
+    const after = details()
+
+    await auditedTransaction(audit, async (trx, batch) => {
+      await role.useTransaction(trx).save()
+      if (JSON.stringify(before) !== JSON.stringify(after)) {
+        batch.record('access.role_changed', auth.getUserOrFail(), role, before, after)
+      }
+    })
 
     session.flash('success', `Saved ${role.name}.`)
     return response.redirect().toRoute('roles.index', { org: organization.slug })
@@ -105,9 +127,12 @@ export default class RolesController {
    * Deletes the role in every environment. Members it was their only role
    * on an app lose access to that app, and are signed out of it.
    */
-  async destroy({ response, session, params, organization }: HttpContext) {
+  async destroy({ response, session, params, organization, auth, audit }: HttpContext) {
     const role = await this.#findRole(organization, params.role)
-    await role.deleteEverywhere()
+    await auditedTransaction(audit, async (trx, batch) => {
+      const lostAccess = await role.useTransaction(trx).deleteEverywhere()
+      batch.record('access.role_deleted', auth.getUserOrFail(), role, lostAccess)
+    })
 
     session.flash('success', `Deleted ${role.name}.`)
     return response.redirect().toRoute('roles.index', { org: organization.slug })

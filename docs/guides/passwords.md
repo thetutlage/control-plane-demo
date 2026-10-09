@@ -55,14 +55,9 @@ In the console:
 - `mail.sendLater` queues in memory, so an email queued just before a restart is lost. A lasting queue comes with housekeeping.
 - No form here is rate limited by IP yet; that also comes with housekeeping.
 
-## Events
+## Audit events
 
-Nothing listens yet; the audit log will.
-
-| Event                     | When                                    |
-| ------------------------- | --------------------------------------- |
-| `MemberPasswordSet`       | A member set their password from a link |
-| `MemberPasswordSetupSent` | An admin sent a member the link again   |
+Recorded in the [audit log](audit-log.md): `access.password_setup_sent` when an admin sends the link, `sign_in.password_reset_requested` when a member's request is emailed, and `sign_in.password_set` when they set it.
 
 ## Tests
 

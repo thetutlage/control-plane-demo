@@ -1,5 +1,5 @@
 import { inject } from '@adonisjs/core'
-import { events } from '#generated/events'
+import { auditedTransaction } from '#audit/transaction'
 import type { HttpContext } from '@adonisjs/core/http'
 import IdentityProvider from '#models/identity_provider'
 import { MemberSignInMethod } from '#values/member_sign_in_method'
@@ -71,7 +71,7 @@ export default class IdentityProvidersController {
    * Connecting changes nobody: the admin is asked next who signs in with
    * it.
    */
-  async store({ request, response, session, auth, organization }: HttpContext) {
+  async store({ request, response, session, auth, audit, organization }: HttpContext) {
     if (await organization.related('identityProviders').query().first()) {
       session.flash('error', 'An identity provider is already connected.')
       return response.redirect().toRoute('identity_providers.index', { org: organization.slug })
@@ -80,14 +80,20 @@ export default class IdentityProvidersController {
     const payload = await request.validateUsing(createIdentityProviderValidator, {
       meta: { discovery: this.#discovery },
     })
-    const identityProvider = await organization.related('identityProviders').create({
-      kind: IdentityProviderKind.OIDC,
-      admitsNewcomers: false,
-      issuer: payload.issuer,
-      clientId: payload.clientId,
-      ...IdentityProvider.encryptSecret(payload.clientSecret),
+    const identityProvider = await auditedTransaction(audit, async (trx, batch) => {
+      const created = await organization
+        .useTransaction(trx)
+        .related('identityProviders')
+        .create({
+          kind: IdentityProviderKind.OIDC,
+          admitsNewcomers: false,
+          issuer: payload.issuer,
+          clientId: payload.clientId,
+          ...IdentityProvider.encryptSecret(payload.clientSecret),
+        })
+      batch.record('configuration.identity_provider_connected', auth.getUserOrFail(), created)
+      return created
     })
-    await events.IdentityProviderConnected.dispatch(identityProvider, auth.getUserOrFail())
 
     session.flash('success', 'Connected your identity provider.')
     return response.redirect().toRoute('identity_providers.members.create', {
@@ -121,33 +127,55 @@ export default class IdentityProvidersController {
    * member is matched by email again at their next sign-in. The form asks
    * the admin to confirm that first.
    */
-  async update({ request, response, session, auth, params, organization }: HttpContext) {
+  async update({ request, response, session, auth, audit, params, organization }: HttpContext) {
     const identityProvider = await organization
       .related('identityProviders')
       .query()
       .where('id', params.provider)
       .firstOrFail()
     const tiedMembers = await identityProvider.related('identities').query().count('* as total')
+    const tiedMembersCount = Number(tiedMembers[0].$extras.total)
     const payload = await request.validateUsing(updateIdentityProviderValidator, {
       meta: {
         discovery: this.#discovery,
         currentIssuer: identityProvider.issuer,
-        tiedMembersCount: Number(tiedMembers[0].$extras.total),
+        tiedMembersCount,
       },
     })
 
+    const details = () => ({
+      issuer: identityProvider.issuer,
+      clientId: identityProvider.clientId,
+      admitsNewcomers: identityProvider.admitsNewcomers,
+    })
+    const before = details()
     const replaced = payload.issuer !== identityProvider.issuer
+    const secretReplaced = Boolean(payload.clientSecret)
     identityProvider.merge({
       issuer: payload.issuer,
       clientId: payload.clientId,
       admitsNewcomers: payload.admitsNewcomers ?? false,
       ...(payload.clientSecret ? IdentityProvider.encryptSecret(payload.clientSecret) : {}),
     })
-    await identityProvider.save()
-    if (replaced) {
-      await identityProvider.related('identities').query().delete()
-    }
-    await events.IdentityProviderChanged.dispatch(identityProvider, auth.getUserOrFail())
+    const after = details()
+
+    await auditedTransaction(audit, async (trx, batch) => {
+      await identityProvider.useTransaction(trx).save()
+      if (replaced) {
+        await identityProvider.related('identities').query().delete()
+      }
+      if (secretReplaced || JSON.stringify(before) !== JSON.stringify(after)) {
+        batch.record(
+          'configuration.identity_provider_changed',
+          auth.getUserOrFail(),
+          identityProvider,
+          before,
+          after,
+          secretReplaced,
+          replaced ? tiedMembersCount : 0
+        )
+      }
+    })
 
     session.flash('success', 'Saved your identity provider.')
     return response.redirect().toRoute('identity_providers.index', { org: organization.slug })
@@ -158,7 +186,7 @@ export default class IdentityProvidersController {
    * they are switched to a password and signed out. The page says how
    * many before the admin confirms.
    */
-  async destroy({ response, session, auth, params, organization }: HttpContext) {
+  async destroy({ response, session, auth, audit, params, organization }: HttpContext) {
     const identityProvider = await organization
       .related('identityProviders')
       .query()
@@ -169,13 +197,26 @@ export default class IdentityProvidersController {
       .query()
       .where('sign_in_method', MemberSignInMethod.PROVIDER)
 
-    await identityProvider.delete()
-    for (const member of members) {
-      await member.signInWith(MemberSignInMethod.PASSWORD)
-      await member.sendPasswordSetup()
-      await events.MemberSignInMethodChanged.dispatch(member, auth.getUserOrFail())
-    }
-    await events.IdentityProviderRemoved.dispatch(identityProvider, auth.getUserOrFail())
+    await auditedTransaction(audit, async (trx, batch) => {
+      await identityProvider.useTransaction(trx).delete()
+      batch.record(
+        'configuration.identity_provider_removed',
+        auth.getUserOrFail(),
+        identityProvider,
+        members.length
+      )
+      for (const member of members) {
+        await member.useTransaction(trx).signInWith(MemberSignInMethod.PASSWORD)
+        await member.sendPasswordSetup()
+        batch.record(
+          'access.sign_in_method_changed',
+          auth.getUserOrFail(),
+          member,
+          MemberSignInMethod.PROVIDER,
+          MemberSignInMethod.PASSWORD
+        )
+      }
+    })
 
     session.flash(
       'success',

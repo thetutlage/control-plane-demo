@@ -99,6 +99,11 @@ export default defineConfig({
         timeout: 2000,
       },
       {
+        files: ['auditlogs/tests/**/*.spec.{ts,js}'],
+        name: 'auditlogs',
+        timeout: 2000,
+      },
+      {
         files: ['tests/functional/**/*.spec.{ts,js}'],
         name: 'functional',
         timeout: 30000,

@@ -14,6 +14,7 @@ import Member from '#models/member'
 import PermissionCatalog from '#models/permission_catalog'
 import Role from '#models/role'
 import IdentityProvider from '#models/identity_provider'
+import AuditEvent from '#models/audit_event'
 
 export default class Organization extends OrganizationSchema {
   @manyToMany(() => User, {
@@ -43,6 +44,14 @@ export default class Organization extends OrganizationSchema {
    */
   @hasMany(() => IdentityProvider)
   declare identityProviders: HasMany<typeof IdentityProvider>
+
+  /**
+   * Everything recorded in the organization's audit log, in every
+   * environment and outside any. Reading through here is what keeps an
+   * organization to its own events.
+   */
+  @hasMany(() => AuditEvent)
+  declare auditEvents: HasMany<typeof AuditEvent>
 
   /**
    * The redirect URI the company registers at its identity provider, on

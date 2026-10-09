@@ -15,9 +15,7 @@ export interface ApiDefinition {
   organizations: {
     index: typeof routes['organizations.index']
   }
-  signInCallbacks: {
-    show: typeof routes['sign_in_callbacks.show']
-  }
+  forwardProviderAnswer: typeof routes['forward_provider_answer']
   overview: {
     show: typeof routes['overview.show']
   }

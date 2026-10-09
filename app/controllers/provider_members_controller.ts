@@ -1,4 +1,4 @@
-import { events } from '#generated/events'
+import { auditedTransaction } from '#audit/transaction'
 import mail from '@adonisjs/mail/services/main'
 import type { HttpContext } from '@adonisjs/core/http'
 import { MemberSignInMethod } from '#values/member_sign_in_method'
@@ -47,7 +47,7 @@ export default class ProviderMembersController {
   /**
    * Switches the chosen members to the provider
    */
-  async store({ request, response, session, auth, params, organization }: HttpContext) {
+  async store({ request, response, session, auth, audit, params, organization }: HttpContext) {
     await organization
       .related('identityProviders')
       .query()
@@ -60,10 +60,20 @@ export default class ProviderMembersController {
       .query()
       .whereIn('id', memberIds)
       .where('sign_in_method', MemberSignInMethod.PASSWORD)
+    await auditedTransaction(audit, async (trx, batch) => {
+      for (const member of members) {
+        await member.useTransaction(trx).signInWith(MemberSignInMethod.PROVIDER)
+        batch.record(
+          'access.sign_in_method_changed',
+          auth.getUserOrFail(),
+          member,
+          MemberSignInMethod.PASSWORD,
+          MemberSignInMethod.PROVIDER
+        )
+      }
+    })
     for (const member of members) {
-      await member.signInWith(MemberSignInMethod.PROVIDER)
       await mail.sendLater(new ProviderSignInNotification(member, organization))
-      await events.MemberSignInMethodChanged.dispatch(member, auth.getUserOrFail())
     }
 
     session.flash(
@@ -79,7 +89,7 @@ export default class ProviderMembersController {
    * Switches one member back to a password, and emails them a link to
    * set it from
    */
-  async destroy({ response, session, auth, params, organization }: HttpContext) {
+  async destroy({ response, session, auth, audit, params, organization }: HttpContext) {
     await organization
       .related('identityProviders')
       .query()
@@ -92,9 +102,17 @@ export default class ProviderMembersController {
       .where('sign_in_method', MemberSignInMethod.PROVIDER)
       .firstOrFail()
 
-    await member.signInWith(MemberSignInMethod.PASSWORD)
-    await member.sendPasswordSetup()
-    await events.MemberSignInMethodChanged.dispatch(member, auth.getUserOrFail())
+    await auditedTransaction(audit, async (trx, batch) => {
+      await member.useTransaction(trx).signInWith(MemberSignInMethod.PASSWORD)
+      await member.sendPasswordSetup()
+      batch.record(
+        'access.sign_in_method_changed',
+        auth.getUserOrFail(),
+        member,
+        MemberSignInMethod.PROVIDER,
+        MemberSignInMethod.PASSWORD
+      )
+    })
 
     session.flash(
       'success',

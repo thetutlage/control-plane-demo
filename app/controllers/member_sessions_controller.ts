@@ -1,3 +1,4 @@
+import { auditedTransaction } from '#audit/transaction'
 import type { HttpContext } from '@adonisjs/core/http'
 
 /**
@@ -8,13 +9,16 @@ export default class MemberSessionsController {
    * Signs the member out of every app, on every browser, in every
    * environment
    */
-  async destroy({ response, session, params, organization }: HttpContext) {
+  async destroy({ response, session, params, organization, auth, audit }: HttpContext) {
     const member = await organization
       .related('members')
       .query()
       .where('id', params.member)
       .firstOrFail()
-    await member.signOutEverywhere()
+    await auditedTransaction(audit, async (trx, batch) => {
+      await member.useTransaction(trx).signOutEverywhere()
+      batch.record('access.signed_out_everywhere', auth.getUserOrFail(), member)
+    })
 
     session.flash('success', `${member.email} is signed out everywhere.`)
     return response

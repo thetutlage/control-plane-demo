@@ -28,15 +28,21 @@ export default class Role extends RoleSchema {
   /**
    * Deletes the role in every environment. Members it was the only role
    * of, on an app, lose access to that app there and are signed out of it.
+   * Returns how many lost access that way. Joins the transaction the role
+   * was given, when there is one.
    */
   async deleteEverywhere(this: Role) {
-    const soleHolders = await this.related('appMembers')
-      .query()
-      .whereDoesntHave('roles', (roles) => roles.whereNot('roles.id', this.id))
+    return (this.$trx ?? db).transaction(async (trx) => {
+      const soleHolders = await this.useTransaction(trx)
+        .related('appMembers')
+        .query()
+        .whereDoesntHave('roles', (roles) => roles.whereNot('roles.id', this.id))
 
-    for (const appMember of soleHolders) {
-      await appMember.revoke()
-    }
-    await db.from(Role.table).where('id', this.id).delete()
+      for (const appMember of soleHolders) {
+        await appMember.useTransaction(trx).revoke()
+      }
+      await trx.from(Role.table).where('id', this.id).delete()
+      return soleHolders.length
+    })
   }
 }

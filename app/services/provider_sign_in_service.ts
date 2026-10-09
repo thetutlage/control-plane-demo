@@ -1,4 +1,5 @@
 import db from '@adonisjs/lucid/services/db'
+import type { QueryClientContract } from '@adonisjs/lucid/types/database'
 import Member from '#models/member'
 import Organization from '#models/organization'
 import MemberIdentity from '#models/member_identity'
@@ -15,8 +16,12 @@ type Profile = {
   name: string | null
 }
 
+/**
+ * A refusal names the member when the email or the provider's ID did
+ */
 type Outcome =
-  { member: Member; how: 'returning' | 'matched_by_email' | 'created' } | { refusal: string }
+  | { member: Member; how: 'returning' | 'matched_by_email' | 'created' }
+  | { refusal: string; member?: Member }
 
 /**
  * Finds the member for someone the organization's identity provider has
@@ -34,10 +39,15 @@ export default class ProviderSignInService {
   /**
    * The member to sign in and how they were found, or why they can't be.
    * Someone no admin added becomes a member, with no access, only when
-   * the provider admits newcomers.
+   * the provider admits newcomers. Joins the given transaction, when
+   * there is one.
    */
-  async admit(identityProvider: IdentityProvider, profile: Profile): Promise<Outcome> {
-    return db.transaction(async (trx): Promise<Outcome> => {
+  async admit(
+    identityProvider: IdentityProvider,
+    profile: Profile,
+    client: QueryClientContract = db.connection()
+  ): Promise<Outcome> {
+    return client.transaction(async (trx): Promise<Outcome> => {
       const identity = await MemberIdentity.query({ client: trx })
         .where('identity_provider_id', identityProvider.id)
         .where('subject', profile.subject)
@@ -83,10 +93,10 @@ export default class ProviderSignInService {
       }
 
       if (member.status === MemberStatus.SUSPENDED) {
-        return { refusal: 'suspended' }
+        return { refusal: 'suspended', member }
       }
       if (member.signInMethod !== MemberSignInMethod.PROVIDER) {
-        return { refusal: 'signs_in_with_a_password' }
+        return { refusal: 'signs_in_with_a_password', member }
       }
 
       /**
@@ -98,7 +108,7 @@ export default class ProviderSignInService {
         .where('member_id', member.id)
         .first()
       if (taken) {
-        return { refusal: 'email_belongs_to_another_account' }
+        return { refusal: 'email_belongs_to_another_account', member }
       }
 
       member.status = MemberStatus.ACTIVE
@@ -118,10 +128,10 @@ export default class ProviderSignInService {
   async #returning(identity: MemberIdentity, profile: Profile): Promise<Outcome> {
     const { member } = identity
     if (member.status === MemberStatus.SUSPENDED) {
-      return { refusal: 'suspended' }
+      return { refusal: 'suspended', member }
     }
     if (member.signInMethod !== MemberSignInMethod.PROVIDER) {
-      return { refusal: 'signs_in_with_a_password' }
+      return { refusal: 'signs_in_with_a_password', member }
     }
 
     member.fullName = profile.name ?? member.fullName

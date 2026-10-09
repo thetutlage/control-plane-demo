@@ -1,8 +1,7 @@
 import { test } from '@japa/runner'
 import mail from '@adonisjs/mail/services/main'
 import type { Page } from 'playwright'
-import { events } from '#generated/events'
-import emitter from '@adonisjs/core/services/emitter'
+import { assertRecorded } from '#tests/helpers/audit'
 import testUtils from '@adonisjs/core/services/test_utils'
 import type Organization from '#models/organization'
 import MemberIdentity from '#models/member_identity'
@@ -52,7 +51,6 @@ test.group('Console provider members', (group) => {
     browserContext,
   }) => {
     swap(ProviderDiscoveryService, () => new StubbedProviderDiscovery())
-    using fakeEmitter = emitter.fake([events.MemberSignInMethodChanged])
     const acme = await setupOnboardedOrganization({ slug: 'acme' })
     const ana = await passwordMember(acme.organization, 'ana@acme.test')
     const ben = await passwordMember(acme.organization, 'ben@acme.test')
@@ -86,7 +84,16 @@ test.group('Console provider members', (group) => {
     assert.equal(ana.signInMethod, MemberSignInMethod.PROVIDER)
     assert.equal(ben.signInMethod, MemberSignInMethod.PASSWORD)
     assert.equal(cho.signInMethod, MemberSignInMethod.PROVIDER)
-    fakeEmitter.assertEmittedCount(events.MemberSignInMethodChanged, 2)
+    const switched = await assertRecorded(acme.organization, 'access.sign_in_method_changed', {
+      count: 2,
+      actor: acme.user.email,
+      data: { before: 'password', after: 'provider' },
+    })
+    assert.equal(switched[0].batchId, switched[1].batchId, 'one change, one batch')
+    await assertRecorded(acme.organization, 'configuration.identity_provider_connected', {
+      count: 1,
+      subjects: [`identityProvider: ${PROVIDER.issuer}`],
+    })
   })
 
   test('switching everyone leaves nothing to ask, and says so on the Authentication page', async ({

@@ -1,4 +1,5 @@
 import mail from '@adonisjs/mail/services/main'
+import { auditedTransaction } from '#audit/transaction'
 import type { HttpContext } from '@adonisjs/core/http'
 import type Organization from '#models/organization'
 import { MemberStatus } from '#values/member_status'
@@ -49,7 +50,7 @@ export default class MembersController {
    * identity provider, right away, or with a password they set from the
    * email's link. Without a provider connected, it is always a password.
    */
-  async store({ request, response, session, organization }: HttpContext) {
+  async store({ request, response, session, organization, auth, audit }: HttpContext) {
     const { signsInWith, ...payload } = await request.validateUsing(createMemberValidator, {
       meta: { organizationId: organization.id },
     })
@@ -59,18 +60,24 @@ export default class MembersController {
       return response.redirect().back()
     }
 
-    const member = await organization.createMember({
-      ...payload,
-      status: MemberStatus.ACTIVE,
-      signInMethod:
-        signsInWith === 'provider' ? MemberSignInMethod.PROVIDER : MemberSignInMethod.PASSWORD,
+    const member = await auditedTransaction(audit, async (trx, batch) => {
+      const created = await organization.useTransaction(trx).createMember({
+        ...payload,
+        status: MemberStatus.ACTIVE,
+        signInMethod:
+          signsInWith === 'provider' ? MemberSignInMethod.PROVIDER : MemberSignInMethod.PASSWORD,
+      })
+      if (created.signInMethod === MemberSignInMethod.PASSWORD) {
+        await created.sendPasswordSetup()
+      }
+      batch.record('access.member_added', auth.getUserOrFail(), created)
+      return created
     })
 
     if (member.signInMethod === MemberSignInMethod.PROVIDER) {
       await mail.sendLater(new ProviderSignInNotification(member, organization))
       session.flash('success', `${member.email} can now sign in with your identity provider.`)
     } else {
-      await member.sendPasswordSetup()
       session.flash('success', `Emailed ${member.email} a link to set their password.`)
     }
     return response.redirect().toRoute('members.index', { org: organization.slug })
