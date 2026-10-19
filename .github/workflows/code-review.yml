@@ -40,7 +40,7 @@ jobs:
           show_full_output: true
           prompt: |
             /flow-code-review Review the diff between ${{ github.event.pull_request.base.sha }} and ${{ github.event.pull_request.head.sha }}.
-          claude_args: --allowedTools "Read,Glob,Grep,Write,Agent,Bash(git diff:*),Bash(git show:*)"
+          claude_args: --model opus --allowedTools "Read,Glob,Grep,Write,Agent,Bash(git diff:*),Bash(git show:*)"
 
       - uses: reviewdog/action-setup@v1
 
