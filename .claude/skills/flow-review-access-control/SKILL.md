@@ -9,7 +9,7 @@ A **record** is any data that belongs to one user: a row, a file in storage, a c
 
 ## Scope
 
-- **Read reach** Whether changed code can return a record of another user. The read can take any form, such as a model query, the query builder, raw SQL, a file path or storage key built from input, a cache key without the owner, or a broadcast channel that any user can join.
+- **Read reach** Whether changed code can return a record of another user. The read can take any form, such as a model query, the query builder, raw SQL, a file path or storage key built from input, a cache key without the owner key, or a broadcast channel that any user can join.
 - **Write reach** Whether changed code can change a record of another user, or give a record to another user. The write can take any form, such as an update, a bulk delete, raw SQL, a file write to a path built from input, an id in the payload or an owner column in the payload.
 - **Checks** Whether a changed action acts on a record without an authorization check.
 
@@ -21,7 +21,7 @@ First find the **owner key**: the column, relationship or key part that separate
 
 Start at each changed line that reads or writes a record, in any file. Follow it out to the entry points that call it, such as a route, a command, a job or a channel, to learn whose request it runs for. Follow it in to the query, the path or the cache key, to see which records it can reach and whether it carries the owner key.
 
-For each changed action that acts on a record, find its authorization check. Read `<harness>/authorization.md` for the checks this app uses.
+For each changed action that acts on a record, find its authorization check. Read `<harness>/authorization.md` for the checks this app uses. If the index block lists no authorization doc, the app has no authorization package. Find the checks in the code of the app, and say that the doc is missing.
 
 ## Threshold
 
