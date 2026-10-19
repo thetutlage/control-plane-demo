@@ -26,9 +26,14 @@ jobs:
       - name: Install the harness
         run: node ace flow:install --agent=claude --stack=react --package=@adonisjs/core --package=@adonisjs/inertia --package=edge.js --package=@adonisjs/auth --package=@adonisjs/mail --package=@adonisjs/session --package=@adonisjs/lucid --package=@adonisplus/persona --package=@vinejs/vine
 
+      - run: rm -rf "$RUNNER_TEMP/home" && mkdir -p "$RUNNER_TEMP/home"
+
       - uses: anthropics/claude-code-action@v1
         env:
           CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: '1'
+          # The runner runs as the Mac user. A fresh home keeps the user's own
+          # skills, plugins and rules out of the review, like a hosted runner.
+          HOME: ${{ runner.temp }}/home
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}

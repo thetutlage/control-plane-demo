@@ -44,7 +44,7 @@ For each lens in the set that has a file to review under its globs:
 
 When a lens says to stop, stop that lens and go to the next one.
 
-If you can start sub-agents, start one for each lens. Give it the lens, the files under its globs, and what to review from step 1. Run at most `maxParallel` sub-agents at a time. When one finishes, start the next lens. If you cannot start sub-agents, do one lens after the other.
+If you can start sub-agents, start one for each lens. When the `flow-review-lens` agent is installed, start each sub-agent with it. Give it the lens, the files under its globs, and what to review from step 1. Run at most `maxParallel` sub-agents at a time. When one finishes, start the next lens. If you cannot start sub-agents, do one lens after the other.
 
 Wait until every lens has returned its findings before you go to step 4. Do not end your turn while a lens runs.
 
