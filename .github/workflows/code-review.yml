@@ -1,0 +1,43 @@
+name: Code review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install the harness
+        run: node ace flow:install --agent=claude --stack=react --package=@adonisjs/core --package=@adonisjs/inertia --package=edge.js --package=@adonisjs/auth --package=@adonisjs/mail --package=@adonisjs/session --package=@adonisjs/lucid --package=@adonisplus/persona --package=@vinejs/vine
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            /flow-code-review Review the diff between ${{ github.event.pull_request.base.sha }} and ${{ github.event.pull_request.head.sha }}.
+          claude_args: --allowedTools "Read,Glob,Grep,Write,Agent,Bash(git diff:*),Bash(git show:*)"
+
+      - uses: reviewdog/action-setup@v1
+
+      - name: Post findings
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node ace flow:reviewdog | reviewdog -f=rdjson -name=flow -reporter=github-pr-review \
+            -filter-mode=added -fail-level=error
