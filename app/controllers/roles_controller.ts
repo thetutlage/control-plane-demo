@@ -6,7 +6,7 @@ import RoleTransformer from '#transformers/role_transformer'
 import PermissionCatalogTransformer from '#transformers/permission_catalog_transformer'
 
 /**
- * The organization's roles, used by every environment
+ * The organization's roles, shared by every environment
  */
 export default class RolesController {
   /**

@@ -13,6 +13,7 @@ import { controllers } from '#generated/controllers'
 import router from '@adonisjs/core/services/router'
 
 router.on('/').renderInertia('home', {}).as('home')
+router.get('version', () => ({ version: '1.0.0' }))
 
 router
   .group(() => {
