@@ -42,7 +42,10 @@ export default class AuditLogsController {
    * once, for the batch link on an event.
    */
   async batch({ inertia, params }: HttpContext) {
-    const events = await AuditEvent.query().where('batch_id', params.batch).preload('refs')
+    const events = await AuditEvent.query()
+      .where('batch_id', params.batch)
+      .orderBy('id', 'desc')
+      .preload('refs')
     return inertia.render('audit_logs/index', {
       events: AuditEventTransformer.transform(events),
       category: null,

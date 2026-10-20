@@ -15,7 +15,7 @@ import { setupOnboardedOrganization } from '#tests/helpers/organizations'
 function scopeFor(organization: Organization) {
   return new Scope(actions, new Collector(auditStore), {
     organizationId: organization.id,
-    requestId: 'req-1',
+    requestId: 'req-audit-1',
     ip: '203.0.113.7',
     userAgent: 'A test browser',
   })
