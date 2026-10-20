@@ -103,7 +103,7 @@ test.group('Console audit logs', (group) => {
     await page.assertVisible(refused.getByText('wrong_password', { exact: true }))
     await page.assertVisible(refused.getByText('203.0.113.7', { exact: true }))
     await page.assertVisible(refused.getByText('A test browser', { exact: true }))
-    await page.assertVisible(refused.getByText('req-1', { exact: true }))
+    await page.assertVisible(refused.getByText('req-audit-1', { exact: true }))
   })
 
   test('the events are narrowed to a category, an environment, or both', async ({
