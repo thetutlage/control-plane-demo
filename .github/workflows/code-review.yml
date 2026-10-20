@@ -7,10 +7,11 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  checks: write
 
 jobs:
   review:
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -19,34 +20,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
 
-      - run: npm ci
-
-      - name: Install the harness
-        run: node ace flow:install --agent=claude --stack=react --package=@adonisjs/core --package=@adonisjs/inertia --package=edge.js --package=@adonisjs/auth --package=@adonisjs/mail --package=@adonisjs/session --package=@adonisjs/lucid --package=@adonisplus/persona --package=@vinejs/vine
-
-      - run: rm -rf "$RUNNER_TEMP/home" && mkdir -p "$RUNNER_TEMP/home"
-
-      - uses: anthropics/claude-code-action@v1
-        env:
-          CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: '1'
-          # The runner runs as the Mac user. A fresh home keeps the user's own
-          # skills, plugins and rules out of the review, like a hosted runner.
-          HOME: ${{ runner.temp }}/home
-        with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          show_full_output: true
-          prompt: |
-            /flow-code-review Review the diff between ${{ github.event.pull_request.base.sha }} and ${{ github.event.pull_request.head.sha }}.
-          claude_args: --model opus --allowedTools "Read,Glob,Grep,Write,Agent,Bash(git diff:*),Bash(git show:*)"
-
-      - uses: reviewdog/action-setup@v1
-
-      - name: Post findings
-        env:
-          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install Flow and the reviewer
         run: |
-          node ace flow:reviewdog | reviewdog -f=rdjson -name=flow -reporter=github-pr-review \
-            -filter-mode=added -fail-level=error
+          mkdir -p "$RUNNER_TEMP/tools" node_modules/.bin
+          cd "$RUNNER_TEMP/tools" && npm init -y > /dev/null
+          npm install --no-audit --no-fund "$GITHUB_WORKSPACE"/vendor/review/*.tgz
+          ln -s "$RUNNER_TEMP"/tools/node_modules/.bin/* "$GITHUB_WORKSPACE/node_modules/.bin/"
+
+      - run: npx flow install --ci
+
+      - name: Review
+        run: npx flow-reviewer run ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} --post --pr=${{ github.event.pull_request.number }}
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

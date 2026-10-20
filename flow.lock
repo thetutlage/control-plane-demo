@@ -1,0 +1,18 @@
+{
+  "agents": [
+    "claude"
+  ],
+  "stack": "react",
+  "packages": [
+    "@adonisjs/core",
+    "@adonisjs/inertia",
+    "edge.js",
+    "@adonisjs/auth",
+    "@adonisjs/mail",
+    "@adonisjs/session",
+    "@adonisjs/lucid",
+    "@adonisplus/persona",
+    "@vinejs/vine"
+  ],
+  "installRoot": "."
+}

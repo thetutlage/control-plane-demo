@@ -1,0 +1,23 @@
+maxFindings: 10
+maxParallel: 4
+lenses:
+  - ref: .flow/lenses/review-access-control.md
+    globs: ['app/**']
+  - ref: .flow/lenses/review-response-exposure.md
+    globs: ['app/**', 'inertia/**', 'resources/views/**']
+  - ref: .flow/lenses/review-response-design.md
+    globs: ['app/**', 'inertia/**', 'resources/views/**']
+  - ref: .flow/lenses/review-cruddy-controllers.md
+    globs: ['app/controllers/**', 'start/routes.ts']
+    severity: nit
+  - ref: .flow/lenses/review-migration-safety.md
+    globs: ['database/migrations/**']
+  - ref: .flow/lenses/review-input-validation.md
+    globs: ['app/**', 'database/migrations/**']
+  - ref: .flow/lenses/review-query-cost.md
+    globs: ['app/**']
+  - ref: .flow/lenses/review-code-placement.md
+    globs: ['app/**']
+    severity: nit
+  - ref: .flow/lenses/review-tests.md
+    globs: ['app/**', 'tests/**']
