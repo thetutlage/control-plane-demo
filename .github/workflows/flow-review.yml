@@ -1,0 +1,39 @@
+name: Flow review
+
+on:
+  workflow_dispatch:
+    inputs:
+      payload:
+        description: Sent by the Flow App. Do not edit.
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # This demo installs only Flow, from the vendored tarball, instead of
+      # npm ci: its other packages need a token for the Plus registry
+      - name: Install Flow
+        run: |
+          mkdir -p "$RUNNER_TEMP/tools" node_modules/.bin
+          cd "$RUNNER_TEMP/tools" && npm init -y > /dev/null
+          npm install --no-audit --no-fund "$GITHUB_WORKSPACE"/vendor/review/adonisplus-flow-*.tgz
+          ln -s "$RUNNER_TEMP"/tools/node_modules/.bin/* "$GITHUB_WORKSPACE/node_modules/.bin/"
+
+      - run: npx flow install --ci
+
+      - uses: adonisjs-plus/flow-review-action@v0
+        with:
+          payload: ${{ inputs.payload }}
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
