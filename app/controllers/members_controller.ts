@@ -13,7 +13,7 @@ import ProviderSignInNotification from '#mails/provider_sign_in_notification'
 
 export default class MembersController {
   /**
-   * One of the organization's members. Another organization's member is a
+   * One member of the organization. Another organization's member is a
    * 404.
    */
   async #findMember(organization: Organization, id: string) {
