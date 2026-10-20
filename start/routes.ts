@@ -89,6 +89,8 @@ router
       .params({ members: 'member', identities: 'identity' })
 
     router.resource('roles', controllers.Roles).except(['show']).params({ roles: 'role' })
+    router.get('audit-logs', [controllers.AuditLogs, 'index'])
+    router.get('audit-logs/batches/:batch', [controllers.AuditLogs, 'batch'])
     router.get('settings/environments', [controllers.Environments, 'index'])
 
     router

@@ -967,6 +967,33 @@ fieldset.field {
   color: var(--ink);
 }
 
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.filters__item {
+  padding: 3px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+.filters__item:hover {
+  color: var(--ink);
+}
+.filters__item[aria-current='true'] {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+.pager {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
 /* --- data display --- */
 .notice {
   margin-bottom: 16px;
@@ -1003,6 +1030,17 @@ fieldset.field {
 }
 .table tr:last-child td {
   border-bottom: none;
+}
+/* rows that open, so every cell stays at the top */
+.table--events td {
+  vertical-align: top;
+}
+.table__when {
+  white-space: nowrap;
+  color: var(--muted);
+}
+.event > summary {
+  cursor: pointer;
 }
 .table .mono {
   font-size: 13px;

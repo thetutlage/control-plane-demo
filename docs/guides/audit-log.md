@@ -106,6 +106,8 @@ const events = await organization
 - `page(limit, cursor?)`: newest first, one more row than `limit`, which says whether another page follows. The cursor is the last event's ID. There are no totals.
 - `event.actor` and `event.subjects` read the preloaded `refs`.
 
+**The console's page** is `/w/:org/audit-logs` (`AuditLogsController.index`). It shows 50 events at a time, with the category, the environment's slug and the cursor in the query string (`category`, `environment`, `before`). A row opens to the event's action, who and what it involves, its data, and the request's IP, browser and ID. An event of the organization itself, such as a new role, has no environment, so it is left out when one is asked for.
+
 ## Tables
 
 - `audit_events`: one row per event.
@@ -122,5 +124,6 @@ Deleting an organization deletes its events.
 - `auditlogs/tests`: the package, without a database (`node ace test auditlogs`).
 - `tests/functional/auditlogs/lucid_store.spec.ts`: what is written, transactions committing and rolling back with their events, and reading through the models.
 - `tests/browser/console/audit_events.spec.ts`: every console action's event.
+- `tests/browser/console/audit_logs.spec.ts`: the console's page.
 - `tests/browser/oidc/audit_events.spec.ts`: the sign-in pages' events, including each reason for a refused password.
 - `assertRecorded` and `auditEvents` (`tests/helpers/audit.ts`) check the stored events. There is no fake.

@@ -67,6 +67,9 @@ export interface ApiDefinition {
     update: typeof routes['roles.update']
     destroy: typeof routes['roles.destroy']
   }
+  auditLogs: {
+    index: typeof routes['audit_logs.index']
+  }
   environments: {
     index: typeof routes['environments.index']
   }

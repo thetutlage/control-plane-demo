@@ -475,6 +475,18 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['destroy']>>>
     }
   }
+  'audit_logs.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/w/:org/audit-logs'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { org: ParamValue }
+      query: ExtractQueryForGet<InferInput<(typeof import('#validators/audit_log').auditLogFiltersValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/audit_logs_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/audit_logs_controller').default['index']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
   'environments.index': {
     methods: ["GET","HEAD"]
     pattern: '/w/:org/settings/environments'
