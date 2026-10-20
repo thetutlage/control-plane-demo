@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import AuditEvent from '#models/audit_event'
 import { auditLogFiltersValidator } from '#validators/audit_log'
 import AuditEventTransformer from '#transformers/audit_event_transformer'
 
@@ -33,6 +34,21 @@ export default class AuditLogsController {
       environment: environment?.slug ?? null,
       before: before ?? null,
       older: events.length > PER_PAGE ? events[PER_PAGE - 1].id : null,
+    })
+  }
+
+  /**
+   * The events of one batch, such as an import that wrote many events at
+   * once, for the batch link on an event.
+   */
+  async batch({ inertia, params }: HttpContext) {
+    const events = await AuditEvent.query().where('batch_id', params.batch).preload('refs')
+    return inertia.render('audit_logs/index', {
+      events: AuditEventTransformer.transform(events),
+      category: null,
+      environment: null,
+      before: null,
+      older: null,
     })
   }
 }

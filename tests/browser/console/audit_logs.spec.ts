@@ -183,7 +183,7 @@ test.group('Console audit logs', (group) => {
     await browserContext.loginAs(globex.user)
     const page = await visit(route('audit_logs.index', { org: 'globex' }))
     const visible = await page.locator('.event > summary').allTextContents()
-    assert.notInclude(visible, acme.added)
+    assert.deepEqual(visible, [])
 
     const response = await page.goto(route('audit_logs.index', { org: 'acme' }))
     assert.equal(response?.status(), 404)
